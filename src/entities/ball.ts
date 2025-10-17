@@ -57,6 +57,8 @@ export class Ball {
     this.body.position.copy(START_POSITION);
     this.body.velocity.set(0, 0, 0);
     this.body.angularVelocity.set(0, 0, 0);
+    this.body.quaternion.set(0, 0, 0, 1);
+    this.body.torque.set(0, 0, 0);
     this.syncVisuals();
   }
 
