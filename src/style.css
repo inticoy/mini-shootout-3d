@@ -9,7 +9,7 @@ body {
   height: 100vh;
   overflow: hidden;
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  background: #2a6f47;
+  background: #3a8f5a;
   touch-action: none;
   user-select: none;
 }
@@ -39,29 +39,15 @@ body {
   padding-top: 20px;
 }
 
-#top-ui {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  position: absolute;
-  top: 30px;
-}
-
 #score {
-  font-size: 54px;
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 86px;
   font-weight: 900;
   color: rgba(255, 255, 255, 0.8);
   transition: transform 0.3s ease, color 0.3s ease;
-  order: 2;
-}
-
-#shots-left {
-  font-size: 24px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.8);
-  order: 1;
 }
 
 #score.score-changed {

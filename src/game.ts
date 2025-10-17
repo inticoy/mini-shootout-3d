@@ -6,7 +6,7 @@ import { configureSceneLighting } from './core/lighting';
 import { createPhysicsWorld } from './physics/world';
 import { createField } from './environment/field';
 import { Ball } from './entities/ball';
-import { Goal } from './entities/goal';
+import { Goal, GOAL_DEPTH } from './entities/goal';
 
 export class MiniShootout3D {
   private readonly canvas: HTMLCanvasElement;
@@ -21,6 +21,8 @@ export class MiniShootout3D {
   private readonly goal: Goal;
 
   private pointerStart: { x: number; y: number } | null = null;
+  private pointerStartTime = 0;
+  private pointerHistory: Array<{ x: number; y: number; time: number }> = [];
   private isShooting = false;
   private goalScoredThisShot = false;
   private score = 0;
@@ -29,6 +31,7 @@ export class MiniShootout3D {
 
   private readonly handleResizeBound = () => this.handleResize();
   private readonly handlePointerDownBound = (event: PointerEvent) => this.handlePointerDown(event);
+  private readonly handlePointerMoveBound = (event: PointerEvent) => this.handlePointerMove(event);
   private readonly handlePointerUpBound = (event: PointerEvent) => this.handlePointerUp(event);
   private readonly handleGoalCollisionBound = (event: { body: CANNON.Body }) => this.handleGoalCollision(event);
 
@@ -44,7 +47,10 @@ export class MiniShootout3D {
     const { world, materials } = createPhysicsWorld();
     this.world = world;
 
-    createField(this.scene, this.world, materials.ground);
+    createField(this.scene, this.world, materials.ground, {
+      goalDepth: GOAL_DEPTH,
+      frontExtent: 30
+    });
 
     this.ball = new Ball(this.world, materials.ball);
     void this.ball.load(this.scene).catch((error) => {
@@ -68,6 +74,7 @@ export class MiniShootout3D {
   private attachEventListeners() {
     window.addEventListener('resize', this.handleResizeBound);
     this.canvas.addEventListener('pointerdown', this.handlePointerDownBound);
+    this.canvas.addEventListener('pointermove', this.handlePointerMoveBound);
     this.canvas.addEventListener('pointerup', this.handlePointerUpBound);
   }
 
@@ -80,6 +87,17 @@ export class MiniShootout3D {
   private handlePointerDown(event: PointerEvent) {
     if (this.isShooting) return;
     this.pointerStart = { x: event.clientX, y: event.clientY };
+    this.pointerStartTime = performance.now();
+    this.pointerHistory = [{ x: event.clientX, y: event.clientY, time: this.pointerStartTime }];
+  }
+
+  private handlePointerMove(event: PointerEvent) {
+    if (!this.pointerStart || this.isShooting) return;
+    const now = performance.now();
+    this.pointerHistory.push({ x: event.clientX, y: event.clientY, time: now });
+    if (this.pointerHistory.length > 8) {
+      this.pointerHistory.shift();
+    }
   }
 
   private handlePointerUp(event: PointerEvent) {
@@ -91,15 +109,54 @@ export class MiniShootout3D {
       y: end.y - this.pointerStart.y
     };
 
+    const endTime = performance.now();
+    const history = this.pointerHistory.length
+      ? this.pointerHistory
+      : [{ x: this.pointerStart.x, y: this.pointerStart.y, time: this.pointerStartTime }];
+    let flickStart = history[0];
+    for (let i = history.length - 1; i >= 0; i--) {
+      if (endTime - history[i].time >= 60) {
+        flickStart = history[i];
+        break;
+      }
+    }
+
+    const flickVector = new THREE.Vector2(end.x - flickStart.x, end.y - flickStart.y);
+    const fallback = new THREE.Vector2(delta.x, delta.y);
+    if (flickVector.lengthSq() < 4 && fallback.lengthSq() > 0) {
+      flickVector.copy(fallback);
+    }
+    const flickLength = flickVector.length();
+    const flickDuration = Math.max(endTime - flickStart.time, 30);
+    const flickSpeed = flickLength / flickDuration;
+
     this.pointerStart = null;
+    this.pointerHistory = [];
     this.isShooting = true;
     this.goalScoredThisShot = false;
 
-    const forceMagnitude = 2.2;
-    const upwardForce = Math.max(0, -delta.y / 40);
-    const sideForce = delta.x / 40;
-    const force = new CANNON.Vec3(sideForce, upwardForce, -20 * forceMagnitude);
-    this.ball.body.applyImpulse(force, new CANNON.Vec3(0, 0, 0));
+    const basePower = THREE.MathUtils.clamp(flickSpeed * 32 + flickLength / 24, 8, 38);
+
+    const direction = flickLength > 0 ? flickVector.clone().normalize() : new THREE.Vector2();
+    const verticalComponent = Math.max(-direction.y, 0);
+    const loftFactorRaw = THREE.MathUtils.clamp((verticalComponent - 0.25) / 0.55, 0, 1);
+    const loftFactor = Math.pow(loftFactorRaw, 1.15);
+    const straightBias = 1 - loftFactor;
+    const lateralFactor = THREE.MathUtils.clamp(direction.x, -0.85, 0.85);
+
+    const forwardImpulse = -basePower * (1.22 - loftFactor * 0.2);
+    const upwardImpulse = basePower * loftFactor * 0.42 + verticalComponent * 1.35;
+    const sideImpulse = basePower * lateralFactor * 0.6;
+
+    const impulse = new CANNON.Vec3(sideImpulse, upwardImpulse, forwardImpulse);
+    this.ball.body.applyImpulse(impulse, new CANNON.Vec3(0, 0, 0));
+
+    const spinStrength = basePower * 0.55;
+    const sideSpin = -lateralFactor * spinStrength;
+    const topSpin =
+      loftFactor > 0.6 ? -spinStrength * loftFactor * 0.7 : spinStrength * straightBias * 0.22;
+    const rollSpin = lateralFactor * 1.4;
+    this.ball.body.angularVelocity.set(sideSpin, rollSpin, topSpin);
 
     window.setTimeout(() => this.resetShot(), 3000);
   }
@@ -107,6 +164,8 @@ export class MiniShootout3D {
   private resetShot() {
     this.isShooting = false;
     this.goalScoredThisShot = false;
+    this.pointerStartTime = 0;
+    this.pointerHistory = [];
     this.ball.reset();
   }
 
@@ -124,6 +183,7 @@ export class MiniShootout3D {
   public destroy() {
     window.removeEventListener('resize', this.handleResizeBound);
     this.canvas.removeEventListener('pointerdown', this.handlePointerDownBound);
+    this.canvas.removeEventListener('pointermove', this.handlePointerMoveBound);
     this.canvas.removeEventListener('pointerup', this.handlePointerUpBound);
     this.goal.bodies.sensor.removeEventListener('collide', this.handleGoalCollisionBound);
   }

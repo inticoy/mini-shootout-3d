@@ -7,10 +7,17 @@ export interface Field {
   groundBody: CANNON.Body;
 }
 
+export interface FieldOptions {
+  goalDepth?: number;
+  frontExtent?: number;
+  stripeWidth?: number;
+}
+
 export function createField(
   scene: THREE.Scene,
   world: CANNON.World,
-  groundMaterial: CANNON.Material
+  groundMaterial: CANNON.Material,
+  options: FieldOptions = {}
 ): Field {
   const groundMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(100, 100),
@@ -30,14 +37,19 @@ export function createField(
     roughness: 0.8,
     metalness: 0.2
   });
-  const stripeWidth = 5;
+  const stripeWidth = options.stripeWidth ?? 5;
+  const goalDepth = options.goalDepth ?? -22;
+  const backExtent = Math.abs(goalDepth);
+  const frontExtent = options.frontExtent ?? 28;
+  const stripeDepth = frontExtent + backExtent;
+  const stripeCenterZ = (frontExtent - backExtent) / 2;
 
   for (let i = -50; i < 50; i += stripeWidth * 2) {
     const stripe = new THREE.Mesh(
-      new THREE.PlaneGeometry(stripeWidth, 100),
+      new THREE.PlaneGeometry(stripeWidth, stripeDepth),
       stripeMaterial
     );
-    stripe.position.set(i + stripeWidth / 2, 0.01, 0);
+    stripe.position.set(i + stripeWidth / 2, 0.01, stripeCenterZ);
     stripe.rotation.x = -Math.PI / 2;
     stripe.receiveShadow = true;
     scene.add(stripe);

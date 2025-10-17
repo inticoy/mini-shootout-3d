@@ -2,13 +2,16 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import gltfModel from '../assets/gltf/soccer_ball.gltf?url';
+import gltfBinary from '../assets/gltf/soccer_ball.bin?url';
+import baseColorTexture from '../assets/gltf/soccer_ball_mat_bcolor.png?url';
+import normalTexture from '../assets/gltf/soccer_ball_Normal.png?url';
+import metallicRoughnessTexture from '../assets/gltf/soccer_ball_Metallic-soccer_ball_Roughness.png?url';
 
 const BALL_RADIUS = 0.35;
 const GLTF_SCALE = 0.05;
-const START_POSITION = new CANNON.Vec3(0, BALL_RADIUS, 15);
+const START_POSITION = new CANNON.Vec3(0, BALL_RADIUS, 0);
 
 export class Ball {
-  private readonly loader = new GLTFLoader();
   private readonly rotationHelper = new THREE.Quaternion();
 
   public readonly body: CANNON.Body;
@@ -27,7 +30,23 @@ export class Ball {
   }
 
   async load(scene: THREE.Scene): Promise<void> {
-    const gltf = await this.loader.loadAsync(gltfModel);
+    const assetMap = new Map<string, string>([
+      ['soccer_ball.bin', gltfBinary],
+      ['soccer_ball_mat_bcolor.png', baseColorTexture],
+      ['soccer_ball_Normal.png', normalTexture],
+      ['soccer_ball_Metallic-soccer_ball_Roughness.png', metallicRoughnessTexture]
+    ]);
+
+    const urlModifier = (url: string) => {
+      const key = url.split('/').pop() ?? url;
+      return assetMap.get(key) ?? url;
+    };
+
+    const manager = new THREE.LoadingManager();
+    manager.setURLModifier(urlModifier);
+
+    const loader = new GLTFLoader(manager);
+    const gltf = await loader.loadAsync(gltfModel);
     const mesh = this.prepareVisual(gltf.scene);
     scene.add(mesh);
     this.mesh = mesh;
