@@ -21,6 +21,7 @@ export class MiniShootout3D {
   private readonly ball: Ball;
   private readonly goal: Goal;
   private readonly goalKeeper: GoalKeeper;
+  private readonly toggleKeeperColliderRef: (visible: boolean) => void;
 
   private pointerStart: { x: number; y: number } | null = null;
   private pointerStartTime = 0;
@@ -62,7 +63,10 @@ export class MiniShootout3D {
     this.goal = new Goal(this.scene, this.world);
     this.goal.bodies.sensor.addEventListener('collide', this.handleGoalCollisionBound);
 
-    this.goalKeeper = new GoalKeeper(this.scene, this.world, GOAL_DEPTH + 0.8);
+    this.goalKeeper = new GoalKeeper(this.scene, this.world, GOAL_DEPTH + 0.8, this.ball.body);
+    this.toggleKeeperColliderRef = (visible: boolean) => this.goalKeeper.setColliderDebugVisible(visible);
+    (window as typeof window & { toggleKeeperCollider?: (visible: boolean) => void }).toggleKeeperCollider =
+      this.toggleKeeperColliderRef;
 
     this.attachEventListeners();
     this.animate();
@@ -73,6 +77,7 @@ export class MiniShootout3D {
     this.goalScoredThisShot = true;
     this.score += 1;
     this.onScoreChange(this.score);
+    this.goalKeeper.stopTracking();
   }
 
   private attachEventListeners() {
@@ -154,6 +159,7 @@ export class MiniShootout3D {
 
     const impulse = new CANNON.Vec3(sideImpulse, upwardImpulse, forwardImpulse);
     this.ball.body.applyImpulse(impulse, new CANNON.Vec3(0, 0, 0));
+    this.goalKeeper.resetTracking();
 
     const spinStrength = basePower * 0.55;
     const sideSpin = -lateralFactor * spinStrength;
@@ -162,7 +168,19 @@ export class MiniShootout3D {
     const rollSpin = lateralFactor * 1.4;
     this.ball.body.angularVelocity.set(sideSpin, rollSpin, topSpin);
 
-    window.setTimeout(() => this.resetShot(), 3000);
+    window.setTimeout(() => this.checkShotOutcome(), 2500);
+  }
+
+  private checkShotOutcome() {
+    const beforeReset = this.isShooting;
+    this.resetShot();
+    if (!beforeReset) return;
+
+    const dz = this.ball.body.position.z - (GOAL_DEPTH + 0.8);
+    const velocityZ = this.ball.body.velocity.z;
+    if (velocityZ > 0 && dz > 0) {
+      this.goalKeeper.stopTracking();
+    }
   }
 
   private resetShot() {
@@ -178,14 +196,15 @@ export class MiniShootout3D {
     this.pointerStartTime = 0;
     this.pointerHistory = [];
     this.ball.reset();
+    this.goalKeeper.resetTracking();
   }
 
   private animate = () => {
     requestAnimationFrame(this.animate);
 
     const deltaTime = this.clock.getDelta();
-    this.goalKeeper.update(deltaTime);
     this.world.step(1 / 60, deltaTime, 3);
+    this.goalKeeper.update(deltaTime);
 
     this.ball.syncVisuals();
 
@@ -198,5 +217,6 @@ export class MiniShootout3D {
     this.canvas.removeEventListener('pointermove', this.handlePointerMoveBound);
     this.canvas.removeEventListener('pointerup', this.handlePointerUpBound);
     this.goal.bodies.sensor.removeEventListener('collide', this.handleGoalCollisionBound);
+    delete (window as typeof window & { toggleKeeperCollider?: (visible: boolean) => void }).toggleKeeperCollider;
   }
 }
