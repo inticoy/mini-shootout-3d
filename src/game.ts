@@ -49,8 +49,18 @@ export class MiniShootout3D {
   private readonly tempAxisZ = new THREE.Vector3();
   private readonly tempBallPosition = new THREE.Vector3();
   private readonly tempBallOffset = new THREE.Vector3();
+  private readonly tempCurveVector = new THREE.Vector3();
   private readonly debugButton: HTMLButtonElement;
-
+  private elapsedTime = 0;
+  private lastGroundContactTime = -Infinity;
+  private activeCurve:
+    | {
+        direction: THREE.Vector3;
+        strength: number;
+        duration: number;
+        startTime: number;
+      }
+    | null = null;
   private pointerStart: { x: number; y: number } | null = null;
   private pointerStartTime = 0;
   private pointerHistory: Array<{ x: number; y: number; time: number }> = [];
@@ -258,6 +268,7 @@ export class MiniShootout3D {
     this.goalKeeper.resetTracking();
 
     this.scheduleStrikeSpin(startContact, basePower);
+    this.configureStrikeCurve(startContact, basePower);
 
     window.setTimeout(() => this.checkShotOutcome(), 2500);
     this.lastStrikeContact = { x: startContact.x, y: startContact.y };
@@ -294,12 +305,16 @@ export class MiniShootout3D {
     this.strikeContact = null;
     this.liveSwipeVector = null;
     this.pointerStartNormalized = null;
+    this.activeCurve = null;
+    this.lastGroundContactTime = -Infinity;
   }
 
   private animate = () => {
     requestAnimationFrame(this.animate);
 
     const deltaTime = this.clock.getDelta();
+    this.elapsedTime += deltaTime;
+    this.applyStrikeCurve(deltaTime);
     this.world.step(1 / 60, deltaTime, 3);
     this.goalKeeper.update(deltaTime);
 
@@ -446,6 +461,93 @@ export class MiniShootout3D {
     this.trajectoryGeometry.setPositions(Array.from(this.trajectoryPositions));
     this.trajectoryLine.computeLineDistances();
     this.trajectoryGeometry.computeBoundingSphere();
+  }
+
+  private configureStrikeCurve(strikeContact: { x: number; y: number }, basePower: number) {
+    const magnitude = THREE.MathUtils.clamp(Math.hypot(strikeContact.x, strikeContact.y), 0, 1.35);
+    if (magnitude < 0.05) {
+      this.activeCurve = null;
+      return;
+    }
+
+    const lateral = THREE.MathUtils.clamp(-strikeContact.x, -1.35, 1.35);
+    const vertical = THREE.MathUtils.clamp(strikeContact.y, -1.25, 1.25);
+    const direction = new THREE.Vector3(lateral * 0.75, vertical * 0.52, 0);
+    if (direction.lengthSq() < 1e-4) {
+      this.activeCurve = null;
+      return;
+    }
+
+    const duration = THREE.MathUtils.lerp(0.55, 2.1, magnitude);
+    const strength = basePower * 0.34 * (0.42 + magnitude * 0.75);
+
+    this.activeCurve = {
+      direction,
+      strength,
+      duration,
+      startTime: this.elapsedTime
+    };
+    this.lastGroundContactTime = -Infinity;
+  }
+
+  private applyStrikeCurve(deltaTime: number) {
+    const curve = this.activeCurve;
+    if (!curve) return;
+
+    const body = this.ball.body;
+    const velocity = body.velocity;
+    const now = this.elapsedTime;
+
+    const onGround = body.position.y <= BALL_RADIUS + 0.03;
+    if (onGround && velocity.y <= 0.6) {
+      this.lastGroundContactTime = now;
+    }
+
+    if (now - this.lastGroundContactTime < 0.2) {
+      return;
+    }
+
+    const age = now - curve.startTime;
+    if (age >= curve.duration) {
+      this.activeCurve = null;
+      return;
+    }
+
+    const speedSq = velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z;
+    if (speedSq < 0.05) {
+      this.activeCurve = null;
+      return;
+    }
+
+    const progress = age / curve.duration;
+    const falloff = Math.max(0, 1 - progress * progress);
+    if (falloff <= 0) {
+      this.activeCurve = null;
+      return;
+    }
+
+    const influence = curve.strength * falloff * deltaTime;
+    if (influence <= 0) {
+      return;
+    }
+
+    this.tempCurveVector.copy(curve.direction).multiplyScalar(influence);
+
+    const vx = velocity.x + this.tempCurveVector.x;
+    const vy = velocity.y + this.tempCurveVector.y;
+    const vz = velocity.z + this.tempCurveVector.z;
+
+    const originalSpeed = Math.sqrt(speedSq);
+    const newSpeedSq = vx * vx + vy * vy + vz * vz;
+    if (newSpeedSq <= 1e-6) {
+      this.activeCurve = null;
+      return;
+    }
+
+    const normalize = originalSpeed / Math.sqrt(newSpeedSq);
+    velocity.x = vx * normalize;
+    velocity.y = vy * normalize;
+    velocity.z = vz * normalize;
   }
 
   private updateAxisArrows() {
