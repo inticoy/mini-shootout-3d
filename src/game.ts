@@ -7,6 +7,7 @@ import { createPhysicsWorld } from './physics/world';
 import { createField } from './environment/field';
 import { Ball } from './entities/ball';
 import { Goal, GOAL_DEPTH } from './entities/goal';
+import { GoalKeeper } from './entities/goalkeeper';
 
 export class MiniShootout3D {
   private readonly canvas: HTMLCanvasElement;
@@ -19,6 +20,7 @@ export class MiniShootout3D {
 
   private readonly ball: Ball;
   private readonly goal: Goal;
+  private readonly goalKeeper: GoalKeeper;
 
   private pointerStart: { x: number; y: number } | null = null;
   private pointerStartTime = 0;
@@ -59,6 +61,8 @@ export class MiniShootout3D {
 
     this.goal = new Goal(this.scene, this.world);
     this.goal.bodies.sensor.addEventListener('collide', this.handleGoalCollisionBound);
+
+    this.goalKeeper = new GoalKeeper(this.scene, this.world, GOAL_DEPTH + 0.8);
 
     this.attachEventListeners();
     this.animate();
@@ -162,7 +166,14 @@ export class MiniShootout3D {
   }
 
   private resetShot() {
+    const missed = !this.goalScoredThisShot && this.isShooting;
     this.isShooting = false;
+
+    if (missed && this.score !== 0) {
+      this.score = 0;
+      this.onScoreChange(this.score);
+    }
+
     this.goalScoredThisShot = false;
     this.pointerStartTime = 0;
     this.pointerHistory = [];
@@ -173,6 +184,7 @@ export class MiniShootout3D {
     requestAnimationFrame(this.animate);
 
     const deltaTime = this.clock.getDelta();
+    this.goalKeeper.update(deltaTime);
     this.world.step(1 / 60, deltaTime, 3);
 
     this.ball.syncVisuals();
