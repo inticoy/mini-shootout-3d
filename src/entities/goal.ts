@@ -5,6 +5,7 @@ const GOAL_WIDTH = 14.6;
 const GOAL_HEIGHT = 4.8;
 const POST_RADIUS = 0.2;
 const GOAL_DEPTH = -15;
+const CROSSBAR_LENGTH = GOAL_WIDTH + POST_RADIUS * 1.5;
 
 export interface GoalBodies {
   leftPost: CANNON.Body;
@@ -17,13 +18,15 @@ export class Goal {
   public readonly bodies: GoalBodies;
 
   constructor(scene: THREE.Scene, world: CANNON.World) {
-    const postMaterial = new THREE.MeshStandardMaterial({
-      color: 0xeeeeee,
-      roughness: 0.2,
-      metalness: 0.8
+    const postMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xf4f6fa,
+      roughness: 0.4,
+      metalness: 0.0,
+      clearcoat: 0.25,
+      clearcoatRoughness: 0.15
     });
 
-    const postGeometry = new THREE.CylinderGeometry(POST_RADIUS, POST_RADIUS, GOAL_HEIGHT, 16);
+    const postGeometry = new THREE.CylinderGeometry(POST_RADIUS, POST_RADIUS, GOAL_HEIGHT, 32);
     const leftPostMesh = new THREE.Mesh(postGeometry, postMaterial);
     leftPostMesh.position.set(-GOAL_WIDTH / 2, GOAL_HEIGHT / 2, GOAL_DEPTH);
     leftPostMesh.castShadow = true;
@@ -34,7 +37,7 @@ export class Goal {
     rightPostMesh.castShadow = true;
     scene.add(rightPostMesh);
 
-    const crossbarGeometry = new THREE.CylinderGeometry(POST_RADIUS, POST_RADIUS, GOAL_WIDTH, 16);
+    const crossbarGeometry = new THREE.CylinderGeometry(POST_RADIUS, POST_RADIUS, CROSSBAR_LENGTH, 32);
     const crossbarMesh = new THREE.Mesh(crossbarGeometry, postMaterial);
     crossbarMesh.position.set(0, GOAL_HEIGHT, GOAL_DEPTH);
     crossbarMesh.rotation.z = Math.PI / 2;
@@ -42,7 +45,6 @@ export class Goal {
     scene.add(crossbarMesh);
 
     const postShape = new CANNON.Box(new CANNON.Vec3(POST_RADIUS, GOAL_HEIGHT / 2, POST_RADIUS));
-    const crossbarShape = new CANNON.Box(new CANNON.Vec3(GOAL_WIDTH / 2, POST_RADIUS, POST_RADIUS));
 
     const leftPostBody = new CANNON.Body({
       mass: 0,
@@ -60,7 +62,7 @@ export class Goal {
 
     const crossbarBody = new CANNON.Body({
       mass: 0,
-      shape: crossbarShape,
+      shape: new CANNON.Box(new CANNON.Vec3(CROSSBAR_LENGTH / 2, POST_RADIUS, POST_RADIUS)),
       position: new CANNON.Vec3(0, GOAL_HEIGHT, GOAL_DEPTH)
     });
     world.addBody(crossbarBody);

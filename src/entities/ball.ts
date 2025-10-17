@@ -80,9 +80,12 @@ export class Ball {
     const materials = Array.isArray(material) ? material : [material];
     materials.forEach((mat) => {
       if (mat instanceof THREE.MeshStandardMaterial) {
-        mat.metalness = 0.3;
-        mat.roughness = 0.7;
-        mat.color.multiplyScalar(2.5);
+        mat.metalness = 0.0;
+        mat.roughness = 0.95;
+        if (mat.map) {
+          mat.map.colorSpace = THREE.SRGBColorSpace;
+        }
+        mat.color.multiplyScalar(3.8);
         mat.needsUpdate = true;
       }
     });
