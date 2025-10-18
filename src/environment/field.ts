@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
+import grassAlbedoUrl from '../assets/grass1-unity/grass1-albedo3.png?url';
+import grassNormalUrl from '../assets/grass1-unity/grass1-normal1-ogl.png?url';
+import grassAoUrl from '../assets/grass1-unity/grass1-ao.png?url';
 
 export interface Field {
   groundMesh: THREE.Mesh;
@@ -19,10 +22,30 @@ export function createField(
   groundMaterial: CANNON.Material,
   options: FieldOptions = {}
 ): Field {
+  const textureLoader = new THREE.TextureLoader();
+  const grassTexture = textureLoader.load(grassAlbedoUrl);
+  grassTexture.colorSpace = THREE.SRGBColorSpace;
+  grassTexture.anisotropy = 8;
+  grassTexture.wrapS = THREE.RepeatWrapping;
+  grassTexture.wrapT = THREE.RepeatWrapping;
+  grassTexture.repeat.set(100, 100);
+
+  const normalTexture = textureLoader.load(grassNormalUrl);
+  normalTexture.wrapS = THREE.RepeatWrapping;
+  normalTexture.wrapT = THREE.RepeatWrapping;
+  normalTexture.repeat.set(100, 100);
+
+  const aoTexture = textureLoader.load(grassAoUrl);
+  aoTexture.wrapS = THREE.RepeatWrapping;
+  aoTexture.wrapT = THREE.RepeatWrapping;
+  aoTexture.repeat.set(100, 100);
+
   const groundMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(100, 100),
     new THREE.MeshStandardMaterial({
-      color: 0x2E7D32,  // Hex(2E7D32)로 설정
+      map: grassTexture,
+      normalMap: normalTexture,
+      roughnessMap: aoTexture,
       roughness: 1.0,
       metalness: 0.0
     })
@@ -33,11 +56,11 @@ export function createField(
 
   const stripeMeshes: THREE.Mesh[] = [];
   const stripeMaterial = new THREE.MeshStandardMaterial({
-    color: 0x32CD32,  // 밝은 초록색 (축구 필드 줄무늬처럼)
+    color: 0x1A5A1A,  // 더 어두운 초록색
     roughness: 1.0,
     metalness: 0.0,
     transparent: true,
-    opacity: 0.5
+    opacity: 0.3  // 더 연하게
   });
   const stripeWidth = options.stripeWidth ?? 5;
   const stripeDepth = 100;
@@ -58,11 +81,11 @@ export function createField(
 
   const verticalStripes: THREE.Mesh[] = [];
   const verticalStripeMaterial = new THREE.MeshStandardMaterial({
-    color: 0x32CD32,
+    color: 0x4A6F4A,  // 아주 살짝 밝은 탁한 초록색
     roughness: 1.0,
     metalness: 0.0,
     transparent: true,
-    opacity: 0.5,
+    opacity: 0.3,  // 더 연하게
     depthWrite: false  // 겹치는 부분에서도 보이게
   });
   const verticalStripeDepth = 100;  // 골대 앞쪽 길이

@@ -33,6 +33,7 @@ export class GoalKeeper {
     const material = new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
+      alphaTest: 0.1,
       side: THREE.DoubleSide
     });
 
