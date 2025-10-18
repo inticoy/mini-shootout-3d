@@ -7,6 +7,7 @@ import adTexture1Url from '../assets/ad/burger_queen.png?url';
 import adTexture2Url from '../assets/ad/coloc_coloc.png?url';
 import adTexture3Url from '../assets/ad/sansung.png?url';
 import adTexture4Url from '../assets/ad/star_cups.png?url';
+import { GOAL_WIDTH } from '../entities/goal';
 
 export interface Field {
   groundMesh: THREE.Mesh;
@@ -15,6 +16,11 @@ export interface Field {
   groundBody: CANNON.Body;
   adBoardMesh: THREE.Mesh;
   adBoardBody: CANNON.Body;
+  goalLineMesh: THREE.Mesh;
+  penaltyMarkMesh: THREE.Mesh;
+  penaltyBoxMeshes: THREE.Mesh[];
+  penaltyAreaMeshes: THREE.Mesh[];
+  penaltyArcMesh: THREE.Mesh;
   update(deltaTime: number): void;
   resetAds(): void;
 }
@@ -36,17 +42,17 @@ export function createField(
   grassTexture.anisotropy = 8;
   grassTexture.wrapS = THREE.RepeatWrapping;
   grassTexture.wrapT = THREE.RepeatWrapping;
-  grassTexture.repeat.set(100, 100);
+  grassTexture.repeat.set(120, 120);
 
   const normalTexture = textureLoader.load(grassNormalUrl);
   normalTexture.wrapS = THREE.RepeatWrapping;
   normalTexture.wrapT = THREE.RepeatWrapping;
-  normalTexture.repeat.set(100, 100);
+  normalTexture.repeat.set(120, 120);
 
   const aoTexture = textureLoader.load(grassAoUrl);
   aoTexture.wrapS = THREE.RepeatWrapping;
   aoTexture.wrapT = THREE.RepeatWrapping;
-  aoTexture.repeat.set(100, 100);
+  aoTexture.repeat.set(120, 120);
 
   const groundMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(100, 100),
@@ -104,7 +110,7 @@ export function createField(
       new THREE.PlaneGeometry(stripeWidth, verticalStripeDepth),
       verticalStripeMaterial
     );
-    verticalStripe.position.set(i + stripeWidth / 2, 0.03, stripeCenterZ);
+    verticalStripe.position.set(i + stripeWidth / 2, 0.011, stripeCenterZ);
     verticalStripe.rotation.x = -Math.PI / 2;
     verticalStripe.receiveShadow = true;
     scene.add(verticalStripe);
@@ -120,9 +126,103 @@ export function createField(
   world.addBody(groundBody);
 
   const goalDepth = options.goalDepth ?? -10;
+
+  // 골라인 추가
+  const penaltyBoxWidth = GOAL_WIDTH + 10;
+  const penaltyBoxDepth = 5;
+  const goalLineGeometry = new THREE.BoxGeometry(100, 0.01, 0.1);
+  const goalLineMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+  const goalLineMesh = new THREE.Mesh(goalLineGeometry, goalLineMaterial);
+  goalLineMesh.position.set(0, 0.012, goalDepth);
+  goalLineMesh.receiveShadow = true;
+  goalLineMesh.castShadow = true;
+  scene.add(goalLineMesh);
+
+  // 페널티 박스 추가
+  const penaltyBoxMeshes: THREE.Mesh[] = [];
+  const penaltyBoxMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+  // 왼쪽 세로선
+  const leftGeometry = new THREE.BoxGeometry(0.1, 0.01, penaltyBoxDepth);
+  const leftMesh = new THREE.Mesh(leftGeometry, penaltyBoxMaterial);
+  leftMesh.position.set(-penaltyBoxWidth / 2, 0.012, goalDepth + penaltyBoxDepth / 2);
+  leftMesh.receiveShadow = true;
+  leftMesh.castShadow = true;
+  scene.add(leftMesh);
+  penaltyBoxMeshes.push(leftMesh);
+
+  // 오른쪽 세로선
+  const rightMesh = leftMesh.clone();
+  rightMesh.position.x = penaltyBoxWidth / 2;
+  scene.add(rightMesh);
+  penaltyBoxMeshes.push(rightMesh);
+
+  // 앞쪽 가로선
+  const frontGeometry = new THREE.BoxGeometry(penaltyBoxWidth, 0.01, 0.1);
+  const frontMesh = new THREE.Mesh(frontGeometry, penaltyBoxMaterial);
+  frontMesh.position.set(0, 0.012, goalDepth + penaltyBoxDepth);
+  scene.add(frontMesh);
+  penaltyBoxMeshes.push(frontMesh);
+
+  // 페널티 에어리어 추가
+  const penaltyAreaWidth = GOAL_WIDTH + 32;
+  const penaltyAreaDepth = 16;
+  const penaltyAreaMeshes: THREE.Mesh[] = [];
+
+  // 왼쪽 세로선
+  const leftAreaGeometry = new THREE.BoxGeometry(0.1, 0.01, penaltyAreaDepth);
+  const leftAreaMesh = new THREE.Mesh(leftAreaGeometry, penaltyBoxMaterial);
+  leftAreaMesh.position.set(-penaltyAreaWidth / 2, 0.012, goalDepth + penaltyAreaDepth / 2);
+  leftAreaMesh.receiveShadow = true;
+  leftAreaMesh.castShadow = true;
+  scene.add(leftAreaMesh);
+  penaltyAreaMeshes.push(leftAreaMesh);
+
+  // 오른쪽 세로선
+  const rightAreaMesh = leftAreaMesh.clone();
+  rightAreaMesh.position.x = penaltyAreaWidth / 2;
+  scene.add(rightAreaMesh);
+  penaltyAreaMeshes.push(rightAreaMesh);
+
+  // 앞쪽 가로선
+  const frontAreaGeometry = new THREE.BoxGeometry(penaltyAreaWidth, 0.01, 0.1);
+  const frontAreaMesh = new THREE.Mesh(frontAreaGeometry, penaltyBoxMaterial);
+  frontAreaMesh.position.set(0, 0.012, goalDepth + penaltyAreaDepth);
+  scene.add(frontAreaMesh);
+  penaltyAreaMeshes.push(frontAreaMesh);
+
+  // 페널티 마크 추가
+  const penaltyMarkGeometry = new THREE.CircleGeometry(0.05, 32);
+  const penaltyMarkMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+  const penaltyMarkMesh = new THREE.Mesh(penaltyMarkGeometry, penaltyMarkMaterial);
+  penaltyMarkMesh.position.set(0, 0.013, 0);
+  penaltyMarkMesh.rotation.x = -Math.PI / 2;
+  penaltyMarkMesh.receiveShadow = true;
+  penaltyMarkMesh.castShadow = true;
+  scene.add(penaltyMarkMesh);
+
+  // 페널티 아크 추가
+  class ArcCurve extends THREE.Curve<THREE.Vector3> {
+    constructor() {
+      super();
+    }
+    getPoint(t: number): THREE.Vector3 {
+      const angle = Math.PI * t;
+      return new THREE.Vector3(Math.cos(angle) * 2.2875, 0, Math.sin(angle) * 2.2875);
+    }
+  }
+  const path = new ArcCurve();
+  const penaltyArcGeometry = new THREE.TubeGeometry(path, 32, 0.025, 8, false);
+  const penaltyArcMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, clippingPlanes: [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)] });
+  const penaltyArcMesh = new THREE.Mesh(penaltyArcGeometry, penaltyArcMaterial);
+  penaltyArcMesh.position.set(0, 0.012, 6);
+  penaltyArcMesh.receiveShadow = true;
+  penaltyArcMesh.castShadow = true;
+  scene.add(penaltyArcMesh);
+
   const boardWidth = 100;
-  const boardHeight = 1.5;
-  const boardThickness = 0.3;
+  const boardHeight = 1.2;
+  const boardThickness = 0.1;
   const boardOffsetZ = -8;
 
   // 텍스처 로딩 및 결합
@@ -193,6 +293,11 @@ export function createField(
     groundBody,
     adBoardMesh: boardMesh,
     adBoardBody: boardBody,
+    goalLineMesh,
+    penaltyMarkMesh,
+    penaltyBoxMeshes,
+    penaltyAreaMeshes,
+    penaltyArcMesh,
     update(deltaTime: number) {
       if (combinedTexture) {
         scrollOffset = (scrollOffset - deltaTime * 0.1) % 1;

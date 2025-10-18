@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 
-export const GOAL_WIDTH = 6.0;
-export const GOAL_HEIGHT = 4.0;
-export const POST_RADIUS = 0.12;
-export const GOAL_DEPTH = -10;
+export const GOAL_WIDTH = 7.32; // 7.32 for realistic
+export const GOAL_HEIGHT = 2.44; // 2.44 for realistic
+export const POST_RADIUS = 0.06; // 0.06 for realistic
+export const GOAL_DEPTH = -10; // -11 for realistic
 const CROSSBAR_LENGTH = GOAL_WIDTH;
 
 export interface GoalBodies {

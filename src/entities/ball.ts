@@ -7,8 +7,8 @@ import baseColorTexture from '../assets/gltf/soccer_ball_mat_bcolor.png?url';
 import normalTexture from '../assets/gltf/soccer_ball_Normal.png?url';
 import metallicRoughnessTexture from '../assets/gltf/soccer_ball_Metallic-soccer_ball_Roughness.png?url';
 
-export const BALL_RADIUS = 0.35;
-const GLTF_SCALE = 0.05;
+export const BALL_RADIUS = 0.117;
+const GLTF_SCALE = 0.0167;
 const START_POSITION = new CANNON.Vec3(0, BALL_RADIUS, 0);
 
 export class Ball {

@@ -3,8 +3,8 @@ import * as CANNON from 'cannon-es';
 import keeperTextureUrl from '../assets/keeper/keeper-korea.png?url';
 import { BALL_RADIUS } from './ball';
 
-const KEEPER_WIDTH = 1.1;
-const KEEPER_HEIGHT = 3.3;
+const KEEPER_WIDTH = 0.7;
+const KEEPER_HEIGHT = 2.0;
 const KEEPER_DEPTH = 0.4;
 const ROTATION_RANGE = Math.PI / 2; // ±90 degrees allowable lean
 // const RESPONSE_SPEED = 50; // how quickly keeper follows target angle
