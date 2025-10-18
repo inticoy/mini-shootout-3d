@@ -16,7 +16,7 @@ export function configureSceneLighting(scene: THREE.Scene): SceneLighting {
   const hemisphere = new THREE.HemisphereLight(0xd8f1de, 0x3a6b46, 0.6);
   scene.add(hemisphere);
 
-  const directional = new THREE.DirectionalLight(0xffffff, 1.3);
+  const directional = new THREE.DirectionalLight(0xffffff, 0.8);
   directional.position.set(12, 65, 14);
   directional.castShadow = true;
   directional.shadow.mapSize.width = 2048;
@@ -30,7 +30,7 @@ export function configureSceneLighting(scene: THREE.Scene): SceneLighting {
   directional.shadow.normalBias = 0.03;
   scene.add(directional);
 
-  const point = new THREE.PointLight(0xffffff, 14, 120);
+  const point = new THREE.PointLight(0xffffff, 10, 120);
   point.position.set(-6, 12, 18);
   point.castShadow = true;
   point.shadow.mapSize.width = 1024;
