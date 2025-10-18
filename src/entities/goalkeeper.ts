@@ -33,7 +33,7 @@ export class GoalKeeper {
     const material = new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
-      alphaTest: 0.1,
+      alphaTest: 0.01,
       side: THREE.DoubleSide
     });
 
@@ -43,12 +43,15 @@ export class GoalKeeper {
 
     const debugGeometry = new THREE.BoxGeometry(KEEPER_WIDTH, KEEPER_HEIGHT, KEEPER_DEPTH);
     debugGeometry.translate(0, KEEPER_HEIGHT / 2, 0);
-    const debugMaterial = new THREE.MeshBasicMaterial({
+    const debugMaterial = new THREE.MeshStandardMaterial({
       color: 0xff4444,
+      transparent: true,
+      opacity: 0,
       wireframe: true
     });
     this.debugMesh = new THREE.Mesh(debugGeometry, debugMaterial);
     this.debugMesh.visible = false;
+    this.debugMesh.castShadow = false;
 
     this.targetBody = target;
     this.pivot.position.set(0, 0, depth);

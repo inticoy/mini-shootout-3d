@@ -3,7 +3,7 @@ import * as CANNON from 'cannon-es';
 
 export const GOAL_WIDTH = 6.0;
 export const GOAL_HEIGHT = 4.0;
-export const POST_RADIUS = 0.2;
+export const POST_RADIUS = 0.12;
 export const GOAL_DEPTH = -10;
 const CROSSBAR_LENGTH = GOAL_WIDTH;
 

@@ -5,6 +5,7 @@ import { createPerspectiveCamera } from './core/camera';
 import { configureSceneLighting } from './core/lighting';
 import { createPhysicsWorld } from './physics/world';
 import { createField } from './environment/field';
+import type { Field } from './environment/field';
 import { Ball, BALL_RADIUS } from './entities/ball';
 import { Goal, GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './entities/goal';
 import { GoalKeeper } from './entities/goalkeeper';
@@ -25,6 +26,7 @@ export class MiniShootout3D {
   private readonly ball: Ball;
   private readonly goal: Goal;
   private readonly goalKeeper: GoalKeeper;
+  private readonly field: Field;
   private readonly ballColliderMesh: THREE.Mesh;
   private readonly goalColliderGroup: THREE.Group;
   private readonly debugHud: HTMLDivElement;
@@ -91,6 +93,7 @@ export class MiniShootout3D {
     this.onScoreChange = onScoreChange;
 
     this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x87CEEB); // 실제 하늘색 (Sky Blue)
     this.renderer = createRenderer(canvas);
     this.camera = createPerspectiveCamera();
     configureSceneLighting(this.scene);
@@ -98,9 +101,8 @@ export class MiniShootout3D {
     const { world, materials } = createPhysicsWorld();
     this.world = world;
 
-    createField(this.scene, this.world, materials.ground, {
-      goalDepth: GOAL_DEPTH,
-      frontExtent: 30
+    this.field = createField(this.scene, this.world, materials.ground, {
+      goalDepth: GOAL_DEPTH
     });
 
     this.ball = new Ball(this.world, materials.ball);
@@ -302,6 +304,7 @@ export class MiniShootout3D {
     this.pointerHistory = [];
     this.ball.reset();
     this.goalKeeper.resetTracking();
+    this.field.resetAds();
     this.strikeContact = null;
     this.liveSwipeVector = null;
     this.pointerStartNormalized = null;
@@ -317,6 +320,7 @@ export class MiniShootout3D {
     this.applyStrikeCurve(deltaTime);
     this.world.step(1 / 60, deltaTime, 3);
     this.goalKeeper.update(deltaTime);
+    this.field.update(deltaTime);
 
     this.ball.syncVisuals();
     this.updateDebugVisuals();

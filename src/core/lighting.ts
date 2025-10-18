@@ -21,10 +21,10 @@ export function configureSceneLighting(scene: THREE.Scene): SceneLighting {
   directional.castShadow = true;
   directional.shadow.mapSize.width = 2048;
   directional.shadow.mapSize.height = 2048;
-  directional.shadow.camera.left = -50;
-  directional.shadow.camera.right = 50;
-  directional.shadow.camera.top = 50;
-  directional.shadow.camera.bottom = -50;
+  directional.shadow.camera.left = -35;
+  directional.shadow.camera.right = 35;
+  directional.shadow.camera.top = 35;
+  directional.shadow.camera.bottom = -35;
   directional.shadow.radius = 9;
   directional.shadow.bias = -0.0002;
   directional.shadow.normalBias = 0.03;

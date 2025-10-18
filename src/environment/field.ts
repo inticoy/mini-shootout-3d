@@ -3,12 +3,20 @@ import * as CANNON from 'cannon-es';
 import grassAlbedoUrl from '../assets/grass1-unity/grass1-albedo3.png?url';
 import grassNormalUrl from '../assets/grass1-unity/grass1-normal1-ogl.png?url';
 import grassAoUrl from '../assets/grass1-unity/grass1-ao.png?url';
+import adTexture1Url from '../assets/ad/burger_queen.png?url';
+import adTexture2Url from '../assets/ad/coloc_coloc.png?url';
+import adTexture3Url from '../assets/ad/sansung.png?url';
+import adTexture4Url from '../assets/ad/star_cups.png?url';
 
 export interface Field {
   groundMesh: THREE.Mesh;
   stripeMeshes: THREE.Mesh[];
   verticalStripes: THREE.Mesh[];
   groundBody: CANNON.Body;
+  adBoardMesh: THREE.Mesh;
+  adBoardBody: CANNON.Body;
+  update(deltaTime: number): void;
+  resetAds(): void;
 }
 
 export interface FieldOptions {
@@ -111,10 +119,91 @@ export function createField(
   groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
   world.addBody(groundBody);
 
+  const goalDepth = options.goalDepth ?? -10;
+  const boardWidth = 100;
+  const boardHeight = 1.5;
+  const boardThickness = 0.3;
+  const boardOffsetZ = -8;
+
+  // 텍스처 로딩 및 결합
+  const adTextureUrls = [adTexture1Url, adTexture2Url, adTexture3Url, adTexture4Url];
+  const adTextures: THREE.Texture[] = [];
+  let loadedCount = 0;
+  let combinedTexture: THREE.CanvasTexture | null = null;
+
+  const onTextureLoad = () => {
+    loadedCount++;
+    if (loadedCount === 4) {
+      // 모든 텍스처 로드 완료 후 canvas에 결합
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const imgWidth = adTextures[0].image.width;
+      const imgHeight = adTextures[0].image.height;
+      canvas.width = imgWidth * 4;
+      canvas.height = imgHeight;
+      for (let i = 0; i < 4; i++) {
+        ctx.drawImage(adTextures[i].image, i * imgWidth, 0, imgWidth, imgHeight);
+      }
+      combinedTexture = new THREE.CanvasTexture(canvas);
+      combinedTexture.colorSpace = THREE.SRGBColorSpace;
+      combinedTexture.wrapS = THREE.RepeatWrapping;
+      combinedTexture.wrapT = THREE.ClampToEdgeWrapping;
+      combinedTexture.repeat.set(4, 1);
+      if (boardMaterial.map !== combinedTexture) {
+        boardMaterial.map = combinedTexture;
+        boardMaterial.needsUpdate = true;
+      }
+    }
+  };
+
+  for (const url of adTextureUrls) {
+    const texture = textureLoader.load(url, onTextureLoad);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    adTextures.push(texture);
+  }
+
+  const boardMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(boardWidth, boardHeight, boardThickness),
+    new THREE.MeshStandardMaterial({
+      roughness: 0.45,
+      metalness: 0.05,
+      emissive: new THREE.Color(0x111111),
+      emissiveIntensity: 0.4
+    })
+  );
+  boardMesh.castShadow = false;
+  boardMesh.receiveShadow = false;
+  boardMesh.position.set(0, boardHeight / 2, goalDepth + boardOffsetZ);
+  scene.add(boardMesh);
+
+  const boardBody = new CANNON.Body({
+    mass: 0,
+    shape: new CANNON.Box(new CANNON.Vec3(boardWidth / 2, boardHeight / 2, boardThickness / 2)),
+    position: new CANNON.Vec3(0, boardHeight / 2, goalDepth + boardOffsetZ)
+  });
+  world.addBody(boardBody);
+
+  let scrollOffset = 0;
+  const boardMaterial = boardMesh.material as THREE.MeshStandardMaterial;
+
   return {
     groundMesh,
     stripeMeshes,
     verticalStripes,
-    groundBody
+    groundBody,
+    adBoardMesh: boardMesh,
+    adBoardBody: boardBody,
+    update(deltaTime: number) {
+      if (combinedTexture) {
+        scrollOffset = (scrollOffset - deltaTime * 0.1) % 1;
+        combinedTexture.offset.x = scrollOffset;
+      }
+    },
+    resetAds() {
+      scrollOffset = 0;
+      if (combinedTexture) {
+        combinedTexture.offset.x = 0;
+      }
+    }
   };
 }
