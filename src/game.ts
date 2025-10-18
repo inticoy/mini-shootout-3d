@@ -13,6 +13,7 @@ import { createDebugHud, createDebugButton, updateDebugButtonState } from './ui/
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+import { AudioManager } from './core/audio';
 
 export class MiniShootout3D {
   private readonly canvas: HTMLCanvasElement;
@@ -27,6 +28,7 @@ export class MiniShootout3D {
   private readonly goal: Goal;
   private readonly goalKeeper: GoalKeeper;
   private readonly field: Field;
+  private readonly audio = new AudioManager();
   private readonly ballColliderMesh: THREE.Mesh;
   private readonly goalColliderGroup: THREE.Group;
   private readonly debugHud: HTMLDivElement;
@@ -55,6 +57,7 @@ export class MiniShootout3D {
   private readonly debugButton: HTMLButtonElement;
   private elapsedTime = 0;
   private lastGroundContactTime = -Infinity;
+  private lastBounceSoundTime = 0;
   private activeCurve:
     | {
         direction: THREE.Vector3;
@@ -63,6 +66,7 @@ export class MiniShootout3D {
         startTime: number;
       }
     | null = null;
+  private readonly handleBallCollideBound = (event: { body: CANNON.Body }) => this.handleBallCollide(event);
   private pointerStart: { x: number; y: number } | null = null;
   private pointerStartTime = 0;
   private pointerHistory: Array<{ x: number; y: number; time: number }> = [];
@@ -106,6 +110,7 @@ export class MiniShootout3D {
     });
 
     this.ball = new Ball(this.world, materials.ball);
+    this.ball.body.addEventListener('collide', this.handleBallCollideBound);
     void this.ball.load(this.scene).catch((error) => {
       console.error('Failed to load ball model', error);
     });
@@ -115,6 +120,9 @@ export class MiniShootout3D {
 
     this.goalKeeper = new GoalKeeper(this.scene, this.world, GOAL_DEPTH + 0.8, this.ball.body);
     (window as typeof window & { debug?: (enabled?: boolean) => boolean }).debug = this.toggleDebugBound;
+    void this.audio.loadAll().catch((error) => {
+      console.warn('Failed to preload audio', error);
+    });
 
     this.ballColliderMesh = this.createBallColliderMesh();
     this.goalColliderGroup = this.createGoalColliderGroup();
@@ -157,6 +165,27 @@ export class MiniShootout3D {
     this.score += 1;
     this.onScoreChange(this.score);
     this.goalKeeper.stopTracking();
+    this.audio.play('goal', { volume: 1 });
+  }
+
+  private handleBallCollide(event: { body: CANNON.Body }) {
+    if (event.body === this.field.groundBody) {
+      const now = performance.now();
+      if (now - this.lastBounceSoundTime < 120) return;
+      const vy = Math.abs(this.ball.body.velocity.y);
+      if (vy < 0.45) return;
+      this.lastBounceSoundTime = now;
+      const volume = THREE.MathUtils.clamp(vy / 6 + 0.15, 0.1, 1);
+      this.audio.play('bounce', { volume });
+    } else if (event.body === this.goalKeeper.body) {
+      this.audio.play('save', { volume: 0.7 });
+    } else if (
+      event.body === this.goal.bodies.leftPost ||
+      event.body === this.goal.bodies.rightPost ||
+      event.body === this.goal.bodies.crossbar
+    ) {
+      this.audio.play('post', { volume: 0.9 });
+    }
   }
 
   private attachEventListeners() {
@@ -268,6 +297,7 @@ export class MiniShootout3D {
     const impulse = new CANNON.Vec3(sideImpulse, upwardImpulse, forwardImpulse);
     this.ball.body.applyImpulse(impulse, new CANNON.Vec3(0, 0, 0));
     this.goalKeeper.resetTracking();
+    this.audio.play('kick', { volume: 0.9 });
 
     this.scheduleStrikeSpin(startContact, basePower);
     this.configureStrikeCurve(startContact, basePower);
@@ -297,6 +327,7 @@ export class MiniShootout3D {
     if (missed && this.score !== 0) {
       this.score = 0;
       this.onScoreChange(this.score);
+      this.audio.play('reset', { volume: 0.8 });
     }
 
     this.goalScoredThisShot = false;
@@ -334,6 +365,7 @@ export class MiniShootout3D {
     this.canvas.removeEventListener('pointermove', this.handlePointerMoveBound);
     this.canvas.removeEventListener('pointerup', this.handlePointerUpBound);
     this.goal.bodies.sensor.removeEventListener('collide', this.handleGoalCollisionBound);
+    this.ball.body.removeEventListener('collide', this.handleBallCollideBound);
     delete (window as typeof window & { debug?: (enabled?: boolean) => boolean }).debug;
     this.debugButton.removeEventListener('click', this.handleDebugButtonClickBound);
     this.debugButton.remove();
