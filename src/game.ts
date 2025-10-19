@@ -12,7 +12,8 @@ import { BALL_RADIUS } from './config/ball';
 import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
 import { AD_BOARD_CONFIG } from './config/adBoard';
 import { STRIKE_ZONE_CONFIG } from './config/strike';
-import { GoalKeeper } from './entities/goalkeeper';
+// import { GoalKeeper } from './entities/goalkeeper'; // 기존 2D 골키퍼
+import { GoalKeeper3D as GoalKeeper } from './entities/goalkeeper3d'; // FBX 모델 골키퍼
 import { DebugHudController, createDebugButton, updateDebugButtonState } from './ui/debugHud';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
