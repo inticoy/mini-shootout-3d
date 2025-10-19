@@ -1,9 +1,10 @@
 import kickUrl from '../assets/audio/kick.mp3?url';
 import bounceUrl from '../assets/audio/bounce.mp3?url';
-import goalUrl from '../assets/audio/goal.wav?url';
+import goalUrl from '../assets/audio/goal.mp3?url';
 import saveUrl from '../assets/audio/save.mp3?url';
 import postUrl from '../assets/audio/post.mp3?url';
 import resetUrl from '../assets/audio/reset.mp3?url';
+import netUrl from '../assets/audio/net.mp3?url';
 
 const SOUND_DEFINITIONS = [
   { key: 'kick', url: kickUrl },
@@ -11,7 +12,8 @@ const SOUND_DEFINITIONS = [
   { key: 'goal', url: goalUrl },
   { key: 'save', url: saveUrl },
   { key: 'post', url: postUrl },
-  { key: 'reset', url: resetUrl }
+  { key: 'reset', url: resetUrl },
+  { key: 'net', url: netUrl }
 ] as const;
 
 export type SoundKey = (typeof SOUND_DEFINITIONS)[number]['key'];

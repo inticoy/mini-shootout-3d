@@ -10,6 +10,8 @@ import { Ball } from './entities/ball';
 import { Goal } from './entities/goal';
 import { BALL_RADIUS } from './config/ball';
 import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
+import { AD_BOARD_CONFIG } from './config/adBoard';
+import { STRIKE_ZONE_CONFIG } from './config/strike';
 import { GoalKeeper } from './entities/goalkeeper';
 import { DebugHudController, createDebugButton, updateDebugButtonState } from './ui/debugHud';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
@@ -32,6 +34,17 @@ const CURVE_PARAMS = {
   groundTimeout: 0.2
 } as const;
 
+const STRIKE_BASE_RANGE = 1.25;
+const STRIKE_GUIDE_THRESHOLDS = {
+  scoopY: 0.5 / STRIKE_BASE_RANGE,
+  topY: -0.45 / STRIKE_BASE_RANGE,
+  insideX: 0.28 / STRIKE_BASE_RANGE,
+  brushX: 0.24 / STRIKE_BASE_RANGE,
+  instepX: 0.35 / STRIKE_BASE_RANGE,
+  instepY: 0.4 / STRIKE_BASE_RANGE,
+  scoopEdgeY: 0.3 / STRIKE_BASE_RANGE
+} as const;
+
 export class MiniShootout3D {
   private readonly canvas: HTMLCanvasElement;
   private readonly onScoreChange: (score: number) => void;
@@ -48,6 +61,7 @@ export class MiniShootout3D {
   private readonly audio = new AudioManager();
   private readonly ballColliderMesh: THREE.Mesh;
   private readonly goalColliderGroup: THREE.Group;
+  private readonly adBoardColliderGroup: THREE.Group;
   private readonly hud: DebugHudController;
   private readonly axisArrows: THREE.ArrowHelper[];
   private readonly trajectoryGeometry: LineGeometry;
@@ -100,6 +114,7 @@ export class MiniShootout3D {
   private liveSwipeVector: { start: { x: number; y: number }; end: { x: number; y: number } } | null = null;
   private lastSwipeVector: { start: { x: number; y: number }; end: { x: number; y: number } } | null = null;
   private pointerStartNormalized: { x: number; y: number } | null = null;
+  private readonly strikeGuide: HTMLDivElement;
 
   constructor(canvas: HTMLCanvasElement, onScoreChange: (score: number) => void) {
     this.canvas = canvas;
@@ -124,7 +139,8 @@ export class MiniShootout3D {
       console.error('Failed to load ball model', error);
     });
 
-    this.goal = new Goal(this.scene, this.world);
+    this.goal = new Goal(this.scene, this.world, materials.ball);
+    this.goal.setNetAnimationEnabled(true);
     this.goal.bodies.sensor.addEventListener('collide', this.handleGoalCollisionBound);
 
     this.goalKeeper = new GoalKeeper(this.scene, this.world, GOAL_DEPTH + 0.8, this.ball.body);
@@ -135,6 +151,7 @@ export class MiniShootout3D {
 
     this.ballColliderMesh = this.createBallColliderMesh();
     this.goalColliderGroup = this.createGoalColliderGroup();
+    this.adBoardColliderGroup = this.createAdBoardColliderGroup();
     this.axisArrows = this.createAxisArrows();
     this.hud = new DebugHudController();
     this.trajectoryPositions = new Float32Array(this.trajectorySampleCount * 3);
@@ -155,7 +172,16 @@ export class MiniShootout3D {
     this.scene.add(this.trajectoryLine);
     this.debugButton = createDebugButton(this.handleDebugButtonClickBound);
 
+    const uiRoot = document.getElementById('ui') ?? this.canvas.parentElement ?? document.body;
+    const strikeGuide = document.createElement('div');
+    strikeGuide.className = 'strike-guide';
+    const svg = this.createStrikeGuideSvg();
+    strikeGuide.appendChild(svg);
+    uiRoot.appendChild(strikeGuide);
+    this.strikeGuide = strikeGuide;
+
     this.attachEventListeners();
+    this.refreshStrikeGuide();
     this.animate();
   }
 
@@ -165,6 +191,12 @@ export class MiniShootout3D {
     this.score += 1;
     this.onScoreChange(this.score);
     this.goalKeeper.stopTracking();
+    this.tempBallPosition.set(
+      this.ball.body.position.x,
+      this.ball.body.position.y,
+      this.ball.body.position.z
+    );
+    this.goal.triggerNetPulse(this.tempBallPosition, 1);
     this.audio.play('goal', { volume: 1 });
   }
 
@@ -185,6 +217,9 @@ export class MiniShootout3D {
       event.body === this.goal.bodies.crossbar
     ) {
       this.audio.play('post', { volume: 0.9 });
+    } else if (this.goal.isNetCollider(event.body)) {
+      this.goal.handleNetCollision(this.ball.body);
+      this.audio.play('net', { volume: 0.6 });
     }
   }
 
@@ -232,6 +267,7 @@ export class MiniShootout3D {
     if (!this.pointerStart || this.isShooting) return;
 
     this.updateLiveSwipeVectorEnd(event);
+    this.refreshStrikeGuide();
 
     const end = { x: event.clientX, y: event.clientY };
     const delta = {
@@ -281,7 +317,7 @@ export class MiniShootout3D {
     this.liveSwipeVector = null;
     this.pointerStartNormalized = null;
 
-    const basePower = THREE.MathUtils.clamp(flickSpeed * 32 + flickLength / 24, 8, 38);
+    const basePower = THREE.MathUtils.clamp(flickSpeed * 28 + flickLength / 26, 7, 32);
 
     const direction = flickLength > 0 ? flickVector.clone().normalize() : new THREE.Vector2();
     const verticalComponent = Math.max(-direction.y, 0);
@@ -290,9 +326,9 @@ export class MiniShootout3D {
     const loftFactor = Math.pow(loftFactorRaw, 1.15);
     const swipeLateralFactor = THREE.MathUtils.clamp(direction.x * 0.55, -0.95, 0.95);
 
-    const forwardImpulse = -basePower * (1.22 - loftFactor * 0.2);
-    const upwardImpulse = basePower * loftFactor * 0.42 + verticalComponent * 1.35;
-    const sideImpulse = basePower * swipeLateralFactor * 0.6;
+    const forwardImpulse = -basePower * (1.05 - loftFactor * 0.16);
+    const upwardImpulse = basePower * loftFactor * 0.4 + verticalComponent * 1.12;
+    const sideImpulse = basePower * swipeLateralFactor * 0.52;
 
     const impulse = new CANNON.Vec3(sideImpulse, upwardImpulse, forwardImpulse);
     this.ball.body.applyImpulse(impulse, new CANNON.Vec3(0, 0, 0));
@@ -306,6 +342,7 @@ export class MiniShootout3D {
     this.lastStrikeContact = { x: startContact.x, y: startContact.y };
     this.strikeContact = null;
     this.liveSwipeVector = null;
+    this.refreshStrikeGuide();
   }
 
   private checkShotOutcome() {
@@ -335,12 +372,14 @@ export class MiniShootout3D {
     this.pointerHistory = [];
     this.ball.reset();
     this.goalKeeper.resetTracking();
+    this.goal.resetNet();
     this.field.resetAds();
     this.strikeContact = null;
     this.liveSwipeVector = null;
     this.pointerStartNormalized = null;
     this.activeCurve = null;
     this.lastGroundContactTime = -Infinity;
+    this.refreshStrikeGuide();
   }
 
   private animate = () => {
@@ -351,6 +390,7 @@ export class MiniShootout3D {
     this.applyStrikeCurve(deltaTime);
     this.world.step(1 / 60, deltaTime, 3);
     this.goalKeeper.update(deltaTime);
+    this.goal.update(deltaTime);
     this.field.update(deltaTime);
 
     this.ball.syncVisuals();
@@ -369,7 +409,10 @@ export class MiniShootout3D {
     delete (window as typeof window & { debug?: (enabled?: boolean) => boolean }).debug;
     this.debugButton.removeEventListener('click', this.handleDebugButtonClickBound);
     this.debugButton.remove();
+    this.scene.remove(this.goalColliderGroup);
+    this.scene.remove(this.adBoardColliderGroup);
     this.axisArrows.forEach((arrow) => this.scene.remove(arrow));
+    this.strikeGuide.remove();
     this.hud.destroy();
   }
 
@@ -408,10 +451,88 @@ export class MiniShootout3D {
     crossbar.position.set(0, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH);
     group.add(crossbar);
 
-    const sensorGeometry = new THREE.BoxGeometry(GOAL_WIDTH, GOAL_HEIGHT - POST_RADIUS, 0.2);
-    const sensor = new THREE.Mesh(sensorGeometry, colliderMaterial);
-    sensor.position.set(0, (GOAL_HEIGHT - POST_RADIUS) / 2, GOAL_DEPTH - 0.5);
-    group.add(sensor);
+    const sensorWidth = Math.max(GOAL_WIDTH - POST_RADIUS * 2, 0.1);
+    const sensorHeight = Math.max(GOAL_HEIGHT - POST_RADIUS * 1.8, 0.1);
+    const sensorDepth = BALL_RADIUS * 0.6;
+    const sensorGeometry = new THREE.BoxGeometry(sensorWidth, sensorHeight, sensorDepth);
+    const sensorMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00e0ff,
+      transparent: true,
+      opacity: 0.2,
+      depthWrite: false,
+      depthTest: false,
+      side: THREE.DoubleSide
+    });
+    const sensorFace = new THREE.Mesh(sensorGeometry, sensorMaterial);
+    const sensorZ = GOAL_DEPTH - (BALL_RADIUS + sensorDepth * 0.5);
+    sensorFace.position.set(0, sensorHeight / 2, sensorZ);
+    group.add(sensorFace);
+
+    const sensorEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(sensorGeometry),
+      new THREE.LineBasicMaterial({ color: 0x00e0ff })
+    );
+    sensorEdges.position.copy(sensorFace.position);
+    group.add(sensorEdges);
+
+    const netInfos = this.goal.getNetColliderInfos();
+    const netFaceMaterial = new THREE.MeshBasicMaterial({
+      color: 0x33ff88,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
+      depthTest: false,
+      side: THREE.DoubleSide
+    });
+    const netEdgeMaterial = new THREE.LineBasicMaterial({ color: 0x33ff88 });
+
+    netInfos.forEach(({ size, position }) => {
+      const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
+      const faceMesh = new THREE.Mesh(geometry, netFaceMaterial);
+      faceMesh.position.copy(position);
+      group.add(faceMesh);
+
+      const edgeMesh = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), netEdgeMaterial);
+      edgeMesh.position.copy(position);
+      group.add(edgeMesh);
+    });
+
+    this.scene.add(group);
+    return group;
+  }
+
+  private createAdBoardColliderGroup(): THREE.Group {
+    const group = new THREE.Group();
+    group.visible = false;
+
+    const outlineMaterial = new THREE.LineBasicMaterial({ color: 0xffaa33 });
+    const faceMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffaa33,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
+      depthTest: false,
+      side: THREE.DoubleSide
+    });
+
+    const size = AD_BOARD_CONFIG.size;
+    const adGeometry = new THREE.BoxGeometry(size.width, size.height, size.depth);
+
+    const face = new THREE.Mesh(adGeometry, faceMaterial);
+    const adDepth = GOAL_DEPTH + AD_BOARD_CONFIG.position.depthOffset;
+    face.position.set(
+      AD_BOARD_CONFIG.position.x,
+      AD_BOARD_CONFIG.position.y,
+      adDepth
+    );
+    group.add(face);
+
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(adGeometry),
+      outlineMaterial
+    );
+    edges.position.copy(face.position);
+    group.add(edges);
 
     this.scene.add(group);
     return group;
@@ -448,6 +569,7 @@ export class MiniShootout3D {
     this.goalKeeper.setColliderDebugVisible(this.debugMode);
     this.ballColliderMesh.visible = this.debugMode;
     this.goalColliderGroup.visible = this.debugMode;
+    this.adBoardColliderGroup.visible = this.debugMode;
     this.trajectoryLine.visible = this.debugMode;
     this.hud.setVisible(this.debugMode);
     updateDebugButtonState(this.debugButton, this.debugMode);
@@ -457,6 +579,7 @@ export class MiniShootout3D {
     if (this.debugMode) {
       this.updateDebugVisuals();
     }
+    this.refreshStrikeGuide();
     return this.debugMode;
   }
 
@@ -530,14 +653,15 @@ export class MiniShootout3D {
   }
 
   private configureStrikeCurve(strikeContact: { x: number; y: number }, basePower: number) {
-    const magnitude = THREE.MathUtils.clamp(Math.hypot(strikeContact.x, strikeContact.y), 0, 1.35);
+    const normalized = this.getNormalizedContact(strikeContact);
+    const magnitude = THREE.MathUtils.clamp(Math.hypot(normalized.x, normalized.y), 0, 1);
     if (magnitude < 0.05) {
       this.activeCurve = null;
       return;
     }
 
-    const lateral = THREE.MathUtils.clamp(-strikeContact.x, -1.35, 1.35);
-    const vertical = THREE.MathUtils.clamp(strikeContact.y, -1.25, 1.25);
+    const lateral = -normalized.x;
+    const vertical = normalized.y;
     const direction = new THREE.Vector3(
       lateral * CURVE_PARAMS.lateralScale,
       vertical * CURVE_PARAMS.verticalScale,
@@ -632,8 +756,10 @@ export class MiniShootout3D {
     const localX = (event.clientX - this.ballScreenCenter.x) / radius;
     const localY = (event.clientY - this.ballScreenCenter.y) / radius;
     const distance = Math.hypot(localX, localY);
-    const clampRange = 1.25;
-    const falloff = Math.max(0, 1 - Math.max(distance - 1, 0) * 0.8);
+    const clampRange = STRIKE_ZONE_CONFIG.clampRange;
+    const overshoot = Math.max(distance - 1, 0);
+    const overshootRange = Math.max(clampRange - 1, 1e-6);
+    const falloff = Math.max(0, 1 - (overshoot / overshootRange) * STRIKE_ZONE_CONFIG.falloffSlope);
 
     const contactX = THREE.MathUtils.clamp(localX, -clampRange, clampRange) * falloff;
     const contactY = THREE.MathUtils.clamp(localY, -clampRange, clampRange) * falloff;
@@ -644,6 +770,7 @@ export class MiniShootout3D {
   private captureStrikeContact(event: PointerEvent): { x: number; y: number } | null {
     const contact = this.computeStrikePoint(event);
     this.strikeContact = contact;
+    this.refreshStrikeGuide();
     return contact;
   }
 
@@ -671,9 +798,11 @@ export class MiniShootout3D {
     }
     const point = this.computeSwipeVectorEnd(event);
     if (!point) {
+      this.refreshStrikeGuide();
       return;
     }
     this.liveSwipeVector.end = point;
+    this.refreshStrikeGuide();
   }
 
   private updateBallScreenMetrics(): boolean {
@@ -700,48 +829,143 @@ export class MiniShootout3D {
     return Number.isFinite(this.ballScreenRadius);
   }
 
+  private refreshStrikeGuide(): void {
+    this.renderStrikeGuide();
+  }
+
+  private renderStrikeGuide(): void {
+    if (!this.debugMode) {
+      this.strikeGuide.style.opacity = '0';
+      this.strikeGuide.style.transform = 'translate(-9999px, -9999px)';
+      return;
+    }
+
+    if (!this.updateBallScreenMetrics()) {
+      this.strikeGuide.style.opacity = '0';
+      this.strikeGuide.style.transform = 'translate(-9999px, -9999px)';
+      return;
+    }
+
+    const baseRadius = this.ballScreenRadius * STRIKE_ZONE_CONFIG.clampRange;
+    const radius = Math.max(baseRadius, this.ballScreenRadius);
+    const size = radius * 2;
+    const screenX = this.ballScreenCenter.x;
+    const screenY = this.ballScreenCenter.y;
+
+    this.strikeGuide.style.width = `${size}px`;
+    this.strikeGuide.style.height = `${size}px`;
+    this.strikeGuide.style.opacity = STRIKE_ZONE_CONFIG.guideOpacity.toString();
+    this.strikeGuide.style.transform = `translate(${screenX}px, ${screenY}px) translate(-50%, -50%)`;
+  }
+
+  private createStrikeGuideSvg(): SVGSVGElement {
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNs, 'svg');
+    svg.classList.add('strike-guide__svg');
+    svg.setAttribute('viewBox', '-2.4 -2.6 4.8 4.8');
+
+    const circle = document.createElementNS(svgNs, 'circle');
+    circle.setAttribute('cx', '0');
+    circle.setAttribute('cy', '0');
+    circle.setAttribute('r', '1');
+    circle.setAttribute('fill', 'rgba(40, 120, 160, 0.18)');
+    circle.setAttribute('stroke', 'rgba(160, 220, 255, 0.4)');
+    circle.setAttribute('stroke-width', '0.035');
+    svg.appendChild(circle);
+
+    const addGuide = (x1: number, y1: number, x2: number, y2: number) => {
+      const line = document.createElementNS(svgNs, 'line');
+      line.setAttribute('x1', x1.toString());
+      line.setAttribute('y1', y1.toString());
+      line.setAttribute('x2', x2.toString());
+      line.setAttribute('y2', y2.toString());
+      line.setAttribute('stroke', 'rgba(200, 240, 255, 0.35)');
+      line.setAttribute('stroke-width', '0.03');
+      line.setAttribute('stroke-dasharray', '0.12 0.12');
+      svg.appendChild(line);
+    };
+
+    const horizontalExtent = 1.6;
+    const verticalExtent = 1.9;
+    addGuide(-horizontalExtent, STRIKE_GUIDE_THRESHOLDS.scoopY, horizontalExtent, STRIKE_GUIDE_THRESHOLDS.scoopY);
+    addGuide(-horizontalExtent, STRIKE_GUIDE_THRESHOLDS.topY, horizontalExtent, STRIKE_GUIDE_THRESHOLDS.topY);
+    addGuide(-STRIKE_GUIDE_THRESHOLDS.insideX, -verticalExtent, -STRIKE_GUIDE_THRESHOLDS.insideX, verticalExtent);
+    addGuide(STRIKE_GUIDE_THRESHOLDS.insideX, -verticalExtent, STRIKE_GUIDE_THRESHOLDS.insideX, verticalExtent);
+
+    const addLabel = (text: string, x: number, y: number) => {
+      const label = document.createElementNS(svgNs, 'text');
+      label.setAttribute('x', x.toString());
+      label.setAttribute('y', y.toString());
+      label.setAttribute('fill', 'rgba(220, 240, 255, 0.8)');
+      label.setAttribute('font-size', '0.16');
+      label.setAttribute('text-anchor', 'middle');
+      label.textContent = text;
+      svg.appendChild(label);
+    };
+
+    addLabel('Scoop', 0, STRIKE_GUIDE_THRESHOLDS.scoopY + 0.38);
+    addLabel('Top Spin', 0, STRIKE_GUIDE_THRESHOLDS.topY - 0.3);
+    addLabel('Outside Curve', -1.1, 0.05);
+    addLabel('Inside Curve', 1.1, 0.05);
+    addLabel('No Spin', 0, 0.05);
+
+    return svg;
+  }
+
+  private getNormalizedContact(contact: { x: number; y: number }): { x: number; y: number } {
+    const range = Math.max(STRIKE_ZONE_CONFIG.clampRange, 1e-6);
+    const invRange = 1 / range;
+    return {
+      x: THREE.MathUtils.clamp(contact.x * invRange, -1, 1),
+      y: THREE.MathUtils.clamp(contact.y * invRange, -1, 1)
+    };
+  }
+
   private classifyStrikeContact(contact: { x: number; y: number }): string {
-    const { x, y } = contact;
+    const normalized = this.getNormalizedContact(contact);
+    const x = normalized.x;
+    const y = normalized.y;
     const absX = Math.abs(x);
     const absY = Math.abs(y);
+    const t = STRIKE_GUIDE_THRESHOLDS;
 
-    if (y > 0.5 && absX < 0.6) {
+    if (y > t.scoopY && absX < t.instepX) {
       return 'Chip / Scoop';
     }
 
-    if (y < -0.45 && absX < 0.55) {
+    if (y < t.topY && absX < t.instepX) {
       return 'Top / Knuckle';
     }
 
-    if (x > 0.28) {
-      if (y > 0.45) {
+    if (x > t.insideX) {
+      if (y > t.scoopY) {
         return 'Inside Scoop';
       }
-      if (y < -0.45) {
+      if (y < t.topY) {
         return 'Inside Brush';
       }
       return 'Inside Foot Curl';
     }
 
-    if (x < -0.28) {
-      if (y > 0.45) {
+    if (x < -t.insideX) {
+      if (y > t.scoopY) {
         return 'Outside Scoop';
       }
-      if (y < -0.45) {
+      if (y < t.topY) {
         return 'Outside Brush';
       }
       return 'Outside Foot Curl';
     }
 
-    if (absX < 0.35 && absY < 0.4) {
+    if (absX < t.instepX && absY < t.instepY) {
       return 'Instep Drive';
     }
 
-    if (absX > 0.24) {
+    if (absX > t.brushX) {
       return x > 0 ? 'Inside Brush' : 'Outside Brush';
     }
 
-    if (y > 0.3) {
+    if (y > t.scoopEdgeY) {
       return x >= 0 ? 'Inside Scoop' : 'Outside Scoop';
     }
 
@@ -753,9 +977,10 @@ export class MiniShootout3D {
     top: number;
     roll: number;
   } {
-    const horizontal = THREE.MathUtils.clamp(strikeContact.x, -1.25, 1.25);
-    const vertical = THREE.MathUtils.clamp(strikeContact.y, -1.25, 1.25);
-    const contactMagnitude = Math.min(Math.hypot(horizontal, vertical), 1.35);
+    const normalized = this.getNormalizedContact(strikeContact);
+    const horizontal = normalized.x;
+    const vertical = normalized.y;
+    const contactMagnitude = Math.min(Math.hypot(horizontal, vertical), 1);
 
     const powerScale = THREE.MathUtils.lerp(1.25, 2.4, THREE.MathUtils.clamp(basePower / 38, 0, 1));
     const baseSpin = basePower * 0.38 * powerScale;

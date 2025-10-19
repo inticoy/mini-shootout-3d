@@ -6,8 +6,8 @@ export interface GoalkeeperConfig {
 }
 
 export const GOALKEEPER_CONFIG: GoalkeeperConfig = {
-  width: 0.6,
-  height: 1.8,
+  width: 0.1,
+  height: 0.1,
   depth: 0.6,
   rotationRange: Math.PI / 2
 };
