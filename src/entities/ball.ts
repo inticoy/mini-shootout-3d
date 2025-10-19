@@ -6,9 +6,7 @@ import gltfBinary from '../assets/gltf/soccer_ball.bin?url';
 import baseColorTexture from '../assets/gltf/soccer_ball_mat_bcolor.png?url';
 import normalTexture from '../assets/gltf/soccer_ball_Normal.png?url';
 import metallicRoughnessTexture from '../assets/gltf/soccer_ball_Metallic-soccer_ball_Roughness.png?url';
-
-export const BALL_RADIUS = 0.117;
-const GLTF_SCALE = 0.0167;
+import { BALL_CONFIG, BALL_RADIUS } from '../config/ball';
 const START_POSITION = new CANNON.Vec3(0, BALL_RADIUS, 0);
 
 export class Ball {
@@ -19,12 +17,12 @@ export class Ball {
 
   constructor(world: CANNON.World, material: CANNON.Material) {
     this.body = new CANNON.Body({
-      mass: 1.2,
+      mass: BALL_CONFIG.mass,
       shape: new CANNON.Sphere(BALL_RADIUS),
       position: START_POSITION.clone(),
       material,
-      linearDamping: 0.1,
-      angularDamping: 0.9
+      linearDamping: BALL_CONFIG.linearDamping,
+      angularDamping: BALL_CONFIG.angularDamping
     });
     world.addBody(this.body);
   }
@@ -91,7 +89,7 @@ export class Ball {
       }
     });
 
-    model.scale.setScalar(GLTF_SCALE);
+    model.scale.setScalar(BALL_CONFIG.gltfScale);
     model.position.set(START_POSITION.x, START_POSITION.y, START_POSITION.z);
 
     return model;

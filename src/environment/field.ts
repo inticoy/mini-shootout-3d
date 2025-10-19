@@ -3,31 +3,402 @@ import * as CANNON from 'cannon-es';
 import grassAlbedoUrl from '../assets/grass1-unity/grass1-albedo3.png?url';
 import grassNormalUrl from '../assets/grass1-unity/grass1-normal1-ogl.png?url';
 import grassAoUrl from '../assets/grass1-unity/grass1-ao.png?url';
-import adTexture1Url from '../assets/ad/burger_queen.png?url';
-import adTexture2Url from '../assets/ad/coloc_coloc.png?url';
-import adTexture3Url from '../assets/ad/sansung.png?url';
-import adTexture4Url from '../assets/ad/star_cups.png?url';
-import { GOAL_WIDTH } from '../entities/goal';
-
-export interface Field {
-  groundMesh: THREE.Mesh;
-  stripeMeshes: THREE.Mesh[];
-  verticalStripes: THREE.Mesh[];
-  groundBody: CANNON.Body;
-  adBoardMesh: THREE.Mesh;
-  adBoardBody: CANNON.Body;
-  goalLineMesh: THREE.Mesh;
-  penaltyMarkMesh: THREE.Mesh;
-  penaltyBoxMeshes: THREE.Mesh[];
-  penaltyAreaMeshes: THREE.Mesh[];
-  penaltyArcMesh: THREE.Mesh;
-  update(deltaTime: number): void;
-  resetAds(): void;
-}
+import { GOAL_DEPTH, GOAL_WIDTH } from '../config/goal';
+import { FIELD_DIMENSIONS, FIELD_OFFSETS, FIELD_STRIPES } from '../config/field';
+import { AD_BOARD_CONFIG } from '../config/adBoard';
 
 export interface FieldOptions {
   goalDepth?: number;
   stripeWidth?: number;
+}
+
+class AdBoard {
+  public readonly mesh: THREE.Mesh;
+  public readonly body: CANNON.Body;
+
+  private readonly material: THREE.MeshStandardMaterial;
+  private readonly textures: THREE.Texture[] = [];
+  private canvasTexture: THREE.CanvasTexture | null = null;
+  private scrollOffset = 0;
+
+  constructor(scene: THREE.Scene, world: CANNON.World, depth: number) {
+    this.material = new THREE.MeshStandardMaterial({
+      roughness: AD_BOARD_CONFIG.material.roughness,
+      metalness: AD_BOARD_CONFIG.material.metalness,
+      emissive: new THREE.Color(AD_BOARD_CONFIG.material.emissive),
+      emissiveIntensity: AD_BOARD_CONFIG.material.emissiveIntensity
+    });
+
+    this.mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        AD_BOARD_CONFIG.size.width,
+        AD_BOARD_CONFIG.size.height,
+        AD_BOARD_CONFIG.size.depth
+      ),
+      this.material
+    );
+    this.mesh.castShadow = false;
+    this.mesh.receiveShadow = false;
+    this.mesh.position.set(AD_BOARD_CONFIG.position.x, AD_BOARD_CONFIG.position.y, depth);
+    scene.add(this.mesh);
+
+    this.body = new CANNON.Body({
+      mass: 0,
+      shape: new CANNON.Box(
+        new CANNON.Vec3(
+          AD_BOARD_CONFIG.size.width / 2,
+          AD_BOARD_CONFIG.size.height / 2,
+          AD_BOARD_CONFIG.size.depth / 2
+        )
+      ),
+      position: new CANNON.Vec3(
+        AD_BOARD_CONFIG.position.x,
+        AD_BOARD_CONFIG.position.y,
+        depth
+      )
+    });
+    world.addBody(this.body);
+
+    this.loadTextures();
+  }
+
+  update(deltaTime: number) {
+    if (!this.canvasTexture) return;
+    this.scrollOffset = (this.scrollOffset - deltaTime * AD_BOARD_CONFIG.scrollSpeed) % 1;
+    this.canvasTexture.offset.x = this.scrollOffset;
+  }
+
+  reset() {
+    this.scrollOffset = 0;
+    if (this.canvasTexture) {
+      this.canvasTexture.offset.x = 0;
+    }
+  }
+
+  private loadTextures() {
+    const loader = new THREE.TextureLoader();
+    let loaded = 0;
+
+    const refreshCanvasTexture = () => {
+      if (loaded !== AD_BOARD_CONFIG.textures.length) return;
+      const baseTexture = this.textures[0];
+      if (!baseTexture.image) return;
+      const imgWidth = baseTexture.image.width;
+      const imgHeight = baseTexture.image.height;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = imgWidth * this.textures.length;
+      canvas.height = imgHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      this.textures.forEach((texture, index) => {
+        if (texture.image) {
+          ctx.drawImage(texture.image, imgWidth * index, 0, imgWidth, imgHeight);
+        }
+      });
+
+      const combined = new THREE.CanvasTexture(canvas);
+      combined.colorSpace = THREE.SRGBColorSpace;
+      combined.wrapS = THREE.RepeatWrapping;
+      combined.wrapT = THREE.ClampToEdgeWrapping;
+      combined.repeat.set(this.textures.length, 1);
+
+      this.canvasTexture = combined;
+      this.material.map = combined;
+      this.material.needsUpdate = true;
+    };
+
+    AD_BOARD_CONFIG.textures.forEach((url) => {
+      const texture = loader.load(
+        url,
+        () => {
+          loaded += 1;
+          texture.colorSpace = THREE.SRGBColorSpace;
+          refreshCanvasTexture();
+        },
+        undefined,
+        (error) => {
+          console.warn(`Failed to load ad texture "${url}"`, error);
+        }
+      );
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      this.textures.push(texture);
+    });
+  }
+}
+
+export class Field {
+  public readonly groundMesh: THREE.Mesh;
+  public readonly stripeMeshes: THREE.Mesh[];
+  public readonly verticalStripes: THREE.Mesh[];
+  public readonly linesGroup: THREE.Group;
+  public readonly groundBody: CANNON.Body;
+  public readonly adBoard: AdBoard;
+
+  private readonly goalDepth: number;
+
+  constructor(scene: THREE.Scene, world: CANNON.World, groundMaterial: CANNON.Material, options: FieldOptions = {}) {
+    this.goalDepth = options.goalDepth ?? GOAL_DEPTH;
+
+    const loader = new THREE.TextureLoader();
+    const grassTexture = loader.load(grassAlbedoUrl);
+    grassTexture.colorSpace = THREE.SRGBColorSpace;
+    grassTexture.anisotropy = 8;
+    grassTexture.wrapS = THREE.RepeatWrapping;
+    grassTexture.wrapT = THREE.RepeatWrapping;
+    grassTexture.repeat.set(100, 100);
+
+    const normalTexture = loader.load(grassNormalUrl);
+    normalTexture.wrapS = THREE.RepeatWrapping;
+    normalTexture.wrapT = THREE.RepeatWrapping;
+    normalTexture.repeat.set(100, 100);
+
+    const aoTexture = loader.load(grassAoUrl);
+    aoTexture.wrapS = THREE.RepeatWrapping;
+    aoTexture.wrapT = THREE.RepeatWrapping;
+    aoTexture.repeat.set(100, 100);
+
+    this.groundMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(FIELD_DIMENSIONS.planeWidth, FIELD_DIMENSIONS.planeHeight),
+      new THREE.MeshStandardMaterial({
+        map: grassTexture,
+        normalMap: normalTexture,
+        roughnessMap: aoTexture,
+        roughness: 1,
+        metalness: 0
+      })
+    );
+    this.groundMesh.rotation.x = -Math.PI / 2;
+    this.groundMesh.receiveShadow = true;
+    scene.add(this.groundMesh);
+
+    const stripeWidth = options.stripeWidth ?? FIELD_DIMENSIONS.defaultStripeWidth;
+    this.stripeMeshes = this.createStripes(scene, stripeWidth);
+    this.verticalStripes = this.createVerticalStripes(scene, stripeWidth);
+    this.linesGroup = this.createFieldLines(scene);
+
+    this.groundBody = new CANNON.Body({
+      mass: 0,
+      shape: new CANNON.Plane(),
+      material: groundMaterial
+    });
+    this.groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+    world.addBody(this.groundBody);
+
+    this.adBoard = new AdBoard(
+      scene,
+      world,
+      this.goalDepth + AD_BOARD_CONFIG.position.depthOffset
+    );
+  }
+
+  update(deltaTime: number) {
+    this.adBoard.update(deltaTime);
+  }
+
+  resetAds() {
+    this.adBoard.reset();
+  }
+
+  private createStripes(scene: THREE.Scene, stripeWidth: number): THREE.Mesh[] {
+    if (stripeWidth <= 0) return [];
+
+    const config = FIELD_STRIPES.horizontal;
+    const yOffset = FIELD_OFFSETS.stripes.horizontal;
+    const stripeMaterial = new THREE.MeshStandardMaterial({
+      color: config.color,
+      roughness: 1,
+      metalness: 0,
+      transparent: true,
+      opacity: config.opacity,
+      depthWrite: config.depthWrite
+    });
+
+    const meshes: THREE.Mesh[] = [];
+    const halfLength = FIELD_DIMENSIONS.planeHeight / 2;
+
+    const stripeSpacing = stripeWidth * 2;
+    const positions: number[] = [];
+    const offset = stripeSpacing / 2;
+    for (
+      let center = offset;
+      center + stripeWidth / 2 <= halfLength;
+      center += stripeSpacing
+    ) {
+      positions.push(center, -center);
+    }
+    positions.sort((a, b) => a - b);
+
+    for (const center of positions) {
+      const stripe = new THREE.Mesh(
+        new THREE.PlaneGeometry(stripeWidth, FIELD_DIMENSIONS.planeWidth),
+        stripeMaterial
+      );
+      stripe.position.set(0, yOffset, center + stripeSpacing / 4);
+      stripe.rotation.x = -Math.PI / 2;
+      stripe.rotation.z = Math.PI / 2;
+      stripe.receiveShadow = true;
+      scene.add(stripe);
+      meshes.push(stripe);
+    }
+    return meshes;
+  }
+
+  private createVerticalStripes(scene: THREE.Scene, stripeWidth: number): THREE.Mesh[] {
+    if (stripeWidth <= 0) return [];
+
+    const config = FIELD_STRIPES.vertical;
+    const yOffset = FIELD_OFFSETS.stripes.vertical;
+    const material = new THREE.MeshStandardMaterial({
+      color: config.color,
+      roughness: 1,
+      metalness: 0,
+      transparent: true,
+      opacity: config.opacity,
+      depthWrite: config.depthWrite
+    });
+
+    const meshes: THREE.Mesh[] = [];
+    const halfWidth = FIELD_DIMENSIONS.planeWidth / 2;
+
+    const stripeSpacing = stripeWidth * 2;
+    const positions: number[] = [];
+    const offset = stripeSpacing / 2;
+    for (
+      let center = offset;
+      center + stripeWidth / 2 <= halfWidth;
+      center += stripeSpacing
+    ) {
+      positions.push(center, -center);
+    }
+    positions.sort((a, b) => a - b);
+
+    for (const center of positions) {
+      const stripe = new THREE.Mesh(
+        new THREE.PlaneGeometry(stripeWidth, FIELD_DIMENSIONS.planeHeight),
+        material
+      );
+      stripe.position.set(center + stripeSpacing / 4, yOffset, 0);
+      stripe.rotation.x = -Math.PI / 2;
+      stripe.receiveShadow = true;
+      scene.add(stripe);
+      meshes.push(stripe);
+    }
+    return meshes;
+  }
+
+  private createFieldLines(scene: THREE.Scene): THREE.Group {
+    const group = new THREE.Group();
+    const lineMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const lineHeight = FIELD_OFFSETS.lines;
+
+    const addMesh = (mesh: THREE.Mesh) => {
+      mesh.receiveShadow = true;
+      mesh.castShadow = true;
+      group.add(mesh);
+    };
+
+    const goalLineGeometry = new THREE.BoxGeometry(
+      FIELD_DIMENSIONS.goalLineLength,
+      FIELD_DIMENSIONS.lineMeshHeight,
+      FIELD_DIMENSIONS.goalLineThickness
+    );
+    const goalLineMesh = new THREE.Mesh(goalLineGeometry, lineMaterial);
+    goalLineMesh.position.set(0, lineHeight, this.goalDepth);
+    addMesh(goalLineMesh);
+
+    const penaltyBoxWidth = GOAL_WIDTH + FIELD_DIMENSIONS.penaltyBoxWidthPadding;
+    const penaltyBoxDepth = FIELD_DIMENSIONS.penaltyBoxDepth;
+    const penaltyAreaWidth = GOAL_WIDTH + FIELD_DIMENSIONS.penaltyAreaWidthPadding;
+    const penaltyAreaDepth = FIELD_DIMENSIONS.penaltyAreaDepth;
+
+    const createSideLine = (width: number, depth: number, offsetX: number, offsetZ: number) => {
+      const geometry = new THREE.BoxGeometry(width, FIELD_DIMENSIONS.lineMeshHeight, depth);
+      const mesh = new THREE.Mesh(geometry, lineMaterial);
+      mesh.position.set(offsetX, lineHeight, offsetZ);
+      addMesh(mesh);
+    };
+
+    // Penalty box sides
+    createSideLine(
+      FIELD_DIMENSIONS.goalLineThickness,
+      penaltyBoxDepth,
+      -penaltyBoxWidth / 2,
+      this.goalDepth + penaltyBoxDepth / 2
+    );
+    createSideLine(
+      FIELD_DIMENSIONS.goalLineThickness,
+      penaltyBoxDepth,
+      penaltyBoxWidth / 2,
+      this.goalDepth + penaltyBoxDepth / 2
+    );
+    createSideLine(
+      penaltyBoxWidth,
+      FIELD_DIMENSIONS.goalLineThickness,
+      0,
+      this.goalDepth + penaltyBoxDepth
+    );
+
+    // Penalty area sides
+    createSideLine(
+      FIELD_DIMENSIONS.goalLineThickness,
+      penaltyAreaDepth,
+      -penaltyAreaWidth / 2,
+      this.goalDepth + penaltyAreaDepth / 2
+    );
+    createSideLine(
+      FIELD_DIMENSIONS.goalLineThickness,
+      penaltyAreaDepth,
+      penaltyAreaWidth / 2,
+      this.goalDepth + penaltyAreaDepth / 2
+    );
+    createSideLine(
+      penaltyAreaWidth,
+      FIELD_DIMENSIONS.goalLineThickness,
+      0,
+      this.goalDepth + penaltyAreaDepth
+    );
+
+    const penaltyMarkGeometry = new THREE.CircleGeometry(
+      FIELD_DIMENSIONS.penaltyMarkRadius,
+      FIELD_DIMENSIONS.penaltyMarkSegments
+    );
+    const penaltyMarkMesh = new THREE.Mesh(penaltyMarkGeometry, lineMaterial);
+    penaltyMarkMesh.position.set(0, FIELD_OFFSETS.penaltyMark, 0);
+    penaltyMarkMesh.rotation.x = -Math.PI / 2;
+    addMesh(penaltyMarkMesh);
+
+    class PenaltyArcCurve extends THREE.Curve<THREE.Vector3> {
+      constructor() {
+        super();
+      }
+
+      getPoint(t: number): THREE.Vector3 {
+        const angle = Math.PI * t;
+        const radius = FIELD_DIMENSIONS.penaltyArcRadius;
+        return new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+      }
+    }
+    const arcGeometry = new THREE.TubeGeometry(
+      new PenaltyArcCurve(),
+      FIELD_DIMENSIONS.penaltyArcTubularSegments,
+      FIELD_DIMENSIONS.penaltyArcTubeRadius,
+      FIELD_DIMENSIONS.penaltyArcRadialSegments,
+      false
+    );
+    const arcMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      clippingPlanes: [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)]
+    });
+    const penaltyArcMesh = new THREE.Mesh(arcGeometry, arcMaterial);
+    penaltyArcMesh.position.set(0, FIELD_OFFSETS.penaltyArc, this.goalDepth + penaltyAreaDepth);
+    addMesh(penaltyArcMesh);
+
+    scene.add(group);
+    return group;
+  }
 }
 
 export function createField(
@@ -36,279 +407,5 @@ export function createField(
   groundMaterial: CANNON.Material,
   options: FieldOptions = {}
 ): Field {
-  const textureLoader = new THREE.TextureLoader();
-  const grassTexture = textureLoader.load(grassAlbedoUrl);
-  grassTexture.colorSpace = THREE.SRGBColorSpace;
-  grassTexture.anisotropy = 8;
-  grassTexture.wrapS = THREE.RepeatWrapping;
-  grassTexture.wrapT = THREE.RepeatWrapping;
-  grassTexture.repeat.set(120, 120);
-
-  const normalTexture = textureLoader.load(grassNormalUrl);
-  normalTexture.wrapS = THREE.RepeatWrapping;
-  normalTexture.wrapT = THREE.RepeatWrapping;
-  normalTexture.repeat.set(120, 120);
-
-  const aoTexture = textureLoader.load(grassAoUrl);
-  aoTexture.wrapS = THREE.RepeatWrapping;
-  aoTexture.wrapT = THREE.RepeatWrapping;
-  aoTexture.repeat.set(120, 120);
-
-  const groundMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(100, 100),
-    new THREE.MeshStandardMaterial({
-      map: grassTexture,
-      normalMap: normalTexture,
-      roughnessMap: aoTexture,
-      roughness: 1.0,
-      metalness: 0.0
-    })
-  );
-  groundMesh.rotation.x = -Math.PI / 2;
-  groundMesh.receiveShadow = true;
-  scene.add(groundMesh);
-
-  const stripeMeshes: THREE.Mesh[] = [];
-  const stripeMaterial = new THREE.MeshStandardMaterial({
-    color: 0x1A5A1A,  // 더 어두운 초록색
-    roughness: 1.0,
-    metalness: 0.0,
-    transparent: true,
-    opacity: 0.3  // 더 연하게
-  });
-  const stripeWidth = options.stripeWidth ?? 5;
-  const stripeDepth = 100;
-  const stripeCenterX = 0;
-
-  for (let i = -50; i < 50; i += stripeWidth * 2) {
-    const stripe = new THREE.Mesh(
-      new THREE.PlaneGeometry(stripeWidth, stripeDepth),
-      stripeMaterial
-    );
-    stripe.position.set(stripeCenterX, 0.01, i + stripeWidth / 2);
-    stripe.rotation.x = -Math.PI / 2;
-    stripe.rotation.z = Math.PI / 2;
-    stripe.receiveShadow = true;
-    scene.add(stripe);
-    stripeMeshes.push(stripe);
-  }
-
-  const verticalStripes: THREE.Mesh[] = [];
-  const verticalStripeMaterial = new THREE.MeshStandardMaterial({
-    color: 0x4A6F4A,  // 아주 살짝 밝은 탁한 초록색
-    roughness: 1.0,
-    metalness: 0.0,
-    transparent: true,
-    opacity: 0.3,  // 더 연하게
-    depthWrite: false  // 겹치는 부분에서도 보이게
-  });
-  const verticalStripeDepth = 100;  // 골대 앞쪽 길이
-  const stripeCenterZ = 0;  // 중앙 위치
-
-  for (let i = -50; i < 50; i += stripeWidth * 2) {
-    const verticalStripe = new THREE.Mesh(
-      new THREE.PlaneGeometry(stripeWidth, verticalStripeDepth),
-      verticalStripeMaterial
-    );
-    verticalStripe.position.set(i + stripeWidth / 2, 0.011, stripeCenterZ);
-    verticalStripe.rotation.x = -Math.PI / 2;
-    verticalStripe.receiveShadow = true;
-    scene.add(verticalStripe);
-    verticalStripes.push(verticalStripe);
-  }
-
-  const groundBody = new CANNON.Body({
-    mass: 0,
-    shape: new CANNON.Plane(),
-    material: groundMaterial
-  });
-  groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-  world.addBody(groundBody);
-
-  const goalDepth = options.goalDepth ?? -10;
-
-  // 골라인 추가
-  const penaltyBoxWidth = GOAL_WIDTH + 10;
-  const penaltyBoxDepth = 5;
-  const goalLineGeometry = new THREE.BoxGeometry(100, 0.01, 0.1);
-  const goalLineMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
-  const goalLineMesh = new THREE.Mesh(goalLineGeometry, goalLineMaterial);
-  goalLineMesh.position.set(0, 0.012, goalDepth);
-  goalLineMesh.receiveShadow = true;
-  goalLineMesh.castShadow = true;
-  scene.add(goalLineMesh);
-
-  // 페널티 박스 추가
-  const penaltyBoxMeshes: THREE.Mesh[] = [];
-  const penaltyBoxMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
-
-  // 왼쪽 세로선
-  const leftGeometry = new THREE.BoxGeometry(0.1, 0.01, penaltyBoxDepth);
-  const leftMesh = new THREE.Mesh(leftGeometry, penaltyBoxMaterial);
-  leftMesh.position.set(-penaltyBoxWidth / 2, 0.012, goalDepth + penaltyBoxDepth / 2);
-  leftMesh.receiveShadow = true;
-  leftMesh.castShadow = true;
-  scene.add(leftMesh);
-  penaltyBoxMeshes.push(leftMesh);
-
-  // 오른쪽 세로선
-  const rightMesh = leftMesh.clone();
-  rightMesh.position.x = penaltyBoxWidth / 2;
-  scene.add(rightMesh);
-  penaltyBoxMeshes.push(rightMesh);
-
-  // 앞쪽 가로선
-  const frontGeometry = new THREE.BoxGeometry(penaltyBoxWidth, 0.01, 0.1);
-  const frontMesh = new THREE.Mesh(frontGeometry, penaltyBoxMaterial);
-  frontMesh.position.set(0, 0.012, goalDepth + penaltyBoxDepth);
-  scene.add(frontMesh);
-  penaltyBoxMeshes.push(frontMesh);
-
-  // 페널티 에어리어 추가
-  const penaltyAreaWidth = GOAL_WIDTH + 32;
-  const penaltyAreaDepth = 16;
-  const penaltyAreaMeshes: THREE.Mesh[] = [];
-
-  // 왼쪽 세로선
-  const leftAreaGeometry = new THREE.BoxGeometry(0.1, 0.01, penaltyAreaDepth);
-  const leftAreaMesh = new THREE.Mesh(leftAreaGeometry, penaltyBoxMaterial);
-  leftAreaMesh.position.set(-penaltyAreaWidth / 2, 0.012, goalDepth + penaltyAreaDepth / 2);
-  leftAreaMesh.receiveShadow = true;
-  leftAreaMesh.castShadow = true;
-  scene.add(leftAreaMesh);
-  penaltyAreaMeshes.push(leftAreaMesh);
-
-  // 오른쪽 세로선
-  const rightAreaMesh = leftAreaMesh.clone();
-  rightAreaMesh.position.x = penaltyAreaWidth / 2;
-  scene.add(rightAreaMesh);
-  penaltyAreaMeshes.push(rightAreaMesh);
-
-  // 앞쪽 가로선
-  const frontAreaGeometry = new THREE.BoxGeometry(penaltyAreaWidth, 0.01, 0.1);
-  const frontAreaMesh = new THREE.Mesh(frontAreaGeometry, penaltyBoxMaterial);
-  frontAreaMesh.position.set(0, 0.012, goalDepth + penaltyAreaDepth);
-  scene.add(frontAreaMesh);
-  penaltyAreaMeshes.push(frontAreaMesh);
-
-  // 페널티 마크 추가
-  const penaltyMarkGeometry = new THREE.CircleGeometry(0.05, 32);
-  const penaltyMarkMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
-  const penaltyMarkMesh = new THREE.Mesh(penaltyMarkGeometry, penaltyMarkMaterial);
-  penaltyMarkMesh.position.set(0, 0.013, 0);
-  penaltyMarkMesh.rotation.x = -Math.PI / 2;
-  penaltyMarkMesh.receiveShadow = true;
-  penaltyMarkMesh.castShadow = true;
-  scene.add(penaltyMarkMesh);
-
-  // 페널티 아크 추가
-  class ArcCurve extends THREE.Curve<THREE.Vector3> {
-    constructor() {
-      super();
-    }
-    getPoint(t: number): THREE.Vector3 {
-      const angle = Math.PI * t;
-      return new THREE.Vector3(Math.cos(angle) * 2.2875, 0, Math.sin(angle) * 2.2875);
-    }
-  }
-  const path = new ArcCurve();
-  const penaltyArcGeometry = new THREE.TubeGeometry(path, 32, 0.025, 8, false);
-  const penaltyArcMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, clippingPlanes: [new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)] });
-  const penaltyArcMesh = new THREE.Mesh(penaltyArcGeometry, penaltyArcMaterial);
-  penaltyArcMesh.position.set(0, 0.012, 6);
-  penaltyArcMesh.receiveShadow = true;
-  penaltyArcMesh.castShadow = true;
-  scene.add(penaltyArcMesh);
-
-  const boardWidth = 100;
-  const boardHeight = 1.2;
-  const boardThickness = 0.1;
-  const boardOffsetZ = -8;
-
-  // 텍스처 로딩 및 결합
-  const adTextureUrls = [adTexture1Url, adTexture2Url, adTexture3Url, adTexture4Url];
-  const adTextures: THREE.Texture[] = [];
-  let loadedCount = 0;
-  let combinedTexture: THREE.CanvasTexture | null = null;
-
-  const onTextureLoad = () => {
-    loadedCount++;
-    if (loadedCount === 4) {
-      // 모든 텍스처 로드 완료 후 canvas에 결합
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
-      const imgWidth = adTextures[0].image.width;
-      const imgHeight = adTextures[0].image.height;
-      canvas.width = imgWidth * 4;
-      canvas.height = imgHeight;
-      for (let i = 0; i < 4; i++) {
-        ctx.drawImage(adTextures[i].image, i * imgWidth, 0, imgWidth, imgHeight);
-      }
-      combinedTexture = new THREE.CanvasTexture(canvas);
-      combinedTexture.colorSpace = THREE.SRGBColorSpace;
-      combinedTexture.wrapS = THREE.RepeatWrapping;
-      combinedTexture.wrapT = THREE.ClampToEdgeWrapping;
-      combinedTexture.repeat.set(4, 1);
-      if (boardMaterial.map !== combinedTexture) {
-        boardMaterial.map = combinedTexture;
-        boardMaterial.needsUpdate = true;
-      }
-    }
-  };
-
-  for (const url of adTextureUrls) {
-    const texture = textureLoader.load(url, onTextureLoad);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    adTextures.push(texture);
-  }
-
-  const boardMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(boardWidth, boardHeight, boardThickness),
-    new THREE.MeshStandardMaterial({
-      roughness: 0.45,
-      metalness: 0.05,
-      emissive: new THREE.Color(0x111111),
-      emissiveIntensity: 0.4
-    })
-  );
-  boardMesh.castShadow = false;
-  boardMesh.receiveShadow = false;
-  boardMesh.position.set(0, boardHeight / 2, goalDepth + boardOffsetZ);
-  scene.add(boardMesh);
-
-  const boardBody = new CANNON.Body({
-    mass: 0,
-    shape: new CANNON.Box(new CANNON.Vec3(boardWidth / 2, boardHeight / 2, boardThickness / 2)),
-    position: new CANNON.Vec3(0, boardHeight / 2, goalDepth + boardOffsetZ)
-  });
-  world.addBody(boardBody);
-
-  let scrollOffset = 0;
-  const boardMaterial = boardMesh.material as THREE.MeshStandardMaterial;
-
-  return {
-    groundMesh,
-    stripeMeshes,
-    verticalStripes,
-    groundBody,
-    adBoardMesh: boardMesh,
-    adBoardBody: boardBody,
-    goalLineMesh,
-    penaltyMarkMesh,
-    penaltyBoxMeshes,
-    penaltyAreaMeshes,
-    penaltyArcMesh,
-    update(deltaTime: number) {
-      if (combinedTexture) {
-        scrollOffset = (scrollOffset - deltaTime * 0.1) % 1;
-        combinedTexture.offset.x = scrollOffset;
-      }
-    },
-    resetAds() {
-      scrollOffset = 0;
-      if (combinedTexture) {
-        combinedTexture.offset.x = 0;
-      }
-    }
-  };
+  return new Field(scene, world, groundMaterial, options);
 }

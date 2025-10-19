@@ -6,14 +6,31 @@ import { configureSceneLighting } from './core/lighting';
 import { createPhysicsWorld } from './physics/world';
 import { createField } from './environment/field';
 import type { Field } from './environment/field';
-import { Ball, BALL_RADIUS } from './entities/ball';
-import { Goal, GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './entities/goal';
+import { Ball } from './entities/ball';
+import { Goal } from './entities/goal';
+import { BALL_RADIUS } from './config/ball';
+import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
 import { GoalKeeper } from './entities/goalkeeper';
-import { createDebugHud, createDebugButton, updateDebugButtonState } from './ui/debugHud';
+import { DebugHudController, createDebugButton, updateDebugButtonState } from './ui/debugHud';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { AudioManager } from './core/audio';
+
+const POINTER_HISTORY_LIMIT = 8;
+const MIN_FLICK_DISTANCE_SQ = 4;
+const MIN_VERTICAL_BOUNCE_SPEED = 0.45;
+const BOUNCE_COOLDOWN_MS = 120;
+const CURVE_PARAMS = {
+  lateralScale: 0.75,
+  verticalScale: 0.52,
+  durationMin: 0.55,
+  durationMax: 2.1,
+  strengthBase: 0.34,
+  strengthOffset: 0.42,
+  strengthScale: 0.75,
+  groundTimeout: 0.2
+} as const;
 
 export class MiniShootout3D {
   private readonly canvas: HTMLCanvasElement;
@@ -31,15 +48,7 @@ export class MiniShootout3D {
   private readonly audio = new AudioManager();
   private readonly ballColliderMesh: THREE.Mesh;
   private readonly goalColliderGroup: THREE.Group;
-  private readonly debugHud: HTMLDivElement;
-  private readonly debugHudInfo: HTMLPreElement;
-  private readonly strikeZoneLabel: HTMLDivElement;
-  private readonly strikeMapCurrentDot: SVGCircleElement;
-  private readonly strikeMapLastDot: SVGCircleElement;
-  private readonly vectorReadout: HTMLDivElement;
-  private readonly swipeLiveArrow: SVGLineElement;
-  private readonly swipeLastArrow: SVGLineElement;
-  private readonly strikePanel: HTMLDivElement;
+  private readonly hud: DebugHudController;
   private readonly axisArrows: THREE.ArrowHelper[];
   private readonly trajectoryGeometry: LineGeometry;
   private readonly trajectoryMaterial: LineMaterial;
@@ -127,16 +136,7 @@ export class MiniShootout3D {
     this.ballColliderMesh = this.createBallColliderMesh();
     this.goalColliderGroup = this.createGoalColliderGroup();
     this.axisArrows = this.createAxisArrows();
-    const hud = createDebugHud();
-    this.debugHud = hud.container;
-    this.debugHudInfo = hud.info;
-    this.swipeLiveArrow = hud.liveArrow;
-    this.swipeLastArrow = hud.lastArrow;
-    this.strikePanel = hud.strikePanel;
-    this.strikeZoneLabel = hud.label;
-    this.strikeMapCurrentDot = hud.currentDot;
-    this.strikeMapLastDot = hud.lastDot;
-    this.vectorReadout = hud.vectorReadout;
+    this.hud = new DebugHudController();
     this.trajectoryPositions = new Float32Array(this.trajectorySampleCount * 3);
     this.trajectoryGeometry = new LineGeometry();
     this.trajectoryGeometry.setPositions(Array.from(this.trajectoryPositions));
@@ -171,9 +171,9 @@ export class MiniShootout3D {
   private handleBallCollide(event: { body: CANNON.Body }) {
     if (event.body === this.field.groundBody) {
       const now = performance.now();
-      if (now - this.lastBounceSoundTime < 120) return;
+      if (now - this.lastBounceSoundTime < BOUNCE_COOLDOWN_MS) return;
       const vy = Math.abs(this.ball.body.velocity.y);
-      if (vy < 0.45) return;
+      if (vy < MIN_VERTICAL_BOUNCE_SPEED) return;
       this.lastBounceSoundTime = now;
       const volume = THREE.MathUtils.clamp(vy / 6 + 0.15, 0.1, 1);
       this.audio.play('bounce', { volume });
@@ -223,7 +223,7 @@ export class MiniShootout3D {
     this.updateLiveSwipeVectorEnd(event);
     const now = performance.now();
     this.pointerHistory.push({ x: event.clientX, y: event.clientY, time: now });
-    if (this.pointerHistory.length > 8) {
+    if (this.pointerHistory.length > POINTER_HISTORY_LIMIT) {
       this.pointerHistory.shift();
     }
   }
@@ -253,7 +253,7 @@ export class MiniShootout3D {
 
     const flickVector = new THREE.Vector2(end.x - flickStart.x, end.y - flickStart.y);
     const fallback = new THREE.Vector2(delta.x, delta.y);
-    if (flickVector.lengthSq() < 4 && fallback.lengthSq() > 0) {
+    if (flickVector.lengthSq() < MIN_FLICK_DISTANCE_SQ && fallback.lengthSq() > 0) {
       flickVector.copy(fallback);
     }
     const flickLength = flickVector.length();
@@ -370,8 +370,7 @@ export class MiniShootout3D {
     this.debugButton.removeEventListener('click', this.handleDebugButtonClickBound);
     this.debugButton.remove();
     this.axisArrows.forEach((arrow) => this.scene.remove(arrow));
-    this.debugHud.remove();
-    this.strikePanel.remove();
+    this.hud.destroy();
   }
 
   private createBallColliderMesh(): THREE.Mesh {
@@ -450,8 +449,7 @@ export class MiniShootout3D {
     this.ballColliderMesh.visible = this.debugMode;
     this.goalColliderGroup.visible = this.debugMode;
     this.trajectoryLine.visible = this.debugMode;
-    this.debugHud.style.display = this.debugMode ? 'block' : 'none';
-    this.strikePanel.style.display = this.debugMode ? 'flex' : 'none';
+    this.hud.setVisible(this.debugMode);
     updateDebugButtonState(this.debugButton, this.debugMode);
     this.axisArrows.forEach((arrow) => {
       arrow.visible = this.debugMode;
@@ -471,7 +469,7 @@ export class MiniShootout3D {
       this.ball.body.position.z
     );
     this.updateTrajectoryLine();
-    this.updateDebugHud();
+    this.updateHudState();
     this.updateAxisArrows();
   }
 
@@ -499,6 +497,38 @@ export class MiniShootout3D {
     this.trajectoryGeometry.computeBoundingSphere();
   }
 
+  private updateAxisArrows() {
+    const { position, quaternion } = this.ball.body;
+    this.axisArrows.forEach((arrow) => {
+      arrow.position.set(position.x, position.y, position.z);
+    });
+
+    this.tempQuaternion.set(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
+
+    this.tempAxisX.set(1, 0, 0).applyQuaternion(this.tempQuaternion);
+    this.tempAxisY.set(0, 1, 0).applyQuaternion(this.tempQuaternion);
+    this.tempAxisZ.set(0, 0, 1).applyQuaternion(this.tempQuaternion);
+
+    this.axisArrows[0].setDirection(this.tempAxisX.normalize());
+    this.axisArrows[1].setDirection(this.tempAxisY.normalize());
+    this.axisArrows[2].setDirection(this.tempAxisZ.normalize());
+  }
+
+  private updateHudState() {
+    const velocity = this.ball.body.velocity;
+    const spin = this.ball.body.angularVelocity;
+    this.hud.update({
+      velocity: { x: velocity.x, y: velocity.y, z: velocity.z },
+      speed: velocity.length(),
+      spin: { x: spin.x, y: spin.y, z: spin.z },
+      spinSpeed: spin.length(),
+      currentContact: this.strikeContact,
+      lastContact: this.lastStrikeContact,
+      liveSwipe: this.liveSwipeVector,
+      lastSwipe: this.lastSwipeVector
+    });
+  }
+
   private configureStrikeCurve(strikeContact: { x: number; y: number }, basePower: number) {
     const magnitude = THREE.MathUtils.clamp(Math.hypot(strikeContact.x, strikeContact.y), 0, 1.35);
     if (magnitude < 0.05) {
@@ -508,14 +538,21 @@ export class MiniShootout3D {
 
     const lateral = THREE.MathUtils.clamp(-strikeContact.x, -1.35, 1.35);
     const vertical = THREE.MathUtils.clamp(strikeContact.y, -1.25, 1.25);
-    const direction = new THREE.Vector3(lateral * 0.75, vertical * 0.52, 0);
+    const direction = new THREE.Vector3(
+      lateral * CURVE_PARAMS.lateralScale,
+      vertical * CURVE_PARAMS.verticalScale,
+      0
+    );
     if (direction.lengthSq() < 1e-4) {
       this.activeCurve = null;
       return;
     }
 
-    const duration = THREE.MathUtils.lerp(0.55, 2.1, magnitude);
-    const strength = basePower * 0.34 * (0.42 + magnitude * 0.75);
+    const duration = THREE.MathUtils.lerp(CURVE_PARAMS.durationMin, CURVE_PARAMS.durationMax, magnitude);
+    const strength =
+      basePower *
+      CURVE_PARAMS.strengthBase *
+      (CURVE_PARAMS.strengthOffset + magnitude * CURVE_PARAMS.strengthScale);
 
     this.activeCurve = {
       direction,
@@ -539,7 +576,7 @@ export class MiniShootout3D {
       this.lastGroundContactTime = now;
     }
 
-    if (now - this.lastGroundContactTime < 0.2) {
+    if (now - this.lastGroundContactTime < CURVE_PARAMS.groundTimeout) {
       return;
     }
 
@@ -584,127 +621,6 @@ export class MiniShootout3D {
     velocity.x = vx * normalize;
     velocity.y = vy * normalize;
     velocity.z = vz * normalize;
-  }
-
-  private updateAxisArrows() {
-    const { position, quaternion } = this.ball.body;
-    this.axisArrows.forEach((arrow) => {
-      arrow.position.set(position.x, position.y, position.z);
-    });
-
-    this.tempQuaternion.set(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
-
-    this.tempAxisX.set(1, 0, 0).applyQuaternion(this.tempQuaternion);
-    this.tempAxisY.set(0, 1, 0).applyQuaternion(this.tempQuaternion);
-    this.tempAxisZ.set(0, 0, 1).applyQuaternion(this.tempQuaternion);
-
-    this.axisArrows[0].setDirection(this.tempAxisX.normalize());
-    this.axisArrows[1].setDirection(this.tempAxisY.normalize());
-    this.axisArrows[2].setDirection(this.tempAxisZ.normalize());
-  }
-
-  private updateDebugHud() {
-    const velocity = this.ball.body.velocity;
-    const speed = velocity.length();
-    const spin = this.ball.body.angularVelocity;
-    const spinSpeed = spin.length();
-
-    const formatVector = (vec: CANNON.Vec3) =>
-      `[${vec.x.toFixed(2)}, ${vec.y.toFixed(2)}, ${vec.z.toFixed(2)}]`;
-    const formatDirection = (vec: CANNON.Vec3) => {
-      const length = vec.length();
-      if (length === 0) return '[0.00, 0.00, 0.00]';
-      const inv = 1 / length;
-      return `[${(vec.x * inv).toFixed(2)}, ${(vec.y * inv).toFixed(2)}, ${(vec.z * inv).toFixed(2)}]`;
-    };
-
-    const currentContact = this.strikeContact;
-    const lastContact = this.lastStrikeContact;
-    const currentZone = currentContact ? this.classifyStrikeContact(currentContact) : 'None';
-    const lastZone = lastContact ? this.classifyStrikeContact(lastContact) : 'None';
-
-    this.debugHudInfo.textContent = [
-      'Ball Diagnostics',
-      `Velocity:  ${formatVector(velocity)}`,
-      `Speed:     ${speed.toFixed(2)} m/s`,
-      `Direction: ${formatDirection(velocity)}`,
-      '',
-      `Spin:      ${formatVector(spin)}`,
-      `Spin Mag:  ${spinSpeed.toFixed(2)} rad/s`,
-      `Spin Dir:  ${formatDirection(spin)}`,
-      '',
-      `Strike (live): ${currentZone}`,
-      `Strike (last): ${lastZone}`
-    ].join('\n');
-
-    this.updateStrikeMap(currentContact, lastContact);
-  }
-
-  private updateStrikeMap(
-    current: { x: number; y: number } | null,
-    last: { x: number; y: number } | null
-  ) {
-    const applyDot = (dot: SVGCircleElement, contact: { x: number; y: number } | null, visible: boolean) => {
-      if (!contact || !visible) {
-        dot.style.display = 'none';
-        return;
-      }
-      const clampedX = THREE.MathUtils.clamp(contact.x, -2.1, 2.1);
-      const clampedY = THREE.MathUtils.clamp(contact.y, -2.3, 2.3);
-      dot.setAttribute('cx', clampedX.toString());
-      dot.setAttribute('cy', clampedY.toString());
-      dot.style.display = 'block';
-    };
-
-    applyDot(this.strikeMapCurrentDot, current, this.debugMode);
-    applyDot(this.strikeMapLastDot, last, this.debugMode && !!last);
-
-    const clampCoord = (value: number) => THREE.MathUtils.clamp(value, -2.3, 2.3);
-    const vectorScale = 0.12;
-    const applyArrow = (
-      arrow: SVGLineElement,
-      vector: { start: { x: number; y: number }; end: { x: number; y: number } } | null,
-      visible: boolean
-    ) => {
-      if (!vector || !visible) {
-        arrow.style.display = 'none';
-        return;
-      }
-      const startX = clampCoord(vector.start.x);
-      const startY = clampCoord(vector.start.y);
-      const scaledEndX = vector.start.x + (vector.end.x - vector.start.x) * vectorScale;
-      const scaledEndY = vector.start.y + (vector.end.y - vector.start.y) * vectorScale;
-      const endX = clampCoord(scaledEndX);
-      const endY = clampCoord(scaledEndY);
-      arrow.setAttribute('x1', startX.toString());
-      arrow.setAttribute('y1', startY.toString());
-      arrow.setAttribute('x2', endX.toString());
-      arrow.setAttribute('y2', endY.toString());
-      arrow.style.display = 'block';
-    };
-
-    applyArrow(this.swipeLastArrow, this.lastSwipeVector, this.debugMode && !!this.lastSwipeVector);
-    applyArrow(this.swipeLiveArrow, this.liveSwipeVector, this.debugMode && !!this.liveSwipeVector);
-
-    const liveText = current
-      ? `Live (x:${current.x.toFixed(2)}, y:${current.y.toFixed(2)})`
-      : 'Live: none';
-    const lastText = last
-      ? `Last (x:${last.x.toFixed(2)}, y:${last.y.toFixed(2)})`
-      : 'Last: none';
-    this.strikeZoneLabel.textContent = `${liveText}  |  ${lastText}`;
-
-    if (this.vectorReadout) {
-      if (this.lastSwipeVector) {
-        const lastVector = this.lastSwipeVector;
-        const vx = lastVector.end.x - lastVector.start.x;
-        const vy = lastVector.end.y - lastVector.start.y;
-        const mag = Math.sqrt(vx * vx + vy * vy);
-        this.vectorReadout.textContent = `Swipe Δ (x:${vx.toFixed(2)}, y:${vy.toFixed(2)})  |  Mag:${mag.toFixed(2)}`;
-      } else {
-        this.vectorReadout.textContent = 'Swipe Δ: n/a';
-      }
-    }
   }
 
   private computeStrikePoint(event: PointerEvent): { x: number; y: number } | null {

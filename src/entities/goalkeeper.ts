@@ -1,12 +1,10 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import keeperTextureUrl from '../assets/keeper/keeper-korea.png?url';
-import { BALL_RADIUS } from './ball';
+import { BALL_RADIUS } from '../config/ball';
+import { GOALKEEPER_CONFIG } from '../config/players';
 
-const KEEPER_WIDTH = 0.7;
-const KEEPER_HEIGHT = 2.0;
-const KEEPER_DEPTH = 0.4;
-const ROTATION_RANGE = Math.PI / 2; // ±90 degrees allowable lean
+const { width: KEEPER_WIDTH, height: KEEPER_HEIGHT, depth: KEEPER_DEPTH, rotationRange: ROTATION_RANGE } = GOALKEEPER_CONFIG;
 // const RESPONSE_SPEED = 50; // how quickly keeper follows target angle
 
 export class GoalKeeper {
