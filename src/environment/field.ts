@@ -6,6 +6,7 @@ import grassAoUrl from '../assets/grass1-unity/grass1-ao.png?url';
 import { GOAL_DEPTH, GOAL_WIDTH } from '../config/goal';
 import { FIELD_DIMENSIONS, FIELD_OFFSETS, FIELD_STRIPES } from '../config/field';
 import { AD_BOARD_CONFIG } from '../config/adBoard';
+import { Stands } from './stands';
 
 export interface FieldOptions {
   goalDepth?: number;
@@ -136,6 +137,7 @@ export class Field {
   public readonly linesGroup: THREE.Group;
   public readonly groundBody: CANNON.Body;
   public readonly adBoard: AdBoard;
+  public readonly stands: Stands;
 
   private readonly goalDepth: number;
 
@@ -188,6 +190,13 @@ export class Field {
     world.addBody(this.groundBody);
 
     this.adBoard = new AdBoard(
+      scene,
+      world,
+      this.goalDepth + AD_BOARD_CONFIG.position.depthOffset
+    );
+
+    // 샘플 관중석 추가
+    this.stands = new Stands(
       scene,
       world,
       this.goalDepth + AD_BOARD_CONFIG.position.depthOffset

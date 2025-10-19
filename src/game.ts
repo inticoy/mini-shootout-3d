@@ -373,7 +373,7 @@ export class MiniShootout3D {
     this.ball.reset();
     this.goalKeeper.resetTracking();
     this.goal.resetNet();
-    this.field.resetAds();
+    // this.field.resetAds(); // 광고판은 리셋하지 않고 계속 흐르도록
     this.strikeContact = null;
     this.liveSwipeVector = null;
     this.pointerStartNormalized = null;
