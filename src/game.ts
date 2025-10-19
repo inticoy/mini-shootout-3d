@@ -921,57 +921,6 @@ export class MiniShootout3D {
     };
   }
 
-  private classifyStrikeContact(contact: { x: number; y: number }): string {
-    const normalized = this.getNormalizedContact(contact);
-    const x = normalized.x;
-    const y = normalized.y;
-    const absX = Math.abs(x);
-    const absY = Math.abs(y);
-    const t = STRIKE_GUIDE_THRESHOLDS;
-
-    if (y > t.scoopY && absX < t.instepX) {
-      return 'Chip / Scoop';
-    }
-
-    if (y < t.topY && absX < t.instepX) {
-      return 'Top / Knuckle';
-    }
-
-    if (x > t.insideX) {
-      if (y > t.scoopY) {
-        return 'Inside Scoop';
-      }
-      if (y < t.topY) {
-        return 'Inside Brush';
-      }
-      return 'Inside Foot Curl';
-    }
-
-    if (x < -t.insideX) {
-      if (y > t.scoopY) {
-        return 'Outside Scoop';
-      }
-      if (y < t.topY) {
-        return 'Outside Brush';
-      }
-      return 'Outside Foot Curl';
-    }
-
-    if (absX < t.instepX && absY < t.instepY) {
-      return 'Instep Drive';
-    }
-
-    if (absX > t.brushX) {
-      return x > 0 ? 'Inside Brush' : 'Outside Brush';
-    }
-
-    if (y > t.scoopEdgeY) {
-      return x >= 0 ? 'Inside Scoop' : 'Outside Scoop';
-    }
-
-    return 'Mixed Contact';
-  }
-
   private computeStrikeSpin(strikeContact: { x: number; y: number }, basePower: number): {
     side: number;
     top: number;

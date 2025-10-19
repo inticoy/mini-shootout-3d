@@ -13,8 +13,11 @@ export class GoalNetAnimator {
   private readonly tempLocal = new THREE.Vector3();
   private time = 0;
   private idleEnabled = true;
+  private readonly net: GoalNet;
 
-  constructor(private readonly net: GoalNet) {}
+  constructor(net: GoalNet) {
+    this.net = net;
+  }
 
   update(deltaTime: number): void {
     if (!this.idleEnabled && this.pulses.length === 0) {
@@ -22,8 +25,6 @@ export class GoalNetAnimator {
     }
 
     const config = GOAL_NET_CONFIG.animation;
-    const bounds = this.net.restBounds;
-    const height = Math.max(bounds.maxY - bounds.minY, 0.001);
     const idleAmp = config.idleAmplitude;
     const idleFreq = config.idleFrequency;
     const idleFalloff = config.idleFalloff;
