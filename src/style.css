@@ -145,3 +145,238 @@ body {
   height: 100%;
   filter: drop-shadow(0 0 12px rgba(30, 120, 160, 0.55));
 }
+
+/* ========================================
+   Loading Screen - Professional AAA Game Style
+   ======================================== */
+
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0f4d2e 0%, #1a5c3a 50%, #0a3d23 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.5s ease-out;
+}
+
+.loading-screen--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Title Section */
+.loading-screen__title {
+  text-align: center;
+  margin-bottom: 60px;
+  animation: fadeInDown 0.8s ease-out;
+}
+
+.loading-screen__title-text {
+  font-size: 56px;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow:
+    0 0 30px rgba(255, 255, 255, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(58, 143, 90, 0.4);
+  letter-spacing: 4px;
+  margin: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.loading-screen__subtitle {
+  font-size: 32px;
+  font-weight: 700;
+  color: #7dd3a0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  margin: 10px 0 0 0;
+  letter-spacing: 12px;
+  text-transform: uppercase;
+}
+
+/* Loading Message */
+.loading-screen__message {
+  font-size: 24px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  margin-bottom: 40px;
+  min-height: 32px;
+  animation: fadeInUp 0.4s ease-out;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Progress Bar Container */
+.loading-screen__progress-container {
+  width: 500px;
+  max-width: 80vw;
+  position: relative;
+}
+
+.loading-screen__progress-bar {
+  width: 100%;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.loading-screen__progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg,
+    #3a8f5a 0%,
+    #4db870 50%,
+    #3a8f5a 100%
+  );
+  border-radius: 20px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 0 20px rgba(77, 184, 112, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated shine effect on progress bar */
+.loading-screen__progress-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shine 2s infinite;
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 100%;
+  }
+}
+
+/* Progress Percentage Text */
+.loading-screen__progress-text {
+  display: block;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  margin-top: 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 2px;
+}
+
+/* Tip Section */
+.loading-screen__tip {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  max-width: 600px;
+  padding: 0 20px;
+  animation: fadeIn 1s ease-out 0.5s both;
+}
+
+.loading-screen__tip strong {
+  color: #7dd3a0;
+  font-weight: 700;
+}
+
+/* Animations */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .loading-screen__title-text {
+    font-size: 32px;
+    letter-spacing: 2px;
+  }
+
+  .loading-screen__subtitle {
+    font-size: 20px;
+    letter-spacing: 6px;
+  }
+
+  .loading-screen__message {
+    font-size: 18px;
+  }
+
+  .loading-screen__progress-container {
+    width: 90vw;
+  }
+
+  .loading-screen__tip {
+    font-size: 14px;
+    bottom: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .loading-screen__title-text {
+    font-size: 24px;
+    letter-spacing: 1px;
+  }
+
+  .loading-screen__subtitle {
+    font-size: 16px;
+    letter-spacing: 4px;
+  }
+
+  .loading-screen__message {
+    font-size: 16px;
+  }
+}

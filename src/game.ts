@@ -14,12 +14,13 @@ import { GOAL_NET_CONFIG } from './config/net';
 import { AD_BOARD_CONFIG } from './config/adBoard';
 import { STRIKE_ZONE_CONFIG } from './config/strike';
 // import { GoalKeeper } from './entities/goalkeeper'; // 기존 2D 골키퍼
-import { GoalKeeper3D as GoalKeeper } from './entities/goalkeeper3d'; // FBX 모델 골키퍼
+// import { GoalKeeper3D as GoalKeeper } from './entities/goalkeeper3d'; // FBX 모델 골키퍼
 import { DebugHudController, createDebugButton, updateDebugButtonState } from './ui/debugHud';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { AudioManager } from './core/audio';
+import { LoadingScreen } from './ui/loadingScreen';
 
 const POINTER_HISTORY_LIMIT = 8;
 const MIN_FLICK_DISTANCE_SQ = 4;
@@ -58,7 +59,7 @@ export class MiniShootout3D {
 
   private readonly ball: Ball;
   private readonly goal: Goal;
-  private readonly goalKeeper: GoalKeeper;
+  // private readonly goalKeeper: GoalKeeper;
   private readonly field: Field;
   private readonly audio = new AudioManager();
   private readonly ballColliderMesh: THREE.Mesh;
@@ -118,10 +119,18 @@ export class MiniShootout3D {
   private lastSwipeVector: { start: { x: number; y: number }; end: { x: number; y: number } } | null = null;
   private pointerStartNormalized: { x: number; y: number } | null = null;
   private readonly strikeGuide: HTMLDivElement;
+  private loadingScreen: LoadingScreen | null = null;
+  private assetsLoaded = 0;
+  private totalAssets = 0;
+  private isGameReady = false;
 
   constructor(canvas: HTMLCanvasElement, onScoreChange: (score: number) => void) {
     this.canvas = canvas;
     this.onScoreChange = onScoreChange;
+
+    // 로딩 화면 생성 및 표시
+    this.loadingScreen = new LoadingScreen();
+    this.loadingScreen.show();
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x87CEEB); // 실제 하늘색 (Sky Blue)
@@ -138,18 +147,29 @@ export class MiniShootout3D {
 
     this.ball = new Ball(this.world, materials.ball);
     this.ball.body.addEventListener('collide', this.handleBallCollideBound);
-    void this.ball.load(this.scene).catch((error) => {
+
+    // 총 에셋 수 계산 (Ball + Audio files)
+    this.totalAssets = 2; // 1 for ball model, 1 for audio
+
+    void this.ball.load(this.scene).then(() => {
+      this.onAssetLoaded();
+    }).catch((error) => {
       console.error('Failed to load ball model', error);
+      this.onAssetLoaded(); // 실패해도 진행
     });
 
     this.goal = new Goal(this.scene, this.world, materials.ball);
     this.goal.setNetAnimationEnabled(true);
     this.goal.bodies.sensor.addEventListener('collide', this.handleGoalCollisionBound);
 
-    this.goalKeeper = new GoalKeeper(this.scene, this.world, GOAL_DEPTH + 0.8, this.ball.body);
+    // this.goalKeeper = new GoalKeeper(this.scene, this.world, GOAL_DEPTH + 0.8, this.ball.body);
     (window as typeof window & { debug?: (enabled?: boolean) => boolean }).debug = this.toggleDebugBound;
-    void this.audio.loadAll().catch((error) => {
+
+    void this.audio.loadAll().then(() => {
+      this.onAssetLoaded();
+    }).catch((error) => {
       console.warn('Failed to preload audio', error);
+      this.onAssetLoaded(); // 실패해도 진행
     });
 
     this.ballColliderMesh = this.createBallColliderMesh();
@@ -188,12 +208,37 @@ export class MiniShootout3D {
     this.animate();
   }
 
+  private onAssetLoaded() {
+    this.assetsLoaded++;
+    const progress = this.assetsLoaded / this.totalAssets;
+
+    if (this.loadingScreen) {
+      this.loadingScreen.setProgress(progress);
+    }
+
+    if (this.assetsLoaded >= this.totalAssets) {
+      this.onAllAssetsLoaded();
+    }
+  }
+
+  private onAllAssetsLoaded() {
+    this.isGameReady = true;
+    console.log('All assets loaded, game ready!');
+
+    // 로딩 화면을 잠시 후 숨김 (부드러운 전환을 위해)
+    setTimeout(() => {
+      if (this.loadingScreen) {
+        this.loadingScreen.hide();
+      }
+    }, 500);
+  }
+
   private handleGoalCollision(event: { body: CANNON.Body }) {
     if (event.body !== this.ball.body || !this.isShooting || this.goalScoredThisShot) return;
     this.goalScoredThisShot = true;
     this.score += 1;
     this.onScoreChange(this.score);
-    this.goalKeeper.stopTracking();
+    // this.goalKeeper.stopTracking();
     this.tempBallPosition.set(
       this.ball.body.position.x,
       this.ball.body.position.y,
@@ -212,9 +257,9 @@ export class MiniShootout3D {
       this.lastBounceSoundTime = now;
       const volume = THREE.MathUtils.clamp(vy / 6 + 0.15, 0.1, 1);
       this.audio.play('bounce', { volume });
-    } else if (event.body === this.goalKeeper.body) {
+    } /* else if (event.body === this.goalKeeper.body) {
       this.audio.play('save', { volume: 0.7 });
-    } else if (
+    } */ else if (
       event.body === this.goal.bodies.leftPost ||
       event.body === this.goal.bodies.rightPost ||
       event.body === this.goal.bodies.rearLeftPost ||
@@ -348,7 +393,7 @@ export class MiniShootout3D {
 
     const impulse = new CANNON.Vec3(sideImpulse, upwardImpulse, forwardImpulse);
     this.ball.body.applyImpulse(impulse, new CANNON.Vec3(0, 0, 0));
-    this.goalKeeper.resetTracking();
+    // this.goalKeeper.resetTracking();
     this.audio.play('kick', { volume: 0.9 });
 
     this.scheduleStrikeSpin(startContact, basePower);
@@ -369,7 +414,7 @@ export class MiniShootout3D {
     const dz = this.ball.body.position.z - (GOAL_DEPTH + 0.8);
     const velocityZ = this.ball.body.velocity.z;
     if (velocityZ > 0 && dz > 0) {
-      this.goalKeeper.stopTracking();
+      // this.goalKeeper.stopTracking();
     }
   }
 
@@ -387,7 +432,7 @@ export class MiniShootout3D {
     this.pointerStartTime = 0;
     this.pointerHistory = [];
     this.ball.reset();
-    this.goalKeeper.resetTracking();
+    // this.goalKeeper.resetTracking();
     this.goal.resetNet();
     this.netSoundPlayedThisShot = false;
     // this.field.resetAds(); // 광고판은 리셋하지 않고 계속 흐르도록
@@ -406,7 +451,7 @@ export class MiniShootout3D {
     this.elapsedTime += deltaTime;
     this.applyStrikeCurve(deltaTime);
     this.world.step(1 / 60, deltaTime, 3);
-    this.goalKeeper.update(deltaTime);
+    // this.goalKeeper.update(deltaTime);
     this.goal.update(deltaTime);
     this.field.update(deltaTime);
 
@@ -611,7 +656,7 @@ export class MiniShootout3D {
     }
 
     this.debugMode = next;
-    this.goalKeeper.setColliderDebugVisible(this.debugMode);
+    // this.goalKeeper.setColliderDebugVisible(this.debugMode);
     this.ballColliderMesh.visible = this.debugMode;
     this.goalColliderGroup.visible = this.debugMode;
     this.adBoardColliderGroup.visible = this.debugMode;
