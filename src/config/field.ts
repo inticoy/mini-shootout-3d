@@ -18,8 +18,8 @@ export interface FieldDimensionsConfig {
 }
 
 export const FIELD_DIMENSIONS: FieldDimensionsConfig = {
-  planeWidth: 100,
-  planeHeight: 100,
+  planeWidth: 30,
+  planeHeight: 30,
   defaultStripeWidth: 3,
   lineMeshHeight: 0.01,
   goalLineLength: 100,
@@ -74,3 +74,5 @@ export const FIELD_OFFSETS: FieldOffsetsConfig = {
   penaltyMark: 0.02,
   penaltyArc: 0.02
 };
+
+export const FIELD_TEXTURE_REPEAT = 50;

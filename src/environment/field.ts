@@ -4,7 +4,7 @@ import grassAlbedoUrl from '../assets/grass1-unity/grass1-albedo3.png?url';
 import grassNormalUrl from '../assets/grass1-unity/grass1-normal1-ogl.png?url';
 import grassAoUrl from '../assets/grass1-unity/grass1-ao.png?url';
 import { GOAL_DEPTH, GOAL_WIDTH } from '../config/goal';
-import { FIELD_DIMENSIONS, FIELD_OFFSETS, FIELD_STRIPES } from '../config/field';
+import { FIELD_DIMENSIONS, FIELD_OFFSETS, FIELD_STRIPES, FIELD_TEXTURE_REPEAT } from '../config/field';
 import { AD_BOARD_CONFIG } from '../config/adBoard';
 import { Stands } from './stands';
 
@@ -150,17 +150,17 @@ export class Field {
     grassTexture.anisotropy = 8;
     grassTexture.wrapS = THREE.RepeatWrapping;
     grassTexture.wrapT = THREE.RepeatWrapping;
-    grassTexture.repeat.set(100, 100);
+    grassTexture.repeat.set(FIELD_TEXTURE_REPEAT, FIELD_TEXTURE_REPEAT);
 
     const normalTexture = loader.load(grassNormalUrl);
     normalTexture.wrapS = THREE.RepeatWrapping;
     normalTexture.wrapT = THREE.RepeatWrapping;
-    normalTexture.repeat.set(100, 100);
+    normalTexture.repeat.set(FIELD_TEXTURE_REPEAT, FIELD_TEXTURE_REPEAT);
 
     const aoTexture = loader.load(grassAoUrl);
     aoTexture.wrapS = THREE.RepeatWrapping;
     aoTexture.wrapT = THREE.RepeatWrapping;
-    aoTexture.repeat.set(100, 100);
+    aoTexture.repeat.set(FIELD_TEXTURE_REPEAT, FIELD_TEXTURE_REPEAT);
 
     this.groundMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(FIELD_DIMENSIONS.planeWidth, FIELD_DIMENSIONS.planeHeight),
