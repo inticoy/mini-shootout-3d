@@ -128,27 +128,25 @@ export class GoalNet {
   }
 
   private buildBackPanel(): void {
-    const { layout, segments } = GOAL_NET_CONFIG;
+    const { layout, segments, visual } = GOAL_NET_CONFIG;
     const rows = segments.height;
     const cols = segments.width;
 
-    const leftX = -GOAL_WIDTH / 2 + GOAL_NET_CONFIG.visual.anchorInset;
-    const rightX = GOAL_WIDTH / 2 - GOAL_NET_CONFIG.visual.anchorInset;
+    const leftX = -GOAL_WIDTH / 2 + visual.anchorInset;
+    const rightX = GOAL_WIDTH / 2 - visual.anchorInset;
     const bottomY = -layout.groundDrop;
+    const depth = layout.depthBottom;
 
     const grid: GoalNetNode[][] = [];
 
     for (let row = 0; row <= rows; row += 1) {
       const rowNorm = row / rows;
-      const depth = this.depthForRow(rowNorm) + GOAL_NET_CONFIG.visual.anchorInset;
-      const baseY = THREE.MathUtils.lerp(bottomY, GOAL_HEIGHT - POST_RADIUS, rowNorm);
+      const y = THREE.MathUtils.lerp(bottomY, GOAL_HEIGHT - POST_RADIUS, rowNorm);
       const rowNodes: GoalNetNode[] = [];
 
       for (let col = 0; col <= cols; col += 1) {
         const colNorm = col / cols;
-        const sag = Math.sin(Math.PI * colNorm) * layout.groundDrop * 0.3 * (1 - rowNorm * 0.35);
         const x = THREE.MathUtils.lerp(leftX, rightX, colNorm);
-        const y = baseY - sag;
         const node = this.getOrCreateNode(x, y, -depth, { fixed: false });
         rowNodes.push(node);
       }
@@ -179,27 +177,25 @@ export class GoalNet {
   }
 
   private buildSidePanel(sideSign: -1 | 1): void {
-    const { layout, segments } = GOAL_NET_CONFIG;
+    const { layout, segments, visual } = GOAL_NET_CONFIG;
     const rows = segments.height;
     const cols = segments.depth;
     const baseX = sideSign === -1 ? -GOAL_WIDTH / 2 : GOAL_WIDTH / 2;
     const bottomY = -layout.groundDrop;
+    const depth = layout.depthBottom;
+    const anchorX = visual.anchorInset;
 
     const grid: GoalNetNode[][] = [];
 
     for (let row = 0; row <= rows; row += 1) {
       const rowNorm = row / rows;
-      const depth = this.depthForRow(rowNorm);
-      const baseY = THREE.MathUtils.lerp(bottomY, GOAL_HEIGHT - POST_RADIUS, rowNorm);
-      const tuck = THREE.MathUtils.lerp(0, layout.sideInset * 0.6, rowNorm);
+      const y = THREE.MathUtils.lerp(bottomY, GOAL_HEIGHT - POST_RADIUS, rowNorm);
       const rowNodes: GoalNetNode[] = [];
 
       for (let col = 0; col <= cols; col += 1) {
         const colNorm = col / cols;
         const z = -depth * colNorm;
-        const sag = Math.sin(colNorm * Math.PI * 0.5) * layout.groundDrop * 0.24 * (1 - rowNorm * 0.35);
-        const x = baseX - sideSign * (GOAL_NET_CONFIG.visual.anchorInset + tuck);
-        const y = baseY - sag;
+        const x = baseX - sideSign * anchorX;
         const fixed = col === 0;
         const node = this.getOrCreateNode(x, y, z, { fixed });
         rowNodes.push(node);
@@ -231,27 +227,26 @@ export class GoalNet {
   }
 
   private buildRoof(): void {
-    const { layout, segments } = GOAL_NET_CONFIG;
+    const { layout, segments, visual } = GOAL_NET_CONFIG;
     const rows = segments.depth;
     const cols = segments.width;
-    const leftX = -GOAL_WIDTH / 2 + GOAL_NET_CONFIG.visual.anchorInset;
-    const rightX = GOAL_WIDTH / 2 - GOAL_NET_CONFIG.visual.anchorInset;
+    const leftX = -GOAL_WIDTH / 2 + visual.anchorInset;
+    const rightX = GOAL_WIDTH / 2 - visual.anchorInset;
+    const depth = layout.depthBottom;
+    const topY = GOAL_HEIGHT - POST_RADIUS;
 
     const grid: GoalNetNode[][] = [];
 
     for (let row = 0; row <= rows; row += 1) {
       const rowNorm = row / rows;
-      const depth = THREE.MathUtils.lerp(0, layout.depthTop, rowNorm);
-      const drop = Math.pow(rowNorm, 1.35) * layout.groundDrop * 0.38;
       const rowNodes: GoalNetNode[] = [];
 
       for (let col = 0; col <= cols; col += 1) {
         const colNorm = col / cols;
-        const arch = Math.sin(Math.PI * colNorm) * layout.sideInset * 0.4;
         const x = THREE.MathUtils.lerp(leftX, rightX, colNorm);
-        const y = (GOAL_HEIGHT - POST_RADIUS) - drop - arch * 0.18;
+        const y = topY;
         const fixed = row === 0;
-        const node = this.getOrCreateNode(x, y, -depth, { fixed });
+        const node = this.getOrCreateNode(x, y, -depth * rowNorm, { fixed });
         rowNodes.push(node);
       }
 
@@ -281,27 +276,26 @@ export class GoalNet {
   }
 
   private buildFloor(): void {
-    const { layout, segments } = GOAL_NET_CONFIG;
+    const { layout, segments, visual } = GOAL_NET_CONFIG;
     const rows = Math.max(2, Math.floor(segments.depth * 0.9));
     const cols = segments.width;
-    const leftX = -GOAL_WIDTH / 2 + GOAL_NET_CONFIG.visual.anchorInset;
-    const rightX = GOAL_WIDTH / 2 - GOAL_NET_CONFIG.visual.anchorInset;
+    const leftX = -GOAL_WIDTH / 2 + visual.anchorInset;
+    const rightX = GOAL_WIDTH / 2 - visual.anchorInset;
     const baseY = -layout.groundDrop;
+    const depth = layout.depthBottom;
 
     const grid: GoalNetNode[][] = [];
 
     for (let row = 0; row <= rows; row += 1) {
       const rowNorm = row / rows;
-      const depth = THREE.MathUtils.lerp(0, layout.depthBottom * 0.92, rowNorm);
-      const rise = Math.pow(rowNorm, 1.6) * layout.groundDrop * 0.35;
       const rowNodes: GoalNetNode[] = [];
 
       for (let col = 0; col <= cols; col += 1) {
         const colNorm = col / cols;
         const x = THREE.MathUtils.lerp(leftX, rightX, colNorm);
-        const y = baseY - rise;
+        const y = baseY;
         const fixed = row === 0;
-        const node = this.getOrCreateNode(x, y, -depth, { fixed });
+        const node = this.getOrCreateNode(x, y, -depth * rowNorm, { fixed });
         rowNodes.push(node);
       }
 
@@ -377,12 +371,6 @@ export class GoalNet {
       restLength,
       type
     });
-  }
-
-  private depthForRow(rowNorm: number): number {
-    const { layout } = GOAL_NET_CONFIG;
-    const eased = THREE.MathUtils.smoothstep(rowNorm, 0, 1);
-    return THREE.MathUtils.lerp(layout.depthBottom, layout.depthTop, eased);
   }
 
   private updateInstanceMatrices(): void {

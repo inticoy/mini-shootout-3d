@@ -10,13 +10,13 @@ export interface SceneLighting {
 export function configureSceneLighting(scene: THREE.Scene): SceneLighting {
   scene.fog = new THREE.Fog(0x2a6f47, 50, 150);
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.68);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.99);
   scene.add(ambient);
 
   const hemisphere = new THREE.HemisphereLight(0xd8f1de, 0x3a6b46, 0.6);
   scene.add(hemisphere);
 
-  const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+  const directional = new THREE.DirectionalLight(0xffffff, 1.);
   directional.position.set(12, 65, 14);
   directional.castShadow = true;
   directional.shadow.mapSize.width = 2048;

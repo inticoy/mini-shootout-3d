@@ -41,13 +41,17 @@ export class GoalKeeper {
 
     const debugGeometry = new THREE.BoxGeometry(KEEPER_WIDTH, KEEPER_HEIGHT, KEEPER_DEPTH);
     debugGeometry.translate(0, KEEPER_HEIGHT / 2, 0);
-    const debugMaterial = new THREE.MeshStandardMaterial({
-      color: 0xff4444,
+    const debugMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff3366,
       transparent: true,
-      opacity: 0,
-      wireframe: true
+      opacity: 0.35,
+      depthTest: false,
+      depthWrite: false
     });
     this.debugMesh = new THREE.Mesh(debugGeometry, debugMaterial);
+    const debugEdgeMaterial = new THREE.LineBasicMaterial({ color: 0xff6688 });
+    const debugEdges = new THREE.LineSegments(new THREE.EdgesGeometry(debugGeometry), debugEdgeMaterial);
+    this.debugMesh.add(debugEdges);
     this.debugMesh.visible = false;
     this.debugMesh.castShadow = false;
 

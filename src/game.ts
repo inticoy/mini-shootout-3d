@@ -10,6 +10,7 @@ import { Ball } from './entities/ball';
 import { Goal } from './entities/goal';
 import { BALL_RADIUS } from './config/ball';
 import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
+import { GOAL_NET_CONFIG } from './config/net';
 import { AD_BOARD_CONFIG } from './config/adBoard';
 import { STRIKE_ZONE_CONFIG } from './config/strike';
 // import { GoalKeeper } from './entities/goalkeeper'; // 기존 2D 골키퍼
@@ -96,6 +97,7 @@ export class MiniShootout3D {
   private pointerHistory: Array<{ x: number; y: number; time: number }> = [];
   private isShooting = false;
   private goalScoredThisShot = false;
+  private netSoundPlayedThisShot = false;
   private score = 0;
 
   private readonly clock = new THREE.Clock();
@@ -215,12 +217,24 @@ export class MiniShootout3D {
     } else if (
       event.body === this.goal.bodies.leftPost ||
       event.body === this.goal.bodies.rightPost ||
+      event.body === this.goal.bodies.rearLeftPost ||
+      event.body === this.goal.bodies.rearRightPost ||
+      event.body === this.goal.bodies.topLeftBar ||
+      event.body === this.goal.bodies.topRightBar ||
+      event.body === this.goal.bodies.floorLeft ||
+      event.body === this.goal.bodies.floorRight ||
+      event.body === this.goal.bodies.floorBack ||
       event.body === this.goal.bodies.crossbar
     ) {
       this.audio.play('post', { volume: 0.9 });
     } else if (this.goal.isNetCollider(event.body)) {
       this.goal.handleNetCollision(this.ball.body);
-      this.audio.play('net', { volume: 0.6 });
+      if (!this.netSoundPlayedThisShot) {
+        this.audio.play('net', { volume: 0.6 });
+        if (this.isShooting) {
+          this.netSoundPlayedThisShot = true;
+        }
+      }
     }
   }
 
@@ -304,6 +318,7 @@ export class MiniShootout3D {
     this.pointerHistory = [];
     this.isShooting = true;
     this.goalScoredThisShot = false;
+    this.netSoundPlayedThisShot = false;
     if (this.liveSwipeVector) {
       this.lastSwipeVector = {
         start: { x: this.liveSwipeVector.start.x, y: this.liveSwipeVector.start.y },
@@ -374,6 +389,7 @@ export class MiniShootout3D {
     this.ball.reset();
     this.goalKeeper.resetTracking();
     this.goal.resetNet();
+    this.netSoundPlayedThisShot = false;
     // this.field.resetAds(); // 광고판은 리셋하지 않고 계속 흐르도록
     this.strikeContact = null;
     this.liveSwipeVector = null;
@@ -420,10 +436,16 @@ export class MiniShootout3D {
   private createBallColliderMesh(): THREE.Mesh {
     const geometry = new THREE.SphereGeometry(BALL_RADIUS, 16, 16);
     const material = new THREE.MeshBasicMaterial({
-      color: 0x44ff88,
-      wireframe: true
+      color: 0x00ffc6,
+      transparent: true,
+      opacity: 0.45,
+      depthTest: false,
+      depthWrite: false
     });
     const mesh = new THREE.Mesh(geometry, material);
+    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x00ffc6 });
+    const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(geometry), edgeMaterial);
+    mesh.add(wireframe);
     mesh.visible = false;
     this.scene.add(mesh);
     return mesh;
@@ -433,24 +455,46 @@ export class MiniShootout3D {
     const group = new THREE.Group();
     group.visible = false;
 
-    const colliderMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffaa00,
-      wireframe: true
-    });
+    const colliderMaterial = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+    colliderMaterial.transparent = true;
+    colliderMaterial.opacity = 0.55;
+    colliderMaterial.depthTest = false;
+    colliderMaterial.depthWrite = false;
+    const colliderEdgeMaterial = new THREE.LineBasicMaterial({ color: 0xff5500 });
 
-    const postGeometry = new THREE.BoxGeometry(POST_RADIUS * 2, GOAL_HEIGHT - POST_RADIUS, POST_RADIUS * 2);
-    const leftPost = new THREE.Mesh(postGeometry, colliderMaterial);
-    leftPost.position.set(-GOAL_WIDTH / 2, (GOAL_HEIGHT - POST_RADIUS) / 2, GOAL_DEPTH);
-    group.add(leftPost);
+    const addBoxCollider = (geometry: THREE.BoxGeometry, position: THREE.Vector3) => {
+      const mesh = new THREE.Mesh(geometry, colliderMaterial);
+      mesh.position.copy(position);
+      group.add(mesh);
 
-    const rightPost = leftPost.clone();
-    rightPost.position.x = GOAL_WIDTH / 2;
-    group.add(rightPost);
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), colliderEdgeMaterial);
+      edges.position.copy(position);
+      group.add(edges);
+    };
+
+    const postGeometry = new THREE.BoxGeometry(POST_RADIUS * 2, GOAL_HEIGHT, POST_RADIUS * 2);
+    addBoxCollider(postGeometry, new THREE.Vector3(-GOAL_WIDTH / 2, GOAL_HEIGHT / 2, GOAL_DEPTH));
+    addBoxCollider(postGeometry, new THREE.Vector3(GOAL_WIDTH / 2, GOAL_HEIGHT / 2, GOAL_DEPTH));
+
+    const rearSupportX = GOAL_WIDTH / 2;
+    const rearSupportZ = GOAL_DEPTH - GOAL_NET_CONFIG.layout.depthBottom;
+    addBoxCollider(postGeometry, new THREE.Vector3(-rearSupportX, GOAL_HEIGHT / 2, rearSupportZ));
+    addBoxCollider(postGeometry, new THREE.Vector3(rearSupportX, GOAL_HEIGHT / 2, rearSupportZ));
+
+    const floorThickness = POST_RADIUS * 2;
+    const depthSpan = GOAL_NET_CONFIG.layout.depthBottom;
+    const sideFloorGeometry = new THREE.BoxGeometry(POST_RADIUS * 2, floorThickness, depthSpan);
+    addBoxCollider(sideFloorGeometry, new THREE.Vector3(-rearSupportX, POST_RADIUS, GOAL_DEPTH - depthSpan / 2));
+    addBoxCollider(sideFloorGeometry, new THREE.Vector3(rearSupportX, POST_RADIUS, GOAL_DEPTH - depthSpan / 2));
+
+    const backFloorGeometry = new THREE.BoxGeometry(rearSupportX * 2, floorThickness, POST_RADIUS * 2);
+    addBoxCollider(backFloorGeometry, new THREE.Vector3(0, POST_RADIUS, rearSupportZ));
+
+    addBoxCollider(sideFloorGeometry, new THREE.Vector3(-rearSupportX, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH - depthSpan / 2));
+    addBoxCollider(sideFloorGeometry, new THREE.Vector3(rearSupportX, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH - depthSpan / 2));
 
     const crossbarGeometry = new THREE.BoxGeometry(GOAL_WIDTH, POST_RADIUS * 2, POST_RADIUS * 2);
-    const crossbar = new THREE.Mesh(crossbarGeometry, colliderMaterial);
-    crossbar.position.set(0, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH);
-    group.add(crossbar);
+    addBoxCollider(crossbarGeometry, new THREE.Vector3(0, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH));
 
     const sensorWidth = Math.max(GOAL_WIDTH - POST_RADIUS * 2, 0.1);
     const sensorHeight = Math.max(GOAL_HEIGHT - POST_RADIUS * 1.8, 0.1);
@@ -478,14 +522,14 @@ export class MiniShootout3D {
 
     const netInfos = this.goal.getNetColliderInfos();
     const netFaceMaterial = new THREE.MeshBasicMaterial({
-      color: 0x33ff88,
+      color: 0x0096ff,
       transparent: true,
-      opacity: 0.12,
+      opacity: 0.28,
       depthWrite: false,
       depthTest: false,
       side: THREE.DoubleSide
     });
-    const netEdgeMaterial = new THREE.LineBasicMaterial({ color: 0x33ff88 });
+    const netEdgeMaterial = new THREE.LineBasicMaterial({ color: 0x33bbff });
 
     netInfos.forEach(({ size, position }) => {
       const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);

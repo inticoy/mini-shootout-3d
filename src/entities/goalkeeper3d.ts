@@ -28,13 +28,17 @@ export class GoalKeeper3D {
     // 디버그 콜라이더 메쉬 생성
     const debugGeometry = new THREE.BoxGeometry(KEEPER_WIDTH, KEEPER_HEIGHT, KEEPER_DEPTH);
     debugGeometry.translate(0, KEEPER_HEIGHT / 2, 0); // 바닥에서 시작하도록
-    const debugMaterial = new THREE.MeshStandardMaterial({
-      color: 0xff0000,
+    const debugMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff3366,
       transparent: true,
-      opacity: 0.3,
-      wireframe: true
+      opacity: 0.35,
+      depthTest: false,
+      depthWrite: false
     });
     this.debugMesh = new THREE.Mesh(debugGeometry, debugMaterial);
+    const debugEdgeMaterial = new THREE.LineBasicMaterial({ color: 0xff6688 });
+    const debugEdges = new THREE.LineSegments(new THREE.EdgesGeometry(debugGeometry), debugEdgeMaterial);
+    this.debugMesh.add(debugEdges);
     this.debugMesh.visible = false; // 기본적으로 숨김
     this.pivot.add(this.debugMesh);
     console.log('🔲 디버그 콜라이더 생성:', { width: KEEPER_WIDTH, height: KEEPER_HEIGHT, depth: KEEPER_DEPTH });
