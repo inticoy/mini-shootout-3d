@@ -19,9 +19,16 @@ import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { createDebugButton, updateDebugButtonState } from './ui/debugHud';
+import { ShotInfoHud } from './ui/shotInfoHud';
 import { AudioManager } from './core/audio';
 import { LoadingScreen } from './ui/loadingScreen';
 import { SwipeTracker } from './input/swipeTracker';
+import { normalizeSwipeData, debugNormalizedSwipe } from './shooting/swipeNormalizer';
+import { analyzeShotType, debugShotAnalysis, ShotType } from './shooting/shotAnalyzer';
+import { calculateShotParameters, debugShotParameters } from './shooting/shotParameters';
+import { calculateInitialVelocity, debugVelocity } from './shooting/velocityCalculator';
+import { calculateAngularVelocity, debugAngularVelocity } from './shooting/spinCalculator';
+import { CurveForceSystem } from './shooting/curveForceSystem';
 
 const MIN_VERTICAL_BOUNCE_SPEED = 0.45;
 const BOUNCE_COOLDOWN_MS = 120;
@@ -50,6 +57,8 @@ export class MiniShootout3D {
   private readonly trajectorySampleStep = 0.05;
   private readonly trajectorySampleCount = 60;
   private readonly swipeTracker: SwipeTracker;
+  private readonly curveForceSystem = new CurveForceSystem();
+  private readonly shotInfoHud = new ShotInfoHud();
   private readonly swipeDebugGeometry: LineGeometry;
   private readonly swipeDebugMaterial: LineMaterial;
   private readonly swipeDebugLine: Line2;
@@ -64,6 +73,9 @@ export class MiniShootout3D {
   private score = 0;
   private readonly debugButton: HTMLButtonElement;
   private debugMode = false;
+  private isShotInProgress = false;
+  private shotResetTimer: number | null = null;
+  private hasScored = false;
 
   private readonly clock = new THREE.Clock();
 
@@ -71,6 +83,7 @@ export class MiniShootout3D {
   private readonly handleBallCollideBound = (event: { body: CANNON.Body }) => this.handleBallCollide(event);
   private readonly handleGoalCollisionBound = (event: { body: CANNON.Body }) => this.handleGoalCollision(event);
   private readonly handleDebugButtonClickBound = () => this.toggleDebugMode();
+  private readonly handleCanvasPointerUpBound = () => this.handleCanvasPointerUp();
   private loadingScreen: LoadingScreen | null = null;
   private threeAssetsProgress = 0;
   private audioProgress = 0;
@@ -238,8 +251,14 @@ export class MiniShootout3D {
 
   private handleGoalCollision(event: { body: CANNON.Body }) {
     if (event.body !== this.ball.body) return;
+    if (!this.isShotInProgress) return; // 슈팅 중이 아니면 무시
+    if (this.hasScored) return; // 이미 골 처리했으면 무시 (중복 방지)
+
+    console.log('⚽ GOAL! Score:', this.score + 1);
+
     this.score += 1;
     this.onScoreChange(this.score);
+    this.hasScored = true;
     this.goalKeeper.stopTracking();
     this.tempBallPosition.set(
       this.ball.body.position.x,
@@ -282,6 +301,8 @@ export class MiniShootout3D {
 
   private attachEventListeners() {
     window.addEventListener('resize', this.handleResizeBound);
+    // 캔버스에서 pointerup 이벤트 감지 (스와이프 완료 시 정규화 테스트)
+    this.renderer.domElement.addEventListener('pointerup', this.handleCanvasPointerUpBound);
   }
 
   private handleResize() {
@@ -297,6 +318,7 @@ export class MiniShootout3D {
 
     const deltaTime = this.clock.getDelta();
     this.world.step(1 / 60, deltaTime, 3);
+    this.curveForceSystem.update(deltaTime, this.ball.body);
     this.goalKeeper.update(deltaTime);
     this.goal.update(deltaTime);
     this.field.update(deltaTime);
@@ -309,7 +331,11 @@ export class MiniShootout3D {
   };
 
   public destroy() {
+    if (this.shotResetTimer !== null) {
+      clearTimeout(this.shotResetTimer);
+    }
     window.removeEventListener('resize', this.handleResizeBound);
+    this.renderer.domElement.removeEventListener('pointerup', this.handleCanvasPointerUpBound);
     this.goal.bodies.sensor.removeEventListener('collide', this.handleGoalCollisionBound);
     this.ball.body.removeEventListener('collide', this.handleBallCollideBound);
     this.scene.remove(this.goalColliderGroup);
@@ -320,6 +346,7 @@ export class MiniShootout3D {
     this.axisArrows.forEach((arrow) => this.scene.remove(arrow));
     this.debugButton.removeEventListener('click', this.handleDebugButtonClickBound);
     this.debugButton.remove();
+    this.shotInfoHud.destroy();
     this.goalKeeper.setColliderDebugVisible(false);
     this.swipeTracker.destroy();
   }
@@ -517,6 +544,7 @@ export class MiniShootout3D {
     this.goalColliderGroup.visible = visible;
     this.adBoardColliderGroup.visible = visible;
     this.trajectoryLine.visible = visible;
+    this.shotInfoHud.setVisible(visible);
     const hasSwipe = this.swipeTracker.getLastSwipe() !== null;
     this.swipeDebugLine.visible = visible && hasSwipe;
     this.swipePointMarkers.forEach((marker) => {
@@ -702,6 +730,117 @@ export class MiniShootout3D {
         this.swipePointLabels[i].style.display = 'block';
       }
     });
+  }
+
+  /**
+   * 캔버스 pointerup 이벤트 핸들러 (스와이프 완료 시)
+   */
+  private handleCanvasPointerUp() {
+    const swipeData = this.swipeTracker.getLastSwipe();
+    if (!swipeData) return;
+
+    // Step 1: 정규화
+    const normalized = normalizeSwipeData(swipeData);
+    console.log(debugNormalizedSwipe(normalized));
+
+    // Step 2: 슈팅 타입 분석
+    const analysis = analyzeShotType(normalized);
+    console.log(debugShotAnalysis(analysis));
+
+    // Step 3: 슈팅 파라미터 계산
+    const shotParams = calculateShotParameters(normalized, analysis);
+    console.log(debugShotParameters(shotParams));
+
+    // Step 4: 초기 velocity 계산
+    const velocity = calculateInitialVelocity(shotParams);
+    console.log(debugVelocity(velocity));
+
+    // Step 5: 초기 spin (angular velocity) 계산
+    if (velocity) {
+      const angularVelocity = calculateAngularVelocity(shotParams, velocity);
+      console.log(debugAngularVelocity(angularVelocity));
+
+      // INVALID가 아니면 실제 슈팅 실행
+      if (analysis.type !== ShotType.INVALID) {
+        // Shot Info HUD 업데이트 (디버그 모드일 때만 보임)
+        this.shotInfoHud.update(analysis, shotParams, velocity, angularVelocity);
+
+        this.executeShooting(velocity, angularVelocity, analysis);
+      }
+    }
+  }
+
+  /**
+   * 슈팅 실행
+   */
+  private executeShooting(velocity: CANNON.Vec3, angularVelocity: CANNON.Vec3, analysis: any) {
+    // 이미 슈팅 진행 중이면 무시
+    if (this.isShotInProgress) return;
+
+    // 슈팅 상태 설정
+    this.isShotInProgress = true;
+    this.hasScored = false;
+
+    // 공의 velocity 설정
+    this.ball.body.velocity.copy(velocity);
+
+    // 공의 angular velocity (회전) 설정
+    this.ball.body.angularVelocity.copy(angularVelocity);
+
+    // 커브 힘 시스템 시작
+    this.curveForceSystem.startCurveShot(analysis);
+
+    // 골키퍼 추적 시작
+    this.goalKeeper.startTracking();
+
+    // 2.5초 후 리셋 타이머 설정
+    this.shotResetTimer = window.setTimeout(() => {
+      this.resetAfterShot();
+    }, 2500);
+  }
+
+  /**
+   * 슈팅 후 리셋
+   */
+  private resetAfterShot() {
+    console.log('Reset after shot - Scored:', this.hasScored);
+
+    // 골을 넣지 못했으면
+    if (!this.hasScored) {
+      this.audio.play('reset', { volume: 0.8 });
+      this.score = 0;
+      this.onScoreChange(this.score);
+    }
+
+    // 공 리셋
+    this.resetBall();
+
+    // 상태 초기화
+    this.isShotInProgress = false;
+    this.hasScored = false;
+    this.shotResetTimer = null;
+
+    // 커브 힘 시스템 중지
+    this.curveForceSystem.stopCurveShot();
+
+    // 골키퍼 추적 중지
+    this.goalKeeper.stopTracking();
+  }
+
+  /**
+   * 공을 초기 위치로 리셋
+   */
+  private resetBall() {
+    console.log('Resetting ball to origin');
+    this.ball.body.position.set(0, 0.2, 0);
+    this.ball.body.velocity.set(0, 0, 0);
+    this.ball.body.angularVelocity.set(0, 0, 0);
+
+    // quaternion도 리셋
+    this.ball.body.quaternion.set(0, 0, 0, 1);
+
+    this.ball.syncVisuals();
+    console.log('Ball reset complete. Position:', this.ball.body.position);
   }
 
 }

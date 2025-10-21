@@ -195,8 +195,14 @@ export class GoalKeeper3D {
     console.log('🔍 디버그 콜라이더 표시:', visible);
   }
 
+  startTracking() {
+    // 추후 구현: 공 추적 시작
+    console.log('🥅 골키퍼 추적 시작');
+  }
+
   stopTracking() {
     // 추후 구현: 세이브 애니메이션 중단 등
+    console.log('🥅 골키퍼 추적 중지');
   }
 
   resetTracking() {

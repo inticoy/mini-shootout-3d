@@ -104,11 +104,12 @@ export class SwipeTracker {
       duration: endTime - startTime
     };
 
-    console.log('Swipe captured:', {
-      totalPoints: this.currentSwipe.length,
-      sampledPoints: sampledPoints.length,
-      points: sampledPoints
-    });
+    // 디버그 로그 (필요시 주석 해제)
+    // console.log('Swipe captured:', {
+    //   totalPoints: this.currentSwipe.length,
+    //   sampledPoints: sampledPoints.length,
+    //   points: sampledPoints
+    // });
 
     this.currentSwipe = [];
   }

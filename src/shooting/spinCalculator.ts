@@ -1,0 +1,105 @@
+import * as CANNON from 'cannon-es';
+import { ShotType } from './shotAnalyzer';
+import type { ShotParameters } from './shotParameters';
+
+/**
+ * 슈팅 타입별 스핀 설정
+ */
+const SPIN_CONFIG = {
+  [ShotType.INVALID]: {
+    enabled: false,
+    spinStrength: 0
+  },
+  [ShotType.CHIP]: {
+    enabled: true,
+    spinType: 'backspin',      // 백스핀 (역회전)
+    spinStrength: 15           // 회전 강도
+  },
+  [ShotType.NORMAL]: {
+    enabled: true,
+    spinType: 'topspin',       // 톱스핀 (순회전, 약간)
+    spinStrength: 5
+  },
+  [ShotType.POWER]: {
+    enabled: true,
+    spinType: 'topspin',       // 톱스핀 (순회전)
+    spinStrength: 8
+  },
+  [ShotType.CURVE]: {
+    enabled: true,
+    spinType: 'sidespin',      // 사이드스핀 (감아차기)
+    spinStrength: 20           // 강한 회전
+  }
+};
+
+/**
+ * 슈팅 파라미터로부터 초기 angular velocity (회전) 계산
+ */
+export function calculateAngularVelocity(
+  shotParams: ShotParameters,
+  _velocity: CANNON.Vec3
+): CANNON.Vec3 {
+  const { analysis } = shotParams;
+  const config = SPIN_CONFIG[analysis.type];
+
+  if (!config.enabled) {
+    return new CANNON.Vec3(0, 0, 0);
+  }
+
+  const spinStrength = config.spinStrength;
+  const angularVelocity = new CANNON.Vec3(0, 0, 0);
+
+  if (!('spinType' in config)) {
+    return angularVelocity;
+  }
+
+  switch (config.spinType) {
+    case 'backspin': {
+      // 백스핀: 공이 앞으로 가면서 뒤로 회전
+      // X축 양의 방향 회전 (공이 -Z 방향으로 날아가므로)
+      angularVelocity.x = spinStrength;
+      break;
+    }
+
+    case 'topspin': {
+      // 톱스핀: 공이 앞으로 가면서 앞으로 회전
+      // X축 음의 방향 회전
+      angularVelocity.x = -spinStrength;
+      break;
+    }
+
+    case 'sidespin': {
+      // 사이드스핀: 감아차기
+      // Y축 회전 (공이 좌우로 회전)
+      // curveDirection: -1 (왼쪽), 1 (오른쪽) - 반전 필요
+      const direction = -analysis.curveDirection;
+      const curveStrength = analysis.curveAmount;
+
+      // Y축 회전
+      angularVelocity.y = direction * spinStrength * curveStrength;
+
+      // 약간의 백스핀 추가 (감아차기는 보통 백스핀도 포함)
+      angularVelocity.x = spinStrength * 0.3;
+      break;
+    }
+  }
+
+  return angularVelocity;
+}
+
+/**
+ * Angular velocity를 디버그 문자열로 변환
+ */
+export function debugAngularVelocity(angularVelocity: CANNON.Vec3): string {
+  const magnitude = Math.sqrt(
+    angularVelocity.x ** 2 +
+    angularVelocity.y ** 2 +
+    angularVelocity.z ** 2
+  );
+
+  return `
+Angular Velocity (Spin):
+  Vector: (${angularVelocity.x.toFixed(2)}, ${angularVelocity.y.toFixed(2)}, ${angularVelocity.z.toFixed(2)})
+  Magnitude: ${magnitude.toFixed(2)} rad/s
+  `.trim();
+}
