@@ -20,11 +20,18 @@ export interface StandsConfig {
     roughness: number;
     metalness: number;
   };
+  // 관중 텍스처
+  crowdTexture: {
+    repeat: {
+      x: number;        // 폭 방향 타일 배수 (1이면 한 번)
+      y: number;        // 경사면 방향 타일 배수 (1이면 한 번)
+    };
+  };
 }
 
 export const STANDS_CONFIG: StandsConfig = {
   geometry: {
-    width: 80,           // 광고판과 비슷한 너비
+    width: 50,           // 광고판과 비슷한 너비
     height: 20,          // 화면 꽉 찰 정도로 높게
     depth: 15            // 경사 깊이
   },
@@ -33,11 +40,17 @@ export const STANDS_CONFIG: StandsConfig = {
     zOffset: -2          // 광고판 뒤 2m
   },
   angle: {
-    degrees: 25          // 더 완만한 관중석 각도
+    degrees: 35          // 더 완만한 관중석 각도
   },
   material: {
     color: 0x2a4858,     // 진한 청록색 (스타디움 좌석 느낌)
-    roughness: 0.6,      // 조명 반사 잘 보이도록
+    roughness: 0.8,      // 조명 반사 잘 보이도록
     metalness: 0.05      // 약간의 금속성
+  },
+  crowdTexture: {
+    repeat: {
+      x: 2,
+      y: 1
+    }
   }
 };

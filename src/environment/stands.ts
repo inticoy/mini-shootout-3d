@@ -28,7 +28,22 @@ export class Stands {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(1, 1); // 반복 줄임 (더 큰 이미지)
+    const slopedEdgeLength = Math.hypot(
+      config.geometry.height,
+      config.geometry.depth
+    );
+    const perimeter =
+      config.geometry.depth + config.geometry.height + slopedEdgeLength;
+
+    // ExtrudeGeometry가 경사면을 전체 둘레 대비 비율로 UV를 잡기 때문에
+    // 경사면 하나에 텍스처를 1회 채우려면 보정 계수가 필요하다.
+    const baseRepeatX = 1; // 폭 방향은 0~1로 매핑됨
+    const baseRepeatY = perimeter / slopedEdgeLength;
+
+    texture.repeat.set(
+      baseRepeatX * config.crowdTexture.repeat.x,
+      baseRepeatY * config.crowdTexture.repeat.y
+    );
     texture.rotation = -Math.PI / 2;
     texture.center.set(0.5, 0.5); // 중심점 기준으로 회전
 
