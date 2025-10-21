@@ -35,65 +35,103 @@ export class LoadingScreen {
   private currentMessageIndex = 0;
 
   constructor() {
-    this.container = document.createElement('div');
-    this.container.className = 'loading-screen';
+    const bootstrap = document.querySelector<HTMLDivElement>('.loading-screen[data-preload="true"]');
 
-    // 로고/타이틀 영역
-    const titleSection = document.createElement('div');
-    titleSection.className = 'loading-screen__title';
+    if (bootstrap) {
+      this.container = bootstrap;
+      this.container.classList.remove('loading-screen--initial');
+      this.container.removeAttribute('data-preload');
 
-    const title = document.createElement('h1');
-    title.className = 'loading-screen__title-text';
-    title.textContent = 'MINI SHOOTOUT';
-    titleSection.appendChild(title);
+      if (this.container.parentElement !== document.body) {
+        document.body.appendChild(this.container);
+      }
 
-    const subtitle = document.createElement('p');
-    subtitle.className = 'loading-screen__subtitle';
-    subtitle.textContent = '3D';
-    titleSection.appendChild(subtitle);
+      const message = this.container.querySelector<HTMLDivElement>('.loading-screen__message');
+      const progressContainer = this.container.querySelector<HTMLDivElement>('.loading-screen__progress-container');
+      const progressBar = progressContainer?.querySelector<HTMLDivElement>('.loading-screen__progress-bar');
+      const progressFill = progressBar?.querySelector<HTMLDivElement>('.loading-screen__progress-fill');
+      const progressText = progressContainer?.querySelector<HTMLSpanElement>('.loading-screen__progress-text');
 
-    // 메시지 영역
-    this.messageText = document.createElement('div');
-    this.messageText.className = 'loading-screen__message';
-    this.messageText.textContent = this.footballMessages[0];
+      if (!message || !progressContainer || !progressBar || !progressFill || !progressText) {
+        throw new Error('Preload loading screen markup is missing required elements.');
+      }
 
-    // 프로그레스 바 컨테이너
-    const progressContainer = document.createElement('div');
-    progressContainer.className = 'loading-screen__progress-container';
+      this.messageText = message;
+      this.progressBar = progressBar;
+      this.progressFill = progressFill;
+      this.progressText = progressText;
 
-    this.progressBar = document.createElement('div');
-    this.progressBar.className = 'loading-screen__progress-bar';
+      let shine = this.progressFill.querySelector<HTMLDivElement>('.loading-screen__progress-shine');
+      if (!shine) {
+        shine = document.createElement('div');
+        shine.className = 'loading-screen__progress-shine';
+        this.progressFill.appendChild(shine);
+      }
 
-    this.progressFill = document.createElement('div');
-    this.progressFill.className = 'loading-screen__progress-fill';
+      this.progressFill.style.width = '0%';
+      this.progressText.textContent = '0%';
+      this.messageText.textContent = this.footballMessages[0];
+    } else {
+      this.container = document.createElement('div');
+      this.container.className = 'loading-screen';
 
-    // 프로그레스 바 내부 shine 효과
-    const progressShine = document.createElement('div');
-    progressShine.className = 'loading-screen__progress-shine';
-    this.progressFill.appendChild(progressShine);
+      // 로고/타이틀 영역
+      const titleSection = document.createElement('div');
+      titleSection.className = 'loading-screen__title';
 
-    this.progressBar.appendChild(this.progressFill);
+      const title = document.createElement('h1');
+      title.className = 'loading-screen__title-text';
+      title.textContent = 'MINI SHOOTOUT';
+      titleSection.appendChild(title);
 
-    // 퍼센트 텍스트
-    this.progressText = document.createElement('span');
-    this.progressText.className = 'loading-screen__progress-text';
-    this.progressText.textContent = '0%';
+      const subtitle = document.createElement('p');
+      subtitle.className = 'loading-screen__subtitle';
+      subtitle.textContent = '3D';
+      titleSection.appendChild(subtitle);
 
-    progressContainer.appendChild(this.progressBar);
-    progressContainer.appendChild(this.progressText);
+      // 메시지 영역
+      this.messageText = document.createElement('div');
+      this.messageText.className = 'loading-screen__message';
+      this.messageText.textContent = this.footballMessages[0];
 
-    // 팁 영역
-    const tipSection = document.createElement('div');
-    tipSection.className = 'loading-screen__tip';
-    tipSection.innerHTML = '<strong>TIP:</strong> 공의 다른 부분을 스와이프하여 커브와 스핀을 제어하세요!';
+      // 프로그레스 바 컨테이너
+      const progressContainer = document.createElement('div');
+      progressContainer.className = 'loading-screen__progress-container';
 
-    // 모두 조립
-    this.container.appendChild(titleSection);
-    this.container.appendChild(this.messageText);
-    this.container.appendChild(progressContainer);
-    this.container.appendChild(tipSection);
+      this.progressBar = document.createElement('div');
+      this.progressBar.className = 'loading-screen__progress-bar';
 
-    document.body.appendChild(this.container);
+      this.progressFill = document.createElement('div');
+      this.progressFill.className = 'loading-screen__progress-fill';
+
+      // 프로그레스 바 내부 shine 효과
+      const progressShine = document.createElement('div');
+      progressShine.className = 'loading-screen__progress-shine';
+      this.progressFill.appendChild(progressShine);
+
+      this.progressBar.appendChild(this.progressFill);
+
+      // 퍼센트 텍스트
+      this.progressText = document.createElement('span');
+      this.progressText.className = 'loading-screen__progress-text';
+      this.progressText.textContent = '0%';
+
+      progressContainer.appendChild(this.progressBar);
+      progressContainer.appendChild(this.progressText);
+
+      // 팁 영역
+      const tipSection = document.createElement('div');
+      tipSection.className = 'loading-screen__tip';
+      tipSection.innerHTML = '<strong>TIP:</strong> 공의 다른 부분을 스와이프하여 커브와 스핀을 제어하세요!';
+
+      // 모두 조립
+      this.container.appendChild(titleSection);
+      this.container.appendChild(this.messageText);
+      this.container.appendChild(progressContainer);
+      this.container.appendChild(tipSection);
+
+      document.body.appendChild(this.container);
+    }
   }
 
   /**
@@ -172,7 +210,9 @@ export class LoadingScreen {
   public hide() {
     this.container.classList.add('loading-screen--hidden');
     setTimeout(() => {
-      this.container.remove();
+      if (this.container.parentElement) {
+        this.container.remove();
+      }
     }, 500);
   }
 
