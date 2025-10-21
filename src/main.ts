@@ -19,6 +19,3 @@ function updateScore(score: number) {
 }
 
 new MiniShootout3D(canvas, updateScore);
-
-console.log('⚽ Mini Shootout 3D Ready');
-console.log('손가락이나 마우스로 공을 드래그해서 슛해보세요!');
