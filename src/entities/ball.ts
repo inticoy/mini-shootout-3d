@@ -6,8 +6,12 @@ import gltfBinary from '../assets/gltf/soccer_ball.bin?url';
 import baseColorTexture from '../assets/gltf/soccer_ball_mat_bcolor.png?url';
 import normalTexture from '../assets/gltf/soccer_ball_Normal.png?url';
 import metallicRoughnessTexture from '../assets/gltf/soccer_ball_Metallic-soccer_ball_Roughness.png?url';
-import { BALL_CONFIG, BALL_RADIUS } from '../config/ball';
-const START_POSITION = new CANNON.Vec3(0, BALL_RADIUS, 0);
+import { BALL_CONFIG, BALL_RADIUS, BALL_START_POSITION } from '../config/ball';
+const START_POSITION = new CANNON.Vec3(
+  BALL_START_POSITION.x,
+  BALL_START_POSITION.y,
+  BALL_START_POSITION.z
+);
 
 export class Ball {
   private readonly rotationHelper = new THREE.Quaternion();
