@@ -44,13 +44,13 @@ export interface FieldStripeConfig {
 
 export const FIELD_STRIPES = {
   horizontal: {
-    color: 0x2a5a0a,
-    opacity: 0.23,
+    color: 0x2a5a1a,
+    opacity: 0.25,
     depthWrite: true
   } satisfies FieldStripeConfig,
   vertical: {
-    color: 0x3a6f4a,
-    opacity: 0.23,
+    color: 0x2a5a1a,
+    opacity: 0.08,
     depthWrite: false
   } satisfies FieldStripeConfig
 };

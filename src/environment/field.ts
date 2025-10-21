@@ -258,7 +258,7 @@ export class Field {
         new THREE.PlaneGeometry(stripeWidth, FIELD_DIMENSIONS.planeWidth),
         stripeMaterial
       );
-      stripe.position.set(0, yOffset, center + stripeSpacing / 4);
+      stripe.position.set(0, yOffset, center - stripeSpacing / 4);
       stripe.rotation.x = -Math.PI / 2;
       stripe.rotation.z = Math.PI / 2;
       stripe.receiveShadow = true;
@@ -302,7 +302,7 @@ export class Field {
         new THREE.PlaneGeometry(stripeWidth, FIELD_DIMENSIONS.planeHeight),
         material
       );
-      stripe.position.set(center + stripeSpacing / 4, yOffset, 0);
+      stripe.position.set(center - stripeSpacing / 4, yOffset, 0);
       stripe.rotation.x = -Math.PI / 2;
       stripe.receiveShadow = true;
       scene.add(stripe);
