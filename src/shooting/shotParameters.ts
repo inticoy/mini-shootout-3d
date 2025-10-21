@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { ShotAnalysis } from './shotAnalyzer';
 import type { NormalizedSwipeData } from './swipeNormalizer';
 import { GOAL_WIDTH, GOAL_HEIGHT, GOAL_DEPTH } from '../config/goal';
+import { BALL_START_POSITION as BALL_START_POS } from '../config/ball';
 
 /**
  * 슈팅 파라미터 (3D 공간)
@@ -14,9 +15,13 @@ export interface ShotParameters {
 }
 
 /**
- * 공의 초기 위치
+ * 공의 초기 위치 (ball.ts에서 import, THREE.Vector3로 변환)
  */
-const BALL_START_POSITION = new THREE.Vector3(0, 0, 0);
+const BALL_START_POSITION = new THREE.Vector3(
+  BALL_START_POS.x,
+  BALL_START_POS.y,
+  BALL_START_POS.z
+);
 
 /**
  * 골대 범위

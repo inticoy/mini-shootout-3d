@@ -9,7 +9,7 @@ import type { Field } from './environment/field';
 import { Ball } from './entities/ball';
 import { Goal } from './entities/goal';
 import { GoalKeeper3D } from './entities/goalkeeper3d';
-import { BALL_RADIUS } from './config/ball';
+import { BALL_RADIUS, BALL_START_POSITION } from './config/ball';
 import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
 import { GOAL_NET_CONFIG } from './config/net';
 import { AD_BOARD_CONFIG } from './config/adBoard';
@@ -865,7 +865,11 @@ export class MiniShootout3D {
    */
   private resetBall() {
     console.log('Resetting ball to origin');
-    this.ball.body.position.set(0, 0.2, 0);
+    this.ball.body.position.set(
+      BALL_START_POSITION.x,
+      BALL_START_POSITION.y,
+      BALL_START_POSITION.z
+    );
     this.ball.body.velocity.set(0, 0, 0);
     this.ball.body.angularVelocity.set(0, 0, 0);
 

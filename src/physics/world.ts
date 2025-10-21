@@ -1,4 +1,5 @@
 import * as CANNON from 'cannon-es';
+import { PHYSICS_GRAVITY } from './constants';
 
 export interface PhysicsContext {
   world: CANNON.World;
@@ -10,7 +11,7 @@ export interface PhysicsContext {
 
 export function createPhysicsWorld(): PhysicsContext {
   const world = new CANNON.World({
-    gravity: new CANNON.Vec3(0, -30, 0)
+    gravity: new CANNON.Vec3(0, PHYSICS_GRAVITY, 0)
   });
 
   const ground = new CANNON.Material('ground');
