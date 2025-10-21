@@ -8,16 +8,12 @@
 
 export interface CurveAimConfig {
   horizontalMax: number;
-  verticalMax: number;
   horizontalMargin: number;
-  verticalMargin: number;
 }
 
 export const CURVE_AIM_CONFIG: CurveAimConfig = {
   horizontalMax: 0.9,    // m, 커브 강도/파워 최대 시 X축으로 얼마나 벗어나는지
-  verticalMax: 0.25,     // m, 커브 슛을 더 높게 띄우기 위한 여유
-  horizontalMargin: 0.6, // m, 커브 보정 시 추가로 허용할 X축 여유
-  verticalMargin: 0.3    // m, 커브 보정 시 추가로 허용할 Y축 여유
+  horizontalMargin: 1.  // m, 커브 보정 시 추가로 허용할 X축 여유
 };
 
 export interface ShotTimingConfig {
@@ -53,4 +49,18 @@ export const SHOT_TARGET_CONFIG: ShotTargetConfig = {
   verticalMarginTop: -0.2, // +: 골대 위쪽으로 확장
   verticalMarginBottom: 1,
   depth: null
+};
+
+export interface CurveForceConfig {
+  baseStrength: number;      // 기본 힘 크기 (curveAmount와 곱해짐)
+  speedReference: number;    // 속도에 따른 보정 분모 (speed / speedReference)
+  speedMaxFactor: number;    // 속도 보정 최대 배율
+  duration: number;          // 힘을 적용하는 최대 지속 시간 (초)
+}
+
+export const CURVE_FORCE_CONFIG: CurveForceConfig = {
+  baseStrength: 18.0,
+  speedReference: 15,
+  speedMaxFactor: 2.0,
+  duration: 0.7
 };

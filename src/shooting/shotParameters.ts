@@ -138,12 +138,6 @@ function adjustAimTarget(
   adjusted.x = THREE.MathUtils.clamp(adjusted.x, -maxAbsX, maxAbsX);
 
   // 커브 슛은 살짝 더 높게 띄움
-  const verticalOffset = CURVE_AIM_CONFIG.verticalMax * curveIntensity;
-  const baseMaxY = GOAL_HEIGHT + SHOT_TARGET_CONFIG.verticalMarginTop;
-  const maxY = baseMaxY + CURVE_AIM_CONFIG.verticalMargin;
-  const minY = TARGET_BOUNDS.yMin;
-  adjusted.y = THREE.MathUtils.clamp(adjusted.y + verticalOffset, minY, maxY);
-
   return adjusted;
 }
 

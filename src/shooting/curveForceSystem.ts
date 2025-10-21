@@ -1,5 +1,6 @@
 import * as CANNON from 'cannon-es';
 import { ShotType, type ShotAnalysis } from './shotAnalyzer';
+import { CURVE_FORCE_CONFIG } from '../config/shooting';
 
 /**
  * 커브 슛 추적 데이터
@@ -13,7 +14,7 @@ interface CurveShotData {
 
 /**
  * 커브 힘 적용 시스템
- * 감아차기 슛이 날아가는 동안 속도 벡터에 수직인 힘을 가함
+ * 감아차기 슛이 날아가는 동안 curveDirection에 따라 X축 방향으로 힘을 가해 궤도를 휘게 함
  */
 export class CurveForceSystem {
   private curveShotData: CurveShotData | null = null;
@@ -71,52 +72,23 @@ export class CurveForceSystem {
 
     const { analysis, elapsedTime } = this.curveShotData;
 
-    // 속도 벡터
-    const velocity = ballBody.velocity;
-    const speed = velocity.length();
-
-    // 속도가 너무 느리면 힘 적용 안 함
-    if (speed < 2) {
+    // curveDirection: -1 (왼쪽), 1 (오른쪽)
+    if (analysis.curveDirection === 0) {
       return;
     }
 
-    // 속도 벡터의 정규화된 방향
-    const velocityDir = velocity.clone();
-    const velLength = velocityDir.length();
+    // 속도 크기를 사용해 힘 크기를 조정
+    const { baseStrength, speedReference, speedMaxFactor, duration } = CURVE_FORCE_CONFIG;
 
-    // 속도가 0에 가까우면 정규화 불가 - 스킵
-    if (velLength < 0.001) {
-      return;
-    }
+    const speed = ballBody.velocity.length();
+    const speedFactor = Math.min(speedReference > 0 ? speed / speedReference : 1, speedMaxFactor);
+    const timeFactor = Math.max(0, 1 - elapsedTime / duration); // 시간 감쇠
+    const direction = -analysis.curveDirection; // 기존 좌/우 매핑 유지
+    const curveStrength = analysis.curveAmount * speedFactor * timeFactor * baseStrength;
 
-    velocityDir.normalize();
-
-    // 속도 벡터에 수직인 방향 계산 (오른쪽)
-    // velocity = (vx, vy, vz)
-    // perpendicular = (-vz, 0, vx) (XZ 평면에서 90도 회전)
-    const perpendicular = new CANNON.Vec3(-velocityDir.z, 0, velocityDir.x);
-
-    // perpendicular도 정규화 필요
-    const perpLength = perpendicular.length();
-    if (perpLength < 0.001) {
-      return;
-    }
-    perpendicular.normalize();
-
-    // curveDirection: -1 (왼쪽), 1 (오른쪽) - 반전 필요
-    const direction = -analysis.curveDirection;
-
-    // 커브 강도 (속도가 빠를수록 강함, 시간이 지날수록 약해짐)
-    const speedFactor = Math.min(speed / 20, 1.5); // 속도 기반 배율
-    const timeFactor = Math.max(0, 1 - elapsedTime / 1.5); // 시간 감쇠
-    const curveStrength = analysis.curveAmount * speedFactor * timeFactor * 10.0; // 2.0 -> 5.0
-
-    // 힘 계산 (새 벡터 생성)
-    const force = new CANNON.Vec3(
-      perpendicular.x * direction * curveStrength,
-      perpendicular.y * direction * curveStrength,
-      perpendicular.z * direction * curveStrength
-    );
+    // X축 방향으로만 힘을 가해 좌우 이동을 유도
+    const lateralForce = direction * curveStrength * ballBody.mass;
+    const force = new CANNON.Vec3(lateralForce, 0, 0);
 
     // 힘 적용
     ballBody.applyForce(force, ballBody.position);
