@@ -27,7 +27,7 @@ export class Ball {
     world.addBody(this.body);
   }
 
-  async load(scene: THREE.Scene): Promise<void> {
+  async load(scene: THREE.Scene, manager: THREE.LoadingManager = THREE.DefaultLoadingManager): Promise<void> {
     const assetMap = new Map<string, string>([
       ['soccer_ball.bin', gltfBinary],
       ['soccer_ball_mat_bcolor.png', baseColorTexture],
@@ -40,11 +40,12 @@ export class Ball {
       return assetMap.get(key) ?? url;
     };
 
-    const manager = new THREE.LoadingManager();
     manager.setURLModifier(urlModifier);
 
     const loader = new GLTFLoader(manager);
-    const gltf = await loader.loadAsync(gltfModel);
+    const gltf = await loader.loadAsync(gltfModel).finally(() => {
+      manager.setURLModifier(undefined);
+    });
     const mesh = this.prepareVisual(gltf.scene);
     scene.add(mesh);
     this.mesh = mesh;

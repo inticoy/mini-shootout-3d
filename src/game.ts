@@ -120,8 +120,10 @@ export class MiniShootout3D {
   private pointerStartNormalized: { x: number; y: number } | null = null;
   private readonly strikeGuide: HTMLDivElement;
   private loadingScreen: LoadingScreen | null = null;
-  private assetsLoaded = 0;
-  private totalAssets = 0;
+  private threeAssetsProgress = 0;
+  private audioProgress = 0;
+  private threeItemsLoaded = 0;
+  private threeItemsTotal = 0;
   private isGameReady = false;
 
   constructor(canvas: HTMLCanvasElement, onScoreChange: (score: number) => void) {
@@ -131,6 +133,8 @@ export class MiniShootout3D {
     // 로딩 화면 생성 및 표시
     this.loadingScreen = new LoadingScreen();
     this.loadingScreen.show();
+    this.loadingScreen.setProgress(0);
+    this.setupAssetLoadingTracker();
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x87CEEB); // 실제 하늘색 (Sky Blue)
@@ -148,14 +152,8 @@ export class MiniShootout3D {
     this.ball = new Ball(this.world, materials.ball);
     this.ball.body.addEventListener('collide', this.handleBallCollideBound);
 
-    // 총 에셋 수 계산 (Ball + Audio files)
-    this.totalAssets = 2; // 1 for ball model, 1 for audio
-
-    void this.ball.load(this.scene).then(() => {
-      this.onAssetLoaded();
-    }).catch((error) => {
+    void this.ball.load(this.scene, THREE.DefaultLoadingManager).catch((error) => {
       console.error('Failed to load ball model', error);
-      this.onAssetLoaded(); // 실패해도 진행
     });
 
     this.goal = new Goal(this.scene, this.world, materials.ball);
@@ -166,10 +164,12 @@ export class MiniShootout3D {
     (window as typeof window & { debug?: (enabled?: boolean) => boolean }).debug = this.toggleDebugBound;
 
     void this.audio.loadAll().then(() => {
-      this.onAssetLoaded();
+      this.audioProgress = 1;
+      this.updateLoadingProgress();
     }).catch((error) => {
       console.warn('Failed to preload audio', error);
-      this.onAssetLoaded(); // 실패해도 진행
+      this.audioProgress = 1;
+      this.updateLoadingProgress();
     });
 
     this.ballColliderMesh = this.createBallColliderMesh();
@@ -208,15 +208,51 @@ export class MiniShootout3D {
     this.animate();
   }
 
-  private onAssetLoaded() {
-    this.assetsLoaded++;
-    const progress = this.assetsLoaded / this.totalAssets;
+  private setupAssetLoadingTracker() {
+    const manager = THREE.DefaultLoadingManager;
+    manager.onStart = (_url, itemsLoaded, itemsTotal) => {
+      this.updateThreeAssetProgress(itemsLoaded, itemsTotal);
+    };
+    manager.onProgress = (_url, itemsLoaded, itemsTotal) => {
+      this.updateThreeAssetProgress(itemsLoaded, itemsTotal);
+    };
+    manager.onLoad = () => {
+      this.threeItemsLoaded = this.threeItemsTotal;
+      this.threeAssetsProgress = 1;
+      this.updateLoadingProgress();
+    };
+    manager.onError = (url) => {
+      console.warn(`Failed to load visual asset: ${url}`);
+      this.handleThreeAssetError();
+    };
+    this.updateLoadingProgress();
+  }
 
+  private updateThreeAssetProgress(itemsLoaded: number, itemsTotal: number) {
+    if (itemsTotal > 0) {
+      this.threeItemsTotal = Math.max(this.threeItemsTotal, itemsTotal);
+      this.threeItemsLoaded = Math.max(this.threeItemsLoaded, itemsLoaded);
+      this.threeAssetsProgress = Math.min(this.threeItemsLoaded / this.threeItemsTotal, 1);
+    }
+    this.updateLoadingProgress();
+  }
+
+  private handleThreeAssetError() {
+    if (this.threeItemsTotal === 0) {
+      this.threeItemsTotal = 1;
+    }
+    this.threeItemsLoaded = Math.min(this.threeItemsLoaded + 1, this.threeItemsTotal);
+    this.threeAssetsProgress = Math.min(this.threeItemsLoaded / this.threeItemsTotal, 1);
+    this.updateLoadingProgress();
+  }
+
+  private updateLoadingProgress() {
+    const combined = Math.min(this.threeAssetsProgress * 0.85 + this.audioProgress * 0.15, 1);
     if (this.loadingScreen) {
-      this.loadingScreen.setProgress(progress);
+      this.loadingScreen.setProgress(combined);
     }
 
-    if (this.assetsLoaded >= this.totalAssets) {
+    if (!this.isGameReady && this.threeAssetsProgress >= 1 && this.audioProgress >= 1) {
       this.onAllAssetsLoaded();
     }
   }
@@ -298,7 +334,7 @@ export class MiniShootout3D {
   }
 
   private handlePointerDown(event: PointerEvent) {
-    if (this.isShooting) return;
+    if (!this.isGameReady || this.isShooting) return;
     const contact = this.captureStrikeContact(event);
     if (contact) {
       const startPoint = { x: contact.x, y: contact.y };
@@ -314,7 +350,7 @@ export class MiniShootout3D {
   }
 
   private handlePointerMove(event: PointerEvent) {
-    if (!this.pointerStart || this.isShooting) return;
+    if (!this.isGameReady || !this.pointerStart || this.isShooting) return;
     this.updateLiveSwipeVectorEnd(event);
     const now = performance.now();
     this.pointerHistory.push({ x: event.clientX, y: event.clientY, time: now });
@@ -324,7 +360,7 @@ export class MiniShootout3D {
   }
 
   private handlePointerUp(event: PointerEvent) {
-    if (!this.pointerStart || this.isShooting) return;
+    if (!this.isGameReady || !this.pointerStart || this.isShooting) return;
 
     this.updateLiveSwipeVectorEnd(event);
     this.refreshStrikeGuide();
