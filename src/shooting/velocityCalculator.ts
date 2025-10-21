@@ -14,8 +14,8 @@ const SHOT_TYPE_CONFIG = {
   },
   [ShotType.NORMAL]: {
     enabled: true,
-    minTime: 0.2,  // power=1.0: 빠르게, 직선적
-    maxTime: 0.6   // power=0.0: 느리게, 포물선
+    minTime: 0.3,
+    maxTime: 0.6
   },
   [ShotType.CURVE]: {
     enabled: true,

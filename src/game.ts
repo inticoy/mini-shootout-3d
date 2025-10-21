@@ -77,6 +77,8 @@ export class MiniShootout3D {
   private isShotInProgress = false;
   private shotResetTimer: number | null = null;
   private hasScored = false;
+  private readonly ballInitialMass: number;
+  private isBallGravityEnabled = true;
 
   // 🔍 궤적 디버깅
   private isTrackingBall = false;
@@ -123,6 +125,7 @@ export class MiniShootout3D {
 
     this.ball = new Ball(this.world, materials.ball);
     this.ball.body.addEventListener('collide', this.handleBallCollideBound);
+    this.ballInitialMass = this.ball.body.mass;
 
     void this.ball.load(this.scene, THREE.DefaultLoadingManager).catch((error) => {
       console.error('Failed to load ball model', error);
@@ -132,7 +135,7 @@ export class MiniShootout3D {
     this.goal.setNetAnimationEnabled(true);
     this.goal.bodies.sensor.addEventListener('collide', this.handleGoalCollisionBound);
 
-    this.goalKeeper = new GoalKeeper3D(this.scene, this.world, GOAL_DEPTH - 0.8, this.ball.body);
+    this.goalKeeper = new GoalKeeper3D(this.scene, this.world, GOAL_DEPTH + 0.8, this.ball.body);
     this.goalKeeper.setColliderDebugVisible(this.debugMode);
 
     void this.audio.loadAll().then(() => {
@@ -196,6 +199,7 @@ export class MiniShootout3D {
     updateDebugButtonState(this.debugButton, this.debugMode);
 
     this.attachEventListeners();
+    this.resetBall();
     this.animate();
   }
 
@@ -858,6 +862,8 @@ export class MiniShootout3D {
     this.isShotInProgress = true;
     this.hasScored = false;
 
+    this.prepareBallForShot();
+
     // 공의 velocity 설정
     this.ball.body.velocity.copy(velocity);
     console.log('🚀 [t=0.00s] velocity 설정 직후:', `vel(${this.ball.body.velocity.x.toFixed(2)}, ${this.ball.body.velocity.y.toFixed(2)}, ${this.ball.body.velocity.z.toFixed(2)})`);
@@ -875,6 +881,48 @@ export class MiniShootout3D {
     this.shotResetTimer = window.setTimeout(() => {
       this.resetAfterShot();
     }, 2500);
+  }
+
+  private prepareBallForShot() {
+    this.setBallGravityEnabled(true);
+    this.ball.body.force.set(0, 0, 0);
+    this.ball.body.torque.set(0, 0, 0);
+    this.ball.body.velocity.set(0, 0, 0);
+    this.ball.body.angularVelocity.set(0, 0, 0);
+    this.syncBallKinematicFrames();
+  }
+
+  private setBallGravityEnabled(enabled: boolean) {
+    if (enabled === this.isBallGravityEnabled) {
+      return;
+    }
+
+    if (enabled) {
+      this.ball.body.type = CANNON.Body.DYNAMIC;
+      this.ball.body.mass = this.ballInitialMass;
+      this.ball.body.updateMassProperties();
+      this.ball.body.force.set(0, 0, 0);
+      this.ball.body.torque.set(0, 0, 0);
+      this.ball.body.wakeUp();
+    } else {
+      this.ball.body.velocity.set(0, 0, 0);
+      this.ball.body.angularVelocity.set(0, 0, 0);
+      this.ball.body.force.set(0, 0, 0);
+      this.ball.body.torque.set(0, 0, 0);
+      this.ball.body.type = CANNON.Body.STATIC;
+      this.ball.body.mass = 0;
+      this.ball.body.updateMassProperties();
+      this.ball.body.sleep();
+    }
+
+    this.isBallGravityEnabled = enabled;
+  }
+
+  private syncBallKinematicFrames() {
+    this.ball.body.previousPosition.copy(this.ball.body.position);
+    this.ball.body.interpolatedPosition.copy(this.ball.body.position);
+    this.ball.body.previousQuaternion.copy(this.ball.body.quaternion);
+    this.ball.body.interpolatedQuaternion.copy(this.ball.body.quaternion);
   }
 
   /**
@@ -913,16 +961,18 @@ export class MiniShootout3D {
    */
   private resetBall() {
     console.log('Resetting ball to origin');
+    this.setBallGravityEnabled(false);
     this.ball.body.position.set(
       BALL_START_POSITION.x,
       BALL_START_POSITION.y,
       BALL_START_POSITION.z
     );
+    this.ball.body.quaternion.set(0, 0, 0, 1);
     this.ball.body.velocity.set(0, 0, 0);
     this.ball.body.angularVelocity.set(0, 0, 0);
-
-    // quaternion도 리셋
-    this.ball.body.quaternion.set(0, 0, 0, 1);
+    this.ball.body.force.set(0, 0, 0);
+    this.ball.body.torque.set(0, 0, 0);
+    this.syncBallKinematicFrames();
 
     this.ball.syncVisuals();
     console.log('Ball reset complete. Position:', this.ball.body.position);
