@@ -152,12 +152,8 @@ export class ShotInfoHud {
    */
   private getShotTypeColor(type: string): string {
     switch (type) {
-      case 'CHIP':
-        return '#a3be8c'; // 녹색
       case 'NORMAL':
         return '#81a1c1'; // 파란색
-      case 'POWER':
-        return '#bf616a'; // 빨간색
       case 'CURVE':
         return '#b48ead'; // 보라색
       case 'INVALID':

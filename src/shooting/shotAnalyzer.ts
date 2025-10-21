@@ -5,9 +5,7 @@ import type { NormalizedSwipeData } from './swipeNormalizer';
  */
 export const ShotType = {
   INVALID: 'INVALID',        // 무효 (잘못된 방향)
-  CHIP: 'CHIP',              // 칩샷 (느린 직선)
-  NORMAL: 'NORMAL',          // 일반 슛 (중간 속도 직선)
-  POWER: 'POWER',            // 강슛 (빠른 직선)
+  NORMAL: 'NORMAL',          // 일반 슛 (직선, 세기는 power로 결정)
   CURVE: 'CURVE'             // 감아차기 (곡선)
 } as const;
 
@@ -28,13 +26,6 @@ export interface ShotAnalysis {
  * 슈팅 타입 감지 임계값
  */
 const THRESHOLDS = {
-  // 속도 임계값 (픽셀/초)
-  SPEED: {
-    CHIP_MAX: 900,             // 이 이하면 칩샷
-    NORMAL_MAX: 1400,          // 이 이하면 일반 슛
-    // 이 이상이면 강슛
-  },
-
   // 커브 임계값 (직선으로부터의 편차)
   CURVE_DEVIATION: 0.08,       // Y값 평균 편차가 이 이상이면 곡선
 };
@@ -95,11 +86,12 @@ function calculateHeightFactor(
   // verticalDistance / 화면높이 비율
   // 화면 좌표계: 위로 = 음수, 아래 = 양수
   // 골대 좌표계: 위 = 높은 값이므로 부호 반전
-  const heightRatio = -verticalDistance / screenHeight;
+  // 승수 2.0 적용: 화면 절반 스와이프 = 골대 최상단
+  const heightRatio = (-verticalDistance / screenHeight) * 2.0;
 
   // 0~1 범위로 정규화
-  // 기본값 0.3 (약간 낮음)
-  const heightFactor = Math.max(0, Math.min(1, heightRatio + 0.3));
+  // 수평 스와이프 (verticalDistance=0) → heightFactor=0 (땅볼)
+  const heightFactor = Math.max(0, Math.min(1, heightRatio));
 
   return heightFactor;
 }
@@ -139,13 +131,14 @@ function analyzeCurvePattern(points: Array<{ x: number; y: number }>) {
 /**
  * 최종 슈팅 타입 결정
  * 모든 음수 각도 허용, heightFactor로 상하 결정
+ * 세기는 power 값으로 결정되므로 NORMAL과 CURVE만 구분
  */
 function determineShotType(
   angleDeg: number,
-  speed: number,
+  _speed: number,
   curveDeviation: number
 ): ShotType {
-  const { SPEED, CURVE_DEVIATION } = THRESHOLDS;
+  const { CURVE_DEVIATION } = THRESHOLDS;
 
   // 1. 무효 각도 체크 (0° ~ 180°, 양수만 무효)
   if (angleDeg >= 0 && angleDeg <= 180) {
@@ -158,14 +151,8 @@ function determineShotType(
     return ShotType.CURVE;
   }
 
-  // 3. 직선 슛 - 속도로 구분
-  if (speed <= SPEED.CHIP_MAX) {
-    return ShotType.CHIP;
-  } else if (speed <= SPEED.NORMAL_MAX) {
-    return ShotType.NORMAL;
-  } else {
-    return ShotType.POWER;
-  }
+  // 3. 직선 슛 (세기는 power로 결정)
+  return ShotType.NORMAL;
 }
 
 /**

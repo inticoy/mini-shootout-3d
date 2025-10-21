@@ -59,6 +59,7 @@ export class MiniShootout3D {
   private readonly swipeTracker: SwipeTracker;
   private readonly curveForceSystem = new CurveForceSystem();
   private readonly shotInfoHud = new ShotInfoHud();
+  private readonly targetMarker: THREE.Mesh;
   private readonly swipeDebugGeometry: LineGeometry;
   private readonly swipeDebugMaterial: LineMaterial;
   private readonly swipeDebugLine: Line2;
@@ -179,6 +180,9 @@ export class MiniShootout3D {
 
     // 스와이프 포인트 마커 초기화 (5개)
     this.createSwipePointMarkers(5);
+
+    // 타겟 마커 초기화
+    this.targetMarker = this.createTargetMarker();
 
     this.debugButton = createDebugButton(this.handleDebugButtonClickBound);
     this.applyDebugVisibility();
@@ -341,6 +345,7 @@ export class MiniShootout3D {
     this.scene.remove(this.goalColliderGroup);
     this.scene.remove(this.adBoardColliderGroup);
     this.scene.remove(this.swipeDebugLine);
+    this.scene.remove(this.targetMarker);
     this.swipePointMarkers.forEach((marker) => this.scene.remove(marker));
     this.swipePointLabels.forEach((label) => label.remove());
     this.axisArrows.forEach((arrow) => this.scene.remove(arrow));
@@ -545,6 +550,7 @@ export class MiniShootout3D {
     this.adBoardColliderGroup.visible = visible;
     this.trajectoryLine.visible = visible;
     this.shotInfoHud.setVisible(visible);
+    this.targetMarker.visible = visible && this.targetMarker.visible; // visible 상태 유지하되 debugMode에 따라
     const hasSwipe = this.swipeTracker.getLastSwipe() !== null;
     this.swipeDebugLine.visible = visible && hasSwipe;
     this.swipePointMarkers.forEach((marker) => {
@@ -610,6 +616,24 @@ export class MiniShootout3D {
     this.axisArrows[0].setDirection(this.tempAxisX.normalize());
     this.axisArrows[1].setDirection(this.tempAxisY.normalize());
     this.axisArrows[2].setDirection(this.tempAxisZ.normalize());
+  }
+
+  /**
+   * 타겟 마커 생성 (반투명 빨간 공)
+   */
+  private createTargetMarker(): THREE.Mesh {
+    const geometry = new THREE.SphereGeometry(0.11, 16, 16);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      transparent: true,
+      opacity: 0.5,
+      depthTest: false,
+      depthWrite: false
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.visible = false;
+    this.scene.add(mesh);
+    return mesh;
   }
 
   /**
@@ -751,6 +775,12 @@ export class MiniShootout3D {
     const shotParams = calculateShotParameters(normalized, analysis);
     console.log(debugShotParameters(shotParams));
 
+    // 타겟 마커 위치 업데이트
+    if (analysis.type !== ShotType.INVALID) {
+      this.targetMarker.position.copy(shotParams.targetPosition);
+      this.targetMarker.visible = this.debugMode;
+    }
+
     // Step 4: 초기 velocity 계산
     const velocity = calculateInitialVelocity(shotParams);
     console.log(debugVelocity(velocity));
@@ -814,6 +844,9 @@ export class MiniShootout3D {
 
     // 공 리셋
     this.resetBall();
+
+    // 타겟 마커 숨김
+    this.targetMarker.visible = false;
 
     // 상태 초기화
     this.isShotInProgress = false;

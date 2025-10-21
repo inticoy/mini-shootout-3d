@@ -56,6 +56,19 @@ export class SwipeTracker {
     e.preventDefault();
 
     const point = this.createPoint(e);
+
+    // 중복 방지: 마지막 점과 너무 가까우면 무시 (1ms 이내, 1px 이내)
+    const lastPoint = this.currentSwipe[this.currentSwipe.length - 1];
+    if (lastPoint) {
+      const timeDiff = point.timestamp - lastPoint.timestamp;
+      const distSq = (point.x - lastPoint.x) ** 2 + (point.y - lastPoint.y) ** 2;
+
+      // 1ms 이내이고 1px 이내면 스킵
+      if (timeDiff < 1 && distSq < 1) {
+        return;
+      }
+    }
+
     this.currentSwipe.push(point);
   }
 
@@ -64,7 +77,20 @@ export class SwipeTracker {
     e.preventDefault();
 
     const point = this.createPoint(e);
-    this.currentSwipe.push(point);
+
+    // 중복 방지: 마지막 점과 너무 가까우면 무시
+    const lastPoint = this.currentSwipe[this.currentSwipe.length - 1];
+    if (lastPoint) {
+      const timeDiff = point.timestamp - lastPoint.timestamp;
+      const distSq = (point.x - lastPoint.x) ** 2 + (point.y - lastPoint.y) ** 2;
+
+      // 1ms 이내가 아니거나 1px 이상 떨어져 있으면 추가
+      if (timeDiff >= 1 || distSq >= 1) {
+        this.currentSwipe.push(point);
+      }
+    } else {
+      this.currentSwipe.push(point);
+    }
 
     this.finalizeSwipe();
   }
@@ -115,19 +141,64 @@ export class SwipeTracker {
   }
 
   /**
-   * 포인트를 균등하게 샘플링
+   * 포인트를 거리 기반 균등 샘플링
+   * 5개 포인트: 0%, 25%, 50%, 75%, 100% 거리에 가장 가까운 점
    */
   private samplePoints(points: SwipePoint[], targetCount: number): SwipePoint[] {
     if (points.length <= targetCount) {
       return [...points];
     }
 
+    // 1. 누적 거리 계산
+    const cumulativeDistances: number[] = [0];
+    for (let i = 1; i < points.length; i++) {
+      const dx = points[i].x - points[i - 1].x;
+      const dy = points[i].y - points[i - 1].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      cumulativeDistances.push(cumulativeDistances[i - 1] + dist);
+    }
+
+    const totalDistance = cumulativeDistances[cumulativeDistances.length - 1];
+
+    // 2. 거리가 0이면 인덱스 기반으로 폴백
+    if (totalDistance === 0) {
+      const step = (points.length - 1) / (targetCount - 1);
+      const sampled: SwipePoint[] = [];
+      for (let i = 0; i < targetCount; i++) {
+        const index = Math.round(i * step);
+        sampled.push(points[index]);
+      }
+      return sampled;
+    }
+
+    // 3. 거리 기반 샘플링: 0%, 25%, 50%, 75%, 100%
+    // 중복 방지를 위해 이미 선택된 인덱스 추적
     const sampled: SwipePoint[] = [];
-    const step = (points.length - 1) / (targetCount - 1);
+    const usedIndices = new Set<number>();
 
     for (let i = 0; i < targetCount; i++) {
-      const index = Math.round(i * step);
-      sampled.push(points[index]);
+      const targetRatio = i / (targetCount - 1); // 0, 0.25, 0.5, 0.75, 1
+      const targetDistance = totalDistance * targetRatio;
+
+      // targetDistance에 가장 가까운 점 찾기 (이미 사용된 인덱스 제외)
+      let closestIndex = -1;
+      let minDiff = Infinity;
+
+      for (let j = 0; j < points.length; j++) {
+        if (usedIndices.has(j)) continue; // 이미 사용된 점은 스킵
+
+        const diff = Math.abs(cumulativeDistances[j] - targetDistance);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIndex = j;
+        }
+      }
+
+      // 가장 가까운 점을 찾았으면 추가
+      if (closestIndex !== -1) {
+        sampled.push(points[closestIndex]);
+        usedIndices.add(closestIndex);
+      }
     }
 
     return sampled;

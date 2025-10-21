@@ -10,25 +10,14 @@ const SPIN_CONFIG = {
     enabled: false,
     spinStrength: 0
   },
-  [ShotType.CHIP]: {
-    enabled: true,
-    spinType: 'backspin',      // 백스핀 (역회전)
-    spinStrength: 15           // 회전 강도
-  },
   [ShotType.NORMAL]: {
-    enabled: true,
-    spinType: 'topspin',       // 톱스핀 (순회전, 약간)
-    spinStrength: 5
-  },
-  [ShotType.POWER]: {
-    enabled: true,
-    spinType: 'topspin',       // 톱스핀 (순회전)
-    spinStrength: 8
+    enabled: false,       // 스핀 없음
+    spinStrength: 0
   },
   [ShotType.CURVE]: {
     enabled: true,
-    spinType: 'sidespin',      // 사이드스핀 (감아차기)
-    spinStrength: 20           // 강한 회전
+    spinType: 'sidespin' as const,      // 사이드스핀 (감아차기)
+    spinStrength: 20                    // 강한 회전
   }
 };
 

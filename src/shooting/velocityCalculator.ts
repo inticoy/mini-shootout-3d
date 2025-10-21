@@ -13,27 +13,15 @@ const SHOT_TYPE_CONFIG = {
     zBoost: 1.0,
     enabled: false
   },
-  [ShotType.CHIP]: {
-    baseSpeed: 12,
-    heightMultiplier: 0.3,  // 감소 - 목표 지점 기준으로만
-    zBoost: 1.2,
-    enabled: true
-  },
   [ShotType.NORMAL]: {
-    baseSpeed: 15,
-    heightMultiplier: 0.2,  // 감소 - 목표 지점 기준으로만
-    zBoost: 1.3,
-    enabled: true
-  },
-  [ShotType.POWER]: {
-    baseSpeed: 22,
-    heightMultiplier: 0.15, // 감소 - 목표 지점 기준으로만
-    zBoost: 1.5,
+    baseSpeed: 18,              // power로 세기 조절 (0.7~1.3x)
+    heightMultiplier: 0.2,
+    zBoost: 1.4,
     enabled: true
   },
   [ShotType.CURVE]: {
     baseSpeed: 20,
-    heightMultiplier: 0.2,  // 감소 - 목표 지점 기준으로만
+    heightMultiplier: 0.2,
     zBoost: 1.4,
     curveBoost: 3.5,
     enabled: true
