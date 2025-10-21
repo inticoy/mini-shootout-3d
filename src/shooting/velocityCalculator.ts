@@ -4,56 +4,43 @@ import { ShotType } from './shotAnalyzer';
 import type { ShotParameters } from './shotParameters';
 import { PHYSICS_GRAVITY } from '../physics/constants';
 import { BALL_START_POSITION } from '../config/ball';
-
-/**
- * 슈팅 타입별 설정
- */
-const SHOT_TYPE_CONFIG = {
-  [ShotType.INVALID]: {
-    enabled: false
-  },
-  [ShotType.NORMAL]: {
-    enabled: true,
-    minTime: 0.3,
-    maxTime: 0.6
-  },
-  [ShotType.CURVE]: {
-    enabled: true,
-    // CURVE는 기존 방식 유지 (curveForceSystem 때문에 정확한 예측 어려움)
-    baseSpeed: 20,
-    heightMultiplier: 0.2,
-    zBoost: 1.4,
-    curveBoost: 3.5
-  }
-};
+import { SHOT_TIMING_CONFIG } from '../config/shooting';
 
 /**
  * 슈팅 파라미터로부터 초기 velocity 계산
  *
  * NORMAL: 탄도 계산 - targetPosition에 정확히 도착
- * CURVE: 기존 방식 - curveForceSystem이 비행 중 보정
+ * CURVE: 탄도 계산 - 보정된 aimTargetPosition에 맞춰 발사 (비행 중 CurveForceSystem이 시각적 곡선을 부여)
  */
 export function calculateInitialVelocity(shotParams: ShotParameters): CANNON.Vec3 | null {
-  const { analysis, targetPosition, direction } = shotParams;
-  const config = SHOT_TYPE_CONFIG[analysis.type];
+  const { analysis, targetPosition, aimTargetPosition } = shotParams;
 
-  // 무효한 슈팅이면 null 반환
-  if (!config.enabled) {
+  if (analysis.type === ShotType.INVALID) {
     return null;
   }
 
-  // NORMAL: 탄도 기반 계산
-  if (analysis.type === ShotType.NORMAL) {
-    const startPos = new THREE.Vector3(BALL_START_POSITION.x, BALL_START_POSITION.y, BALL_START_POSITION.z);
-    return calculateBallisticVelocity(targetPosition, startPos, analysis.power, config as any);
-  }
+  const timingConfig = analysis.type === ShotType.CURVE
+    ? SHOT_TIMING_CONFIG.CURVE
+    : SHOT_TIMING_CONFIG.NORMAL;
 
-  // CURVE: 기존 방식 유지
-  if (analysis.type === ShotType.CURVE) {
-    return calculateCurveVelocity(direction, analysis, config as any);
-  }
+  const startPos = new THREE.Vector3(BALL_START_POSITION.x, BALL_START_POSITION.y, BALL_START_POSITION.z);
+  const ballisticTarget = analysis.type === ShotType.CURVE ? aimTargetPosition : targetPosition;
+  const debugLabel = analysis.type === ShotType.CURVE ? 'CURVE (aimed)' : 'NORMAL';
+  const { minTime, maxTime } = timingConfig;
 
-  return null;
+  return calculateBallisticVelocity(
+    ballisticTarget,
+    startPos,
+    analysis.power,
+    {
+      minTime: minTime ?? 0.3,
+      maxTime: maxTime ?? 0.6
+    },
+    {
+      label: debugLabel,
+      displayedTarget: analysis.type === ShotType.CURVE ? targetPosition : null
+    }
+  );
 }
 
 /**
@@ -64,7 +51,8 @@ function calculateBallisticVelocity(
   targetPosition: THREE.Vector3,
   startPosition: THREE.Vector3,
   power: number,
-  config: { minTime: number; maxTime: number }
+  config: { minTime: number; maxTime: number },
+  debugContext?: { label?: string; displayedTarget: THREE.Vector3 | null }
 ): CANNON.Vec3 {
   // 1. power → 도착 시간(t) 변환
   // power 높음 = 빠르게 도착 (직선적)
@@ -85,49 +73,21 @@ function calculateBallisticVelocity(
   const vz = dz / t;
 
   // 🔍 디버깅: 탄도 계산 상세 정보
-  console.log('🎯 탄도 계산:');
+  const label = debugContext?.label ?? 'BALISTIC';
+  console.log(`🎯 탄도 계산 [${label}]:`);
   console.log('  Power:', power.toFixed(2));
   console.log('  도착 시간(t):', t.toFixed(3), 's');
   console.log('  Start:', `(${startPosition.x.toFixed(2)}, ${startPosition.y.toFixed(2)}, ${startPosition.z.toFixed(2)})`);
   console.log('  Target:', `(${targetPosition.x.toFixed(2)}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(2)})`);
+  if (debugContext?.displayedTarget) {
+    console.log('  Display Target:', `(${debugContext.displayedTarget.x.toFixed(2)}, ${debugContext.displayedTarget.y.toFixed(2)}, ${debugContext.displayedTarget.z.toFixed(2)})`);
+  }
   console.log('  Displacement:', `(${dx.toFixed(2)}, ${dy.toFixed(2)}, ${dz.toFixed(2)})`);
   console.log('  초기 속도:', `(${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)}) m/s`);
   console.log('  속력:', Math.sqrt(vx*vx + vy*vy + vz*vz).toFixed(2), 'm/s');
   console.log('  Gravity:', PHYSICS_GRAVITY);
 
   return new CANNON.Vec3(vx, vy, vz);
-}
-
-/**
- * 커브 슛 초기 속도 계산 (기존 방식)
- * curveForceSystem이 비행 중 힘을 가하므로 정확한 착탄점 예측 불가
- */
-function calculateCurveVelocity(
-  direction: THREE.Vector3,
-  analysis: any,
-  config: { baseSpeed: number; heightMultiplier: number; zBoost: number; curveBoost: number }
-): CANNON.Vec3 {
-  // 1. 기본 속도 계산 (power 적용)
-  const speed = config.baseSpeed * (0.7 + analysis.power * 0.6);
-
-  // 2. 방향 벡터 복사
-  const velocityDir = new THREE.Vector3().copy(direction);
-
-  // 3. 높이 조정
-  velocityDir.y += config.heightMultiplier * 0.5;
-  velocityDir.normalize();
-
-  // 4. 속도 적용
-  velocityDir.multiplyScalar(speed);
-
-  // 5. Z축 부스트
-  velocityDir.z *= config.zBoost;
-
-  // 6. X축 curveBoost (골대 밖을 향하도록)
-  const curveForce = analysis.curveAmount * analysis.curveDirection * config.curveBoost;
-  velocityDir.x += curveForce;
-
-  return new CANNON.Vec3(velocityDir.x, velocityDir.y, velocityDir.z);
 }
 
 /**
