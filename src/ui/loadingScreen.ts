@@ -67,7 +67,7 @@ export class LoadingScreen {
       const titleText = this.container.querySelector<HTMLHeadingElement>('.loading-screen__title-text');
       const subtitle = this.container.querySelector<HTMLParagraphElement>('.loading-screen__subtitle');
       const tipSection = this.container.querySelector<HTMLDivElement>('.loading-screen__tip');
-      const tipStrong = tipSection?.querySelector<HTMLSpanElement | HTMLStrongElement>('strong');
+      const tipStrong = tipSection?.querySelector<HTMLSpanElement | HTMLElement>('strong');
 
       if (!message || !progressContainer || !progressBar || !progressFill || !progressText) {
         throw new Error('Preload loading screen markup is missing required elements.');
