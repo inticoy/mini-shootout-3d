@@ -49,8 +49,8 @@ export const STANDS_CONFIG: StandsConfig = {
   },
   crowdTexture: {
     repeat: {
-      x: 2,
-      y: 1
+      x: 0.1,
+      y: 0.3
     }
   }
 };

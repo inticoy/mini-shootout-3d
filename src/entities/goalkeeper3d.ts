@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GOALKEEPER_CONFIG } from '../config/players';
-import keeperModelUrl from '../assets/models/goal_keeper/Ch38_nonPBR.fbx?url';
+import keeperModelUrl from '../assets/models/goal_keeper/Ch03_nonPBR.fbx?url';
 import idleAnimUrl from '../assets/models/goal_keeper/goalkeeper idle.fbx?url';
 
 const { width: KEEPER_WIDTH, height: KEEPER_HEIGHT, depth: KEEPER_DEPTH } = GOALKEEPER_CONFIG;
