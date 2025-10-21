@@ -1,3 +1,5 @@
+import splashUrl from '../assets/splash/splash.jpg?url';
+
 export interface LoadingItem {
   id: string;
   message: string;
@@ -24,8 +26,8 @@ export class LoadingScreen {
     '유니폼 입는 중...',
     '스트레칭 하는 중...',
     '잔디 맛보는 중...',
-	'상대와 기싸움하는 중...',
-	'심판과 악수 중...',
+    '상대와 기싸움하는 중...',
+    '심판과 악수 중...',
   ];
 
   private currentMessageIndex = 0;
@@ -167,6 +169,11 @@ export class LoadingScreen {
 
       document.body.appendChild(this.container);
     }
+
+    // 배경 이미지 설정
+    this.container.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${splashUrl})`;
+    this.container.style.backgroundSize = 'cover';
+    this.container.style.backgroundPosition = 'center';
   }
 
   /**

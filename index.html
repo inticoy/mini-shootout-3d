@@ -5,6 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/soccer_ball.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Mini Shootout</title>
+    <style>
+      .loading-screen[data-preload="true"] {
+        background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/src/assets/splash/splash.jpg');
+        background-size: cover;
+        background-position: center;
+        background-color: #000000; /* Fallback color */
+      }
+    </style>
   </head>
   <body>
     <div id="game-container">
@@ -23,13 +31,12 @@
           <span class="loading-screen__progress-text mt-4 block text-center text-[18px] font-bold text-[rgba(255,255,255,0.95)] tracking-[2px] [text-shadow:0_2px_4px_rgba(0,0,0,0.3)]">0%</span>
         </div>
         <div class="loading-screen__tip absolute left-1/2 bottom-[40px] max-w-[600px] -translate-x-1/2 px-[20px] text-center text-[14px] text-[rgba(255,255,255,0.7)] animate-fade-in-delayed lg:bottom-[60px] lg:text-[16px]">
-          <strong class="text-[#7dd3a0] font-bold">TIP:</strong> 공의 다른 부분을 스와이프하여 커브와 스핀을 제어하세요!
+          <strong class="text-[#7dd3a0] font-bold">TIP:</strong> 곡선으로 그리면 바나나킥!
         </div>
       </div>
       <canvas id="game-canvas"></canvas>
       <div id="ui">
         <div id="score">0</div>
-        <div id="goal-message">GOAL!</div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
