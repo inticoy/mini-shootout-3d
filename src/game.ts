@@ -21,6 +21,7 @@ import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { createDebugButton, updateDebugButtonState } from './ui/debugHud';
 import { AudioManager } from './core/audio';
 import { LoadingScreen } from './ui/loadingScreen';
+import { SwipeTracker } from './input/swipeTracker';
 
 const MIN_VERTICAL_BOUNCE_SPEED = 0.45;
 const BOUNCE_COOLDOWN_MS = 120;
@@ -48,6 +49,12 @@ export class MiniShootout3D {
   private readonly trajectoryPositions: Float32Array;
   private readonly trajectorySampleStep = 0.05;
   private readonly trajectorySampleCount = 60;
+  private readonly swipeTracker: SwipeTracker;
+  private readonly swipeDebugGeometry: LineGeometry;
+  private readonly swipeDebugMaterial: LineMaterial;
+  private readonly swipeDebugLine: Line2;
+  private readonly swipePointMarkers: THREE.Sprite[] = [];
+  private readonly swipePointLabels: HTMLDivElement[] = [];
   private readonly tempQuaternion = new THREE.Quaternion();
   private readonly tempAxisX = new THREE.Vector3();
   private readonly tempAxisY = new THREE.Vector3();
@@ -136,6 +143,29 @@ export class MiniShootout3D {
     this.trajectoryLine.computeLineDistances();
     this.trajectoryLine.visible = false;
     this.scene.add(this.trajectoryLine);
+
+    // 스와이프 트래커 초기화
+    this.swipeTracker = new SwipeTracker(canvas, 5);
+
+    // 스와이프 디버그 라인 초기화
+    this.swipeDebugGeometry = new LineGeometry();
+    this.swipeDebugMaterial = new LineMaterial({
+      color: 0xffff00,
+      linewidth: 0.06,
+      transparent: true,
+      opacity: 0.9,
+      worldUnits: true,
+      depthTest: false,
+      depthWrite: false
+    });
+    this.swipeDebugMaterial.resolution.set(window.innerWidth, window.innerHeight);
+    this.swipeDebugLine = new Line2(this.swipeDebugGeometry, this.swipeDebugMaterial);
+    this.swipeDebugLine.visible = false;
+    this.swipeDebugLine.renderOrder = 999;
+    this.scene.add(this.swipeDebugLine);
+
+    // 스와이프 포인트 마커 초기화 (5개)
+    this.createSwipePointMarkers(5);
 
     this.debugButton = createDebugButton(this.handleDebugButtonClickBound);
     this.applyDebugVisibility();
@@ -259,6 +289,7 @@ export class MiniShootout3D {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.trajectoryMaterial.resolution.set(window.innerWidth, window.innerHeight);
+    this.swipeDebugMaterial.resolution.set(window.innerWidth, window.innerHeight);
   }
 
   private animate = () => {
@@ -272,6 +303,7 @@ export class MiniShootout3D {
 
     this.ball.syncVisuals();
     this.updateColliderVisuals();
+    this.updateSwipeDebugLine();
 
     this.renderer.render(this.scene, this.camera);
   };
@@ -282,10 +314,14 @@ export class MiniShootout3D {
     this.ball.body.removeEventListener('collide', this.handleBallCollideBound);
     this.scene.remove(this.goalColliderGroup);
     this.scene.remove(this.adBoardColliderGroup);
+    this.scene.remove(this.swipeDebugLine);
+    this.swipePointMarkers.forEach((marker) => this.scene.remove(marker));
+    this.swipePointLabels.forEach((label) => label.remove());
     this.axisArrows.forEach((arrow) => this.scene.remove(arrow));
     this.debugButton.removeEventListener('click', this.handleDebugButtonClickBound);
     this.debugButton.remove();
     this.goalKeeper.setColliderDebugVisible(false);
+    this.swipeTracker.destroy();
   }
 
   private createBallColliderMesh(): THREE.Mesh {
@@ -481,6 +517,14 @@ export class MiniShootout3D {
     this.goalColliderGroup.visible = visible;
     this.adBoardColliderGroup.visible = visible;
     this.trajectoryLine.visible = visible;
+    const hasSwipe = this.swipeTracker.getLastSwipe() !== null;
+    this.swipeDebugLine.visible = visible && hasSwipe;
+    this.swipePointMarkers.forEach((marker) => {
+      marker.visible = visible && hasSwipe;
+    });
+    this.swipePointLabels.forEach((label) => {
+      label.style.display = visible && hasSwipe ? 'block' : 'none';
+    });
     this.axisArrows.forEach((arrow) => {
       arrow.visible = visible;
     });
@@ -538,6 +582,126 @@ export class MiniShootout3D {
     this.axisArrows[0].setDirection(this.tempAxisX.normalize());
     this.axisArrows[1].setDirection(this.tempAxisY.normalize());
     this.axisArrows[2].setDirection(this.tempAxisZ.normalize());
+  }
+
+  /**
+   * 스와이프 포인트 마커 생성
+   */
+  private createSwipePointMarkers(count: number) {
+    for (let i = 0; i < count; i++) {
+      // 3D 스프라이트 마커 (원형)
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d')!;
+
+      // 원 그리기
+      ctx.fillStyle = '#ffff00';
+      ctx.beginPath();
+      ctx.arc(32, 32, 28, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 테두리
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.SpriteMaterial({
+        map: texture,
+        depthTest: false,
+        depthWrite: false
+      });
+      const sprite = new THREE.Sprite(material);
+      sprite.scale.set(0.15, 0.15, 1);
+      sprite.visible = false;
+      sprite.renderOrder = 1000;
+      this.scene.add(sprite);
+      this.swipePointMarkers.push(sprite);
+
+      // HTML 레이블 (번호)
+      const label = document.createElement('div');
+      label.textContent = (i + 1).toString();
+      label.style.position = 'fixed';
+      label.style.color = '#000000';
+      label.style.fontSize = '18px';
+      label.style.fontWeight = 'bold';
+      label.style.fontFamily = 'Arial, sans-serif';
+      label.style.textShadow = '0 0 3px #ffff00, 0 0 6px #ffff00';
+      label.style.pointerEvents = 'none';
+      label.style.display = 'none';
+      label.style.zIndex = '1000';
+      label.style.transform = 'translate(-50%, -50%)';
+      document.body.appendChild(label);
+      this.swipePointLabels.push(label);
+    }
+  }
+
+  /**
+   * 스와이프 디버그 라인 업데이트
+   */
+  private updateSwipeDebugLine() {
+    if (!this.debugMode) {
+      return;
+    }
+
+    const lastSwipe = this.swipeTracker.getLastSwipe();
+    if (!lastSwipe) {
+      this.swipeDebugLine.visible = false;
+      this.swipePointMarkers.forEach((marker) => {
+        marker.visible = false;
+      });
+      this.swipePointLabels.forEach((label) => {
+        label.style.display = 'none';
+      });
+      return;
+    }
+
+    // 스와이프 포인트를 월드 좌표로 변환 (공의 초기 위치 Z 좌표 사용)
+    const worldPositions = this.swipeTracker.getLastSwipeWorldPositions(this.camera, 0);
+
+    if (!worldPositions || worldPositions.length < 2) {
+      this.swipeDebugLine.visible = false;
+      this.swipePointMarkers.forEach((marker) => {
+        marker.visible = false;
+      });
+      this.swipePointLabels.forEach((label) => {
+        label.style.display = 'none';
+      });
+      return;
+    }
+
+    // Float32Array로 변환
+    const positions: number[] = [];
+    for (const pos of worldPositions) {
+      positions.push(pos.x, pos.y, pos.z);
+    }
+
+    this.swipeDebugGeometry.setPositions(positions);
+    this.swipeDebugLine.computeLineDistances();
+    this.swipeDebugGeometry.computeBoundingSphere();
+    this.swipeDebugLine.visible = true;
+
+    // 포인트 마커 업데이트
+    const tempVector = new THREE.Vector3();
+    worldPositions.forEach((pos, i) => {
+      if (i < this.swipePointMarkers.length) {
+        // 3D 마커 위치
+        this.swipePointMarkers[i].position.copy(pos);
+        this.swipePointMarkers[i].visible = true;
+
+        // 2D 레이블 위치 (화면 좌표로 변환)
+        tempVector.copy(pos);
+        tempVector.project(this.camera);
+
+        const x = (tempVector.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (tempVector.y * -0.5 + 0.5) * window.innerHeight;
+
+        this.swipePointLabels[i].style.left = `${x}px`;
+        this.swipePointLabels[i].style.top = `${y}px`;
+        this.swipePointLabels[i].style.display = 'block';
+      }
+    });
   }
 
 }
