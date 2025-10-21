@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import grassAlbedoUrl from '../assets/grass1-unity/grass1-albedo3.png?url';
-import grassNormalUrl from '../assets/grass1-unity/grass1-normal1-ogl.png?url';
-import grassAoUrl from '../assets/grass1-unity/grass1-ao.png?url';
+import grassColorUrl from '../assets/Grass005_2K-PNG/Grass005_2K-PNG_Color.png?url';
+import grassNormalUrl from '../assets/Grass005_2K-PNG/Grass005_2K-PNG_NormalGL.png?url';
+import grassAoUrl from '../assets/Grass005_2K-PNG/Grass005_2K-PNG_AmbientOcclusion.png?url';
+import grassRoughnessUrl from '../assets/Grass005_2K-PNG/Grass005_2K-PNG_Roughness.png?url';
 import { GOAL_DEPTH, GOAL_WIDTH } from '../config/goal';
 import { FIELD_DIMENSIONS, FIELD_OFFSETS, FIELD_STRIPES, FIELD_TEXTURE_REPEAT } from '../config/field';
 import { AD_BOARD_CONFIG } from '../config/adBoard';
@@ -145,7 +146,7 @@ export class Field {
     this.goalDepth = options.goalDepth ?? GOAL_DEPTH;
 
     const loader = new THREE.TextureLoader();
-    const grassTexture = loader.load(grassAlbedoUrl);
+    const grassTexture = loader.load(grassColorUrl);
     grassTexture.colorSpace = THREE.SRGBColorSpace;
     grassTexture.anisotropy = 8;
     grassTexture.wrapS = THREE.RepeatWrapping;
@@ -162,12 +163,24 @@ export class Field {
     aoTexture.wrapT = THREE.RepeatWrapping;
     aoTexture.repeat.set(FIELD_TEXTURE_REPEAT, FIELD_TEXTURE_REPEAT);
 
+    const roughnessTexture = loader.load(grassRoughnessUrl);
+    roughnessTexture.wrapS = THREE.RepeatWrapping;
+    roughnessTexture.wrapT = THREE.RepeatWrapping;
+    roughnessTexture.repeat.set(FIELD_TEXTURE_REPEAT, FIELD_TEXTURE_REPEAT);
+
+    const groundGeometry = new THREE.PlaneGeometry(
+      FIELD_DIMENSIONS.planeWidth,
+      FIELD_DIMENSIONS.planeHeight
+    );
+    groundGeometry.setAttribute('uv2', groundGeometry.attributes.uv.clone());
+
     this.groundMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(FIELD_DIMENSIONS.planeWidth, FIELD_DIMENSIONS.planeHeight),
+      groundGeometry,
       new THREE.MeshStandardMaterial({
         map: grassTexture,
         normalMap: normalTexture,
-        roughnessMap: aoTexture,
+        aoMap: aoTexture,
+        roughnessMap: roughnessTexture,
         roughness: 1,
         metalness: 0
       })

@@ -44,13 +44,13 @@ export interface FieldStripeConfig {
 
 export const FIELD_STRIPES = {
   horizontal: {
-    color: 0x1a5a1a,
-    opacity: 0.3,
+    color: 0x2a5a0a,
+    opacity: 0.23,
     depthWrite: true
   } satisfies FieldStripeConfig,
   vertical: {
-    color: 0x4a6f4a,
-    opacity: 0.3,
+    color: 0x3a6f4a,
+    opacity: 0.23,
     depthWrite: false
   } satisfies FieldStripeConfig
 };
@@ -75,4 +75,4 @@ export const FIELD_OFFSETS: FieldOffsetsConfig = {
   penaltyArc: 0.02
 };
 
-export const FIELD_TEXTURE_REPEAT = 50;
+export const FIELD_TEXTURE_REPEAT = 25;

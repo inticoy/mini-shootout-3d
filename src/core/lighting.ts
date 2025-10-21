@@ -17,7 +17,7 @@ export function configureSceneLighting(scene: THREE.Scene): SceneLighting {
   scene.add(hemisphere);
 
   const directional = new THREE.DirectionalLight(0xffffff, 1.);
-  directional.position.set(12, 65, 14);
+  directional.position.set(5, 20, 5);
   directional.castShadow = true;
   directional.shadow.mapSize.width = 2048;
   directional.shadow.mapSize.height = 2048;
