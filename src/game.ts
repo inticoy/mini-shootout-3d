@@ -78,6 +78,13 @@ export class MiniShootout3D {
   private shotResetTimer: number | null = null;
   private hasScored = false;
 
+  // 🔍 궤적 디버깅
+  private isTrackingBall = false;
+  private trackingStartTime = 0;
+  private trackingTargetY = 0;
+  private lastLogTime = 0;
+  private goalLineCrossed = false;
+
   private readonly clock = new THREE.Clock();
 
   private readonly handleResizeBound = () => this.handleResize();
@@ -125,7 +132,7 @@ export class MiniShootout3D {
     this.goal.setNetAnimationEnabled(true);
     this.goal.bodies.sensor.addEventListener('collide', this.handleGoalCollisionBound);
 
-    this.goalKeeper = new GoalKeeper3D(this.scene, this.world, GOAL_DEPTH + 0.8, this.ball.body);
+    this.goalKeeper = new GoalKeeper3D(this.scene, this.world, GOAL_DEPTH - 0.8, this.ball.body);
     this.goalKeeper.setColliderDebugVisible(this.debugMode);
 
     void this.audio.loadAll().then(() => {
@@ -321,11 +328,44 @@ export class MiniShootout3D {
     requestAnimationFrame(this.animate);
 
     const deltaTime = this.clock.getDelta();
-    this.world.step(1 / 60, deltaTime, 3);
+    // Tunneling 방지: 더 작은 timestep, 더 많은 substeps
+    // 빠른 슛(40 m/s)도 얇은 골대(0.1m)와 정확히 충돌
+    this.world.step(1 / 120, deltaTime, 5);
     this.curveForceSystem.update(deltaTime, this.ball.body);
     this.goalKeeper.update(deltaTime);
     this.goal.update(deltaTime);
     this.field.update(deltaTime);
+
+    // 🔍 궤적 추적 로그
+    if (this.isTrackingBall) {
+      const now = performance.now();
+      const elapsed = (now - this.trackingStartTime) / 1000; // 초 단위
+      const pos = this.ball.body.position;
+      const vel = this.ball.body.velocity;
+
+      // 🔍 첫 0.1초 동안 매 프레임 상세 로그
+      if (elapsed < 0.1) {
+        console.log(`⚡ [t=${elapsed.toFixed(3)}s] world.step 직후: vel(${vel.x.toFixed(2)}, ${vel.y.toFixed(2)}, ${vel.z.toFixed(2)})`);
+      }
+
+      // 0.05초마다 로그 (또는 골라인 근처)
+      if (elapsed - this.lastLogTime >= 0.05) {
+        console.log(`⚽ t=${elapsed.toFixed(2)}s: pos(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}), vel(${vel.x.toFixed(2)}, ${vel.y.toFixed(2)}, ${vel.z.toFixed(2)})`);
+        this.lastLogTime = elapsed;
+      }
+
+      // 골라인(-6) 통과 감지
+      if (!this.goalLineCrossed && pos.z <= -6.0) {
+        this.goalLineCrossed = true;
+        const diff = pos.y - this.trackingTargetY;
+        console.log(`🎯 골라인 통과: Y = ${pos.y.toFixed(2)}m (목표 ${this.trackingTargetY.toFixed(2)}m, 차이 ${diff.toFixed(2)}m)`);
+      }
+
+      // 1초 후 또는 리셋되면 추적 중지
+      if (elapsed > 1.0 || !this.isShotInProgress) {
+        this.isTrackingBall = false;
+      }
+    }
 
     this.ball.syncVisuals();
     this.updateColliderVisuals();
@@ -795,6 +835,13 @@ export class MiniShootout3D {
         // Shot Info HUD 업데이트 (디버그 모드일 때만 보임)
         this.shotInfoHud.update(analysis, shotParams, velocity, angularVelocity);
 
+        // 🔍 궤적 추적 시작
+        this.isTrackingBall = true;
+        this.trackingStartTime = performance.now();
+        this.trackingTargetY = shotParams.targetPosition.y;
+        this.lastLogTime = 0;
+        this.goalLineCrossed = false;
+
         this.executeShooting(velocity, angularVelocity, analysis);
       }
     }
@@ -813,6 +860,7 @@ export class MiniShootout3D {
 
     // 공의 velocity 설정
     this.ball.body.velocity.copy(velocity);
+    console.log('🚀 [t=0.00s] velocity 설정 직후:', `vel(${this.ball.body.velocity.x.toFixed(2)}, ${this.ball.body.velocity.y.toFixed(2)}, ${this.ball.body.velocity.z.toFixed(2)})`);
 
     // 공의 angular velocity (회전) 설정
     this.ball.body.angularVelocity.copy(angularVelocity);

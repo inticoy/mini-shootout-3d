@@ -84,6 +84,17 @@ function calculateBallisticVelocity(
   const vy = (dy - 0.5 * PHYSICS_GRAVITY * t * t) / t;
   const vz = dz / t;
 
+  // 🔍 디버깅: 탄도 계산 상세 정보
+  console.log('🎯 탄도 계산:');
+  console.log('  Power:', power.toFixed(2));
+  console.log('  도착 시간(t):', t.toFixed(3), 's');
+  console.log('  Start:', `(${startPosition.x.toFixed(2)}, ${startPosition.y.toFixed(2)}, ${startPosition.z.toFixed(2)})`);
+  console.log('  Target:', `(${targetPosition.x.toFixed(2)}, ${targetPosition.y.toFixed(2)}, ${targetPosition.z.toFixed(2)})`);
+  console.log('  Displacement:', `(${dx.toFixed(2)}, ${dy.toFixed(2)}, ${dz.toFixed(2)})`);
+  console.log('  초기 속도:', `(${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)}) m/s`);
+  console.log('  속력:', Math.sqrt(vx*vx + vy*vy + vz*vz).toFixed(2), 'm/s');
+  console.log('  Gravity:', PHYSICS_GRAVITY);
+
   return new CANNON.Vec3(vx, vy, vz);
 }
 

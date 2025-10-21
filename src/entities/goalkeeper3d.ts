@@ -48,11 +48,14 @@ export class GoalKeeper3D {
     // FBX 모델 로드
     this.loadModel();
 
-    // 물리 바디 (기존과 동일)
+    // 물리 바디
     const halfExtents = new CANNON.Vec3(KEEPER_WIDTH / 2, KEEPER_HEIGHT / 2, KEEPER_DEPTH / 2);
     const shape = new CANNON.Box(halfExtents);
 
-    this.body = new CANNON.Body({ mass: 0, type: CANNON.Body.KINEMATIC });
+    this.body = new CANNON.Body({
+      mass: 0,
+      type: CANNON.Body.KINEMATIC
+    });
     this.body.position.set(0, 0, depth);
     this.body.addShape(shape, new CANNON.Vec3(0, KEEPER_HEIGHT / 2, 0));
     this.body.angularVelocity.set(0, 0, 0);

@@ -17,5 +17,7 @@ export const PHYSICS_GRAVITY = -18.81;
  * - 0: 공기저항 없음 (진공)
  * - 0.1: 약간의 공기저항
  * - 값이 클수록 속도가 빠르게 감소
+ *
+ * 탄도 계산이 공기저항을 고려하지 않으므로 0으로 설정
  */
-export const PHYSICS_LINEAR_DAMPING = 0.05;
+export const PHYSICS_LINEAR_DAMPING = 0;

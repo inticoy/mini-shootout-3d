@@ -8,6 +8,25 @@ import { GoalNetAnimator } from './goalNetAnimator';
 
 const CROSSBAR_LENGTH = GOAL_WIDTH;
 
+/**
+ * 정적 Body 생성 헬퍼
+ */
+function createStaticBody(
+  world: CANNON.World,
+  shape: CANNON.Shape,
+  position: CANNON.Vec3,
+  material?: CANNON.Material
+): CANNON.Body {
+  const body = new CANNON.Body({
+    mass: 0,
+    shape,
+    position,
+    material
+  });
+  world.addBody(body);
+  return body;
+}
+
 export interface GoalBodies {
   leftPost: CANNON.Body;
   rightPost: CANNON.Body;
@@ -104,93 +123,82 @@ export class Goal {
 
     const postShape = new CANNON.Box(new CANNON.Vec3(POST_RADIUS, GOAL_HEIGHT / 2, POST_RADIUS));
 
-    const leftPostBody = new CANNON.Body({
-      mass: 0,
-      shape: postShape,
-      position: new CANNON.Vec3(-GOAL_WIDTH / 2, GOAL_HEIGHT / 2, GOAL_DEPTH)
-    });
-    world.addBody(leftPostBody);
+    const leftPostBody = createStaticBody(
+      world,
+      postShape,
+      new CANNON.Vec3(-GOAL_WIDTH / 2, GOAL_HEIGHT / 2, GOAL_DEPTH)
+    );
 
-    const rightPostBody = new CANNON.Body({
-      mass: 0,
-      shape: postShape,
-      position: new CANNON.Vec3(GOAL_WIDTH / 2, GOAL_HEIGHT / 2, GOAL_DEPTH)
-    });
-    world.addBody(rightPostBody);
+    const rightPostBody = createStaticBody(
+      world,
+      postShape,
+      new CANNON.Vec3(GOAL_WIDTH / 2, GOAL_HEIGHT / 2, GOAL_DEPTH)
+    );
 
     const floorBarShape = new CANNON.Box(new CANNON.Vec3(postWidth / 2, postWidth / 2, depthSpan / 2));
 
-    const floorLeftBody = new CANNON.Body({
-      mass: 0,
-      shape: floorBarShape,
-      position: new CANNON.Vec3(-rearPostXOffset, floorHeight, GOAL_DEPTH - depthSpan / 2)
-    });
-    world.addBody(floorLeftBody);
+    const floorLeftBody = createStaticBody(
+      world,
+      floorBarShape,
+      new CANNON.Vec3(-rearPostXOffset, floorHeight, GOAL_DEPTH - depthSpan / 2)
+    );
 
-    const floorRightBody = new CANNON.Body({
-      mass: 0,
-      shape: floorBarShape,
-      position: new CANNON.Vec3(rearPostXOffset, floorHeight, GOAL_DEPTH - depthSpan / 2)
-    });
-    world.addBody(floorRightBody);
+    const floorRightBody = createStaticBody(
+      world,
+      floorBarShape,
+      new CANNON.Vec3(rearPostXOffset, floorHeight, GOAL_DEPTH - depthSpan / 2)
+    );
 
     const backBarShape = new CANNON.Box(new CANNON.Vec3(backBarWidth / 2, postWidth / 2, postWidth / 2));
 
-    const floorBackBody = new CANNON.Body({
-      mass: 0,
-      shape: backBarShape,
-      position: new CANNON.Vec3(0, floorHeight, rearPostZ)
-    });
-    world.addBody(floorBackBody);
+    const floorBackBody = createStaticBody(
+      world,
+      backBarShape,
+      new CANNON.Vec3(0, floorHeight, rearPostZ)
+    );
 
     const topBarShape = new CANNON.Box(new CANNON.Vec3(postWidth / 2, postWidth / 2, depthSpan / 2));
 
-    const topLeftBody = new CANNON.Body({
-      mass: 0,
-      shape: topBarShape,
-      position: new CANNON.Vec3(-rearPostXOffset, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH - depthSpan / 2)
-    });
-    world.addBody(topLeftBody);
+    const topLeftBody = createStaticBody(
+      world,
+      topBarShape,
+      new CANNON.Vec3(-rearPostXOffset, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH - depthSpan / 2)
+    );
 
-    const topRightBody = new CANNON.Body({
-      mass: 0,
-      shape: topBarShape,
-      position: new CANNON.Vec3(rearPostXOffset, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH - depthSpan / 2)
-    });
-    world.addBody(topRightBody);
+    const topRightBody = createStaticBody(
+      world,
+      topBarShape,
+      new CANNON.Vec3(rearPostXOffset, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH - depthSpan / 2)
+    );
 
-    const rearLeftPostBody = new CANNON.Body({
-      mass: 0,
-      shape: postShape,
-      position: new CANNON.Vec3(-rearPostXOffset, GOAL_HEIGHT / 2, rearPostZ)
-    });
-    world.addBody(rearLeftPostBody);
+    const rearLeftPostBody = createStaticBody(
+      world,
+      postShape,
+      new CANNON.Vec3(-rearPostXOffset, GOAL_HEIGHT / 2, rearPostZ)
+    );
 
-    const rearRightPostBody = new CANNON.Body({
-      mass: 0,
-      shape: postShape,
-      position: new CANNON.Vec3(rearPostXOffset, GOAL_HEIGHT / 2, rearPostZ)
-    });
-    world.addBody(rearRightPostBody);
+    const rearRightPostBody = createStaticBody(
+      world,
+      postShape,
+      new CANNON.Vec3(rearPostXOffset, GOAL_HEIGHT / 2, rearPostZ)
+    );
 
-    const crossbarBody = new CANNON.Body({
-      mass: 0,
-      shape: new CANNON.Box(new CANNON.Vec3(CROSSBAR_LENGTH / 2, POST_RADIUS, POST_RADIUS)),
-      position: new CANNON.Vec3(0, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH)
-    });
-    world.addBody(crossbarBody);
+    const crossbarBody = createStaticBody(
+      world,
+      new CANNON.Box(new CANNON.Vec3(CROSSBAR_LENGTH / 2, POST_RADIUS, POST_RADIUS)),
+      new CANNON.Vec3(0, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH)
+    );
 
     const sensorWidth = Math.max(GOAL_WIDTH - POST_RADIUS * 2, 0.1);
     const sensorHeight = Math.max(GOAL_HEIGHT - POST_RADIUS * 1.8, 0.1);
     const sensorDepth = BALL_RADIUS * 0.6;
     const sensorOffset = -(sensorDepth * 0.5 + BALL_RADIUS);
-    const sensorBody = new CANNON.Body({
-      mass: 0,
-      shape: new CANNON.Box(new CANNON.Vec3(sensorWidth / 2, sensorHeight / 2, sensorDepth / 2)),
-      position: new CANNON.Vec3(0, sensorHeight / 2, GOAL_DEPTH + sensorOffset)
-    });
-    sensorBody.collisionResponse = false;
-    world.addBody(sensorBody);
+    const sensorBody = createStaticBody(
+      world,
+      new CANNON.Box(new CANNON.Vec3(sensorWidth / 2, sensorHeight / 2, sensorDepth / 2)),
+      new CANNON.Vec3(0, sensorHeight / 2, GOAL_DEPTH + sensorOffset)
+    );
+    sensorBody.collisionResponse = false; // Sensor는 충돌 응답 없음 (통과)
 
     this.bodies = {
       leftPost: leftPostBody,
@@ -296,13 +304,12 @@ export class Goal {
     halfExtents: CANNON.Vec3,
     center: CANNON.Vec3
   ): void {
-    const body = new CANNON.Body({
-      mass: 0,
-      material,
-      position: new CANNON.Vec3(center.x, center.y, center.z)
-    });
-    body.addShape(new CANNON.Box(halfExtents));
-    world.addBody(body);
+    const body = createStaticBody(
+      world,
+      new CANNON.Box(halfExtents),
+      new CANNON.Vec3(center.x, center.y, center.z),
+      material
+    );
     this.netColliders.push(body);
     this.netColliderInfos.push({
       size: new THREE.Vector3(halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2),
