@@ -12,6 +12,7 @@ export class GoalKeeper3D {
 
   private readonly pivot = new THREE.Group();
   private readonly debugMesh: THREE.Mesh;
+  private readonly localizedLights: THREE.Light[] = [];
 
   // 애니메이션 시스템
   private mixer: THREE.AnimationMixer | null = null;
@@ -24,6 +25,7 @@ export class GoalKeeper3D {
     // 위치 설정
     this.pivot.position.set(0, 0, depth);
     scene.add(this.pivot);
+    this.createLocalizedLights();
 
     // 디버그 콜라이더 메쉬 생성
     const debugGeometry = new THREE.BoxGeometry(KEEPER_WIDTH, KEEPER_HEIGHT, KEEPER_DEPTH);
@@ -56,6 +58,21 @@ export class GoalKeeper3D {
     this.body.angularVelocity.set(0, 0, 0);
     this.body.velocity.set(0, 0, 0);
     world.addBody(this.body);
+  }
+
+  private createLocalizedLights() {
+    const frontLight = new THREE.SpotLight(0xfff2d5, 1.4, 3.6, Math.PI / 6, 0.35, 2);
+    frontLight.position.set(0, 1.4, 1.2);
+    frontLight.target.position.set(0, 1.3, 0.1);
+    frontLight.castShadow = false;
+
+    const topLight = new THREE.PointLight(0xffffff, 1.1, 2.6, 2);
+    topLight.position.set(0, 2.25, 0.2);
+
+    this.localizedLights.push(frontLight, topLight);
+    this.pivot.add(frontLight);
+    this.pivot.add(frontLight.target);
+    this.pivot.add(topLight);
   }
 
   update(deltaTime: number) {
@@ -148,17 +165,27 @@ export class GoalKeeper3D {
       return;
     }
 
-    // 현재 애니메이션 중지
+    const currentAction = this.currentAction;
+    const isSameClip = currentAction?.getClip() === clip;
+
+    if (isSameClip && currentAction) {
+      currentAction.paused = false;
+      currentAction.enabled = true;
+      currentAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+      currentAction.play();
+      return;
+    }
+
     if (this.currentAction) {
       this.currentAction.fadeOut(0.2);
     }
 
-    // 새 애니메이션 재생
-    this.currentAction = this.mixer.clipAction(clip);
-    this.currentAction.reset();
-    this.currentAction.fadeIn(0.2);
-    this.currentAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
-    this.currentAction.play();
+    const nextAction = this.mixer.clipAction(clip);
+    nextAction.reset();
+    nextAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+    nextAction.fadeIn(0.2);
+    nextAction.play();
+    this.currentAction = nextAction;
 
     console.log(`🎬 애니메이션 재생: ${name}`);
   }

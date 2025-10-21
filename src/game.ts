@@ -8,6 +8,7 @@ import { createField } from './environment/field';
 import type { Field } from './environment/field';
 import { Ball } from './entities/ball';
 import { Goal } from './entities/goal';
+import { GoalKeeper3D } from './entities/goalkeeper3d';
 import { BALL_RADIUS } from './config/ball';
 import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
 import { GOAL_NET_CONFIG } from './config/net';
@@ -59,7 +60,7 @@ export class MiniShootout3D {
 
   private readonly ball: Ball;
   private readonly goal: Goal;
-  // private readonly goalKeeper: GoalKeeper;
+  private readonly goalKeeper: GoalKeeper3D;
   private readonly field: Field;
   private readonly audio = new AudioManager();
   private readonly ballColliderMesh: THREE.Mesh;
@@ -160,7 +161,7 @@ export class MiniShootout3D {
     this.goal.setNetAnimationEnabled(true);
     this.goal.bodies.sensor.addEventListener('collide', this.handleGoalCollisionBound);
 
-    // this.goalKeeper = new GoalKeeper(this.scene, this.world, GOAL_DEPTH + 0.8, this.ball.body);
+    this.goalKeeper = new GoalKeeper3D(this.scene, this.world, GOAL_DEPTH + 0.8, this.ball.body);
     (window as typeof window & { debug?: (enabled?: boolean) => boolean }).debug = this.toggleDebugBound;
 
     void this.audio.loadAll().then(() => {
@@ -274,7 +275,7 @@ export class MiniShootout3D {
     this.goalScoredThisShot = true;
     this.score += 1;
     this.onScoreChange(this.score);
-    // this.goalKeeper.stopTracking();
+    this.goalKeeper.stopTracking();
     this.tempBallPosition.set(
       this.ball.body.position.x,
       this.ball.body.position.y,
@@ -293,9 +294,9 @@ export class MiniShootout3D {
       this.lastBounceSoundTime = now;
       const volume = THREE.MathUtils.clamp(vy / 6 + 0.15, 0.1, 1);
       this.audio.play('bounce', { volume });
-    } /* else if (event.body === this.goalKeeper.body) {
+    } else if (event.body === this.goalKeeper.body) {
       this.audio.play('save', { volume: 0.7 });
-    } */ else if (
+    } else if (
       event.body === this.goal.bodies.leftPost ||
       event.body === this.goal.bodies.rightPost ||
       event.body === this.goal.bodies.rearLeftPost ||
@@ -429,7 +430,7 @@ export class MiniShootout3D {
 
     const impulse = new CANNON.Vec3(sideImpulse, upwardImpulse, forwardImpulse);
     this.ball.body.applyImpulse(impulse, new CANNON.Vec3(0, 0, 0));
-    // this.goalKeeper.resetTracking();
+    this.goalKeeper.resetTracking();
     this.audio.play('kick', { volume: 0.9 });
 
     this.scheduleStrikeSpin(startContact, basePower);
@@ -450,7 +451,7 @@ export class MiniShootout3D {
     const dz = this.ball.body.position.z - (GOAL_DEPTH + 0.8);
     const velocityZ = this.ball.body.velocity.z;
     if (velocityZ > 0 && dz > 0) {
-      // this.goalKeeper.stopTracking();
+      this.goalKeeper.stopTracking();
     }
   }
 
@@ -468,7 +469,7 @@ export class MiniShootout3D {
     this.pointerStartTime = 0;
     this.pointerHistory = [];
     this.ball.reset();
-    // this.goalKeeper.resetTracking();
+    this.goalKeeper.resetTracking();
     this.goal.resetNet();
     this.netSoundPlayedThisShot = false;
     // this.field.resetAds(); // 광고판은 리셋하지 않고 계속 흐르도록
@@ -487,7 +488,7 @@ export class MiniShootout3D {
     this.elapsedTime += deltaTime;
     this.applyStrikeCurve(deltaTime);
     this.world.step(1 / 60, deltaTime, 3);
-    // this.goalKeeper.update(deltaTime);
+    this.goalKeeper.update(deltaTime);
     this.goal.update(deltaTime);
     this.field.update(deltaTime);
 
@@ -692,7 +693,7 @@ export class MiniShootout3D {
     }
 
     this.debugMode = next;
-    // this.goalKeeper.setColliderDebugVisible(this.debugMode);
+    this.goalKeeper.setColliderDebugVisible(this.debugMode);
     this.ballColliderMesh.visible = this.debugMode;
     this.goalColliderGroup.visible = this.debugMode;
     this.adBoardColliderGroup.visible = this.debugMode;
