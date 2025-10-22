@@ -7,6 +7,7 @@ export interface StandsConfig {
   };
   // 위치
   position: {
+    x: number;        // x축 위치
     y: number;          // 바닥으로부터 높이
     zOffset: number;    // 광고판으로부터의 거리
   };
@@ -36,6 +37,7 @@ export const STANDS_CONFIG: StandsConfig = {
     depth: 15            // 경사 깊이
   },
   position: {
+    x: 1,              // x축 위치 (기본 0)
     y: 0,
     zOffset: -2          // 광고판 뒤 2m
   },

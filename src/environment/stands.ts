@@ -64,7 +64,7 @@ export class Stands {
     const centerZ = adBoardDepth + config.position.zOffset - config.geometry.depth / 2;
     const centerY = config.position.y + config.geometry.height / 2;
 
-    this.mesh.position.set(0, centerY, centerZ);
+    this.mesh.position.set(config.position.x, centerY, centerZ);
     this.mesh.rotation.z = Math.PI;
 
     scene.add(this.mesh);
@@ -83,7 +83,7 @@ export class Stands {
     });
 
     // 물리 바디 위치 및 회전 설정
-    this.body.position.set(0, centerY, centerZ);
+    this.body.position.set(config.position.x, centerY, centerZ);
     this.body.quaternion.setFromEuler(0, 0, Math.PI);
 
     world.addBody(this.body);
