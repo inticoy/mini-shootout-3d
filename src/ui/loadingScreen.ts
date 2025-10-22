@@ -11,10 +11,10 @@ export class LoadingScreen {
   private container: HTMLDivElement;
   private stage1Container: HTMLDivElement | null = null;
   private titleSection: HTMLDivElement | null = null; // 타이틀 섹션
-  private progressBar: HTMLDivElement;
-  private progressFill: HTMLDivElement;
-  private progressText: HTMLSpanElement;
-  private messageText: HTMLDivElement;
+  private progressBar!: HTMLDivElement;
+  private progressFill!: HTMLDivElement;
+  private progressText!: HTMLSpanElement;
+  private messageText!: HTMLDivElement;
   private loadingItems: LoadingItem[] = [];
   private currentItemIndex = 0;
   private totalWeight = 0;
