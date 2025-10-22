@@ -12,6 +12,7 @@ export class GoalKeeper {
 
   private readonly pivot = new THREE.Group();
   private readonly debugMesh: THREE.Mesh;
+  private readonly debugEdges: THREE.LineSegments;
   private shouldTrack = true;
 
   private behavior: KeeperBehaviorConfig | null = null;
@@ -54,6 +55,7 @@ export class GoalKeeper {
     const debugEdgeMaterial = new THREE.LineBasicMaterial({ color: 0xff6688 });
     const debugEdges = new THREE.LineSegments(new THREE.EdgesGeometry(debugGeometry), debugEdgeMaterial);
     this.debugMesh.add(debugEdges);
+    this.debugEdges = debugEdges;
     this.debugMesh.visible = false;
     this.debugMesh.castShadow = false;
 
@@ -98,7 +100,7 @@ export class GoalKeeper {
       }
       case 'spin': {
         const spinSpeed = this.behavior.spinSpeed ?? 1.2;
-        this.spinAngle += deltaTime * spinSpeed;
+        this.spinAngle = (this.spinAngle + deltaTime * spinSpeed) % (Math.PI * 2);
 
         const min = this.behavior.xRange[0];
         const max = this.behavior.xRange[1];
@@ -142,9 +144,13 @@ export class GoalKeeper {
   applyBehavior(behavior: KeeperBehaviorConfig) {
     this.behavior = behavior;
     this.movementTime = 0;
-    this.patrolPhase = Math.random() * Math.PI * 2;
+    this.patrolPhase = 0;
     this.spinAngle = 0;
     this.pivot.rotation.set(0, 0, 0);
+    this.mesh.rotation.set(0, 0, 0);
+    this.debugMesh.rotation.set(0, 0, 0);
+    this.mesh.position.y = KEEPER_HEIGHT / 2;
+    this.debugMesh.position.y = KEEPER_HEIGHT / 2;
 
     this.setKeeperZ(behavior.z);
     this.refreshBehaviorState();
@@ -153,6 +159,14 @@ export class GoalKeeper {
   refreshBehaviorState() {
     if (!this.behavior) return;
     this.movementTime = 0;
+
+    if (this.behavior.type === 'patrol' || this.behavior.type === 'spin') {
+      this.patrolPhase = Math.random() * Math.PI * 2;
+    }
+
+    if (this.behavior.type === 'spin') {
+      this.spinAngle = Math.random() * Math.PI * 2;
+    }
 
     switch (this.behavior.type) {
       case 'static':
@@ -181,7 +195,6 @@ export class GoalKeeper {
     const [min, max] = this.behavior!.xRange;
     const center = (min + max) * 0.5;
     const amplitude = Math.max((max - min) * 0.5, 0);
-    this.patrolPhase = Math.random() * Math.PI * 2;
     this.setKeeperX(center + amplitude * Math.sin(this.patrolPhase));
     this.mesh.rotation.set(0, 0, 0);
     this.debugMesh.rotation.set(0, 0, 0);
@@ -193,7 +206,6 @@ export class GoalKeeper {
     const [min, max] = this.behavior!.xRange;
     const center = (min + max) * 0.5;
     const amplitude = Math.max((max - min) * 0.5, 0);
-    this.spinAngle = Math.random() * Math.PI * 2;
 
     if (amplitude > 0 && (this.behavior!.patrolSpeed ?? 0) !== 0) {
       this.setKeeperX(center + amplitude * Math.sin(this.patrolPhase));
@@ -205,6 +217,31 @@ export class GoalKeeper {
     this.debugMesh.position.y = KEEPER_HEIGHT / 2;
     this.mesh.rotation.set(0, 0, this.spinAngle);
     this.debugMesh.rotation.set(0, 0, this.spinAngle);
+  }
+
+  dispose() {
+    if (this.body.world) {
+      this.body.world.removeBody(this.body);
+    }
+
+    if (this.pivot.parent) {
+      this.pivot.parent.remove(this.pivot);
+    }
+
+    this.disposeMaterial(this.mesh.material);
+    this.mesh.geometry.dispose();
+    this.disposeMaterial(this.debugMesh.material);
+    this.debugMesh.geometry.dispose();
+    this.disposeMaterial(this.debugEdges.material);
+    this.debugEdges.geometry.dispose();
+  }
+
+  private disposeMaterial(material: THREE.Material | THREE.Material[]) {
+    if (Array.isArray(material)) {
+      material.forEach((mat) => mat.dispose());
+    } else {
+      material.dispose();
+    }
   }
 
   private setKeeperX(x: number) {
