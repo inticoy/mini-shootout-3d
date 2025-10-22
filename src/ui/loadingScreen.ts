@@ -1,4 +1,5 @@
-import splashUrl from '../assets/splash/splash.jpg?url';
+import soccerBallUrl from '/soccer_ball.svg?url';
+import { SwipeTracker } from '../input/swipeTracker';
 
 export interface LoadingItem {
   id: string;
@@ -8,6 +9,7 @@ export interface LoadingItem {
 
 export class LoadingScreen {
   private container: HTMLDivElement;
+  private stage1Container: HTMLDivElement | null = null;
   private progressBar: HTMLDivElement;
   private progressFill: HTMLDivElement;
   private progressText: HTMLSpanElement;
@@ -16,7 +18,14 @@ export class LoadingScreen {
   private currentItemIndex = 0;
   private totalWeight = 0;
   private loadedWeight = 0;
-  private isComplete = false;
+
+  // 축구공 슛 메커니즘
+  private soccerBall: HTMLImageElement | null = null;
+  private soccerBallContainer: HTMLDivElement | null = null;
+  private swipeCanvas: HTMLCanvasElement | null = null;
+  private swipeTracker: SwipeTracker | null = null;
+  private isReadyToEnter = false; // 슛을 쏘았는지
+  private isLoadingComplete = false; // 로딩이 완료되었는지
 
   // 축구 테마 로딩 메시지
   private readonly footballMessages: string[] = [
@@ -33,18 +42,26 @@ export class LoadingScreen {
   private currentMessageIndex = 0;
 
   private static readonly CLASS_NAMES = {
-    container: 'loading-screen fixed inset-0 z-[9999] flex h-full w-full flex-col items-center justify-center bg-[linear-gradient(135deg,#0f4d2e_0%,#1a5c3a_50%,#0a3d23_100%)] transition-opacity duration-500 ease-out text-white',
-    titleSection: 'loading-screen__title mb-[60px] text-center animate-fade-in-down',
-    titleText: 'loading-screen__title-text whitespace-nowrap text-[24px] font-black uppercase tracking-[1px] text-white md:text-[32px] md:tracking-[2px] lg:text-[56px] lg:tracking-[4px] [text-shadow:0_0_30px_rgba(255,255,255,0.3),0_4px_8px_rgba(0,0,0,0.5),0_0_60px_rgba(58,143,90,0.4)]',
+    container: 'loading-screen fixed inset-0 z-[9999] flex h-full w-full flex-col items-center justify-start pt-[25vh] bg-[linear-gradient(180deg,#87CEEB_0%,#5BA3D8_50%,#4A90E2_100%)] transition-opacity duration-500 ease-out text-white overflow-hidden',
+    titleSection: 'loading-screen__title mb-20 text-center animate-fade-in-down',
+    titleText: 'loading-screen__title-text whitespace-nowrap text-[56px] font-black tracking-[1px] text-white md:text-[56px] md:tracking-[2px] lg:text-[56px] lg:tracking-[4px] [text-shadow:0_0_30px_rgba(255,255,255,0.3),0_4px_8px_rgba(0,0,0,0.5),0_0_60px_rgba(58,143,90,0.4)]',
     subtitle: 'loading-screen__subtitle mt-[10px] text-[16px] font-bold uppercase tracking-[4px] text-[#7dd3a0] md:text-[20px] md:tracking-[6px] lg:text-[32px] lg:tracking-[12px] [text-shadow:0_2px_4px_rgba(0,0,0,0.3)]',
-    message: 'loading-screen__message mb-10 min-h-[32px] text-center text-[16px] font-semibold text-[rgba(255,255,255,0.9)] md:text-[18px] lg:text-[24px] [text-shadow:0_2px_4px_rgba(0,0,0,0.3)] animate-fade-in-up',
-    progressContainer: 'loading-screen__progress-container relative w-[500px] max-w-[80vw]',
-    progressBar: 'loading-screen__progress-bar relative h-[12px] w-full overflow-hidden rounded-[20px] border-[2px] border-[rgba(255,255,255,0.1)] bg-[rgba(0,0,0,0.3)] shadow-[inset_0_2px_8px_rgba(0,0,0,0.4),0_0_20px_rgba(0,0,0,0.2)]',
-    progressFill: 'loading-screen__progress-fill relative h-full w-0 overflow-hidden rounded-[20px] bg-[linear-gradient(90deg,#3a8f5a_0%,#4db870_50%,#3a8f5a_100%)] shadow-[0_0_20px_rgba(77,184,112,0.6),inset_0_1px_0_rgba(255,255,255,0.3)] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
-    progressShine: 'loading-screen__progress-shine absolute left-[-100%] top-0 h-full w-full animate-shine bg-[linear-gradient(90deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.3)_50%,rgba(255,255,255,0)_100%)]',
-    progressText: 'loading-screen__progress-text mt-4 block text-center text-[18px] font-bold text-[rgba(255,255,255,0.95)] tracking-[2px] [text-shadow:0_2px_4px_rgba(0,0,0,0.3)]',
+    
+    stage1Container: 'loading-screen__stage1-container absolute left-1/2 bottom-[120px] -translate-x-1/2 flex w-[500px] max-w-[80vw] flex-col items-center gap-3 opacity-100 transition-opacity duration-300 ease-out',
+    
+    message: 'loading-screen__message min-h-[24px] text-center text-[16px] font-semibold text-[rgba(255,255,255,0.95)] md:text-[18px] lg:text-[20px] [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]',
+
+    progressContainer: 'loading-screen__progress-container relative w-full',
+    progressBar: 'loading-screen__progress-bar relative h-5 w-full overflow-hidden rounded-full bg-black/30 backdrop-blur-sm border-2 border-white/20 shadow-inner',
+    progressFill: 'loading-screen__progress-fill relative h-full w-0 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.7),0_0_20px_rgba(74,144,226,0.5)] transition-[width] duration-300 ease-out',
+    progressShine: 'loading-screen__progress-shine absolute left-[-100%] top-0 h-full w-full animate-shine bg-[linear-gradient(90deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.4)_50%,rgba(255,255,255,0)_100%)]',
+    progressText: 'loading-screen__progress-text absolute inset-0 flex items-center justify-center text-xs font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]',
+
     tip: 'loading-screen__tip absolute left-1/2 bottom-[40px] max-w-[600px] -translate-x-1/2 px-[20px] text-center text-[14px] text-[rgba(255,255,255,0.7)] animate-fade-in-delayed lg:bottom-[60px] lg:text-[16px]',
-    tipStrong: 'text-[#7dd3a0] font-bold'
+    tipStrong: 'text-[#7dd3a0] font-bold',
+    soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[120px] -translate-x-1/2 flex flex-col items-center gap-4 opacity-0 transition-opacity duration-800',
+    soccerBall: 'loading-screen__soccer-ball w-[96px] h-[96px] cursor-pointer animate-bounce-slow drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]',
+    swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[10000] touch-none pointer-events-auto'
   };
 
   constructor() {
@@ -60,71 +77,92 @@ export class LoadingScreen {
         document.body.appendChild(this.container);
       }
 
+      const titleSection = this.container.querySelector<HTMLDivElement>('.loading-screen__title');
+      const titleText = this.container.querySelector<HTMLHeadingElement>('.loading-screen__title-text');
+      
+      // Find existing stage 1 elements
+      const stage1Container = this.container.querySelector<HTMLDivElement>('.loading-screen__stage1-container');
       const message = this.container.querySelector<HTMLDivElement>('.loading-screen__message');
       const progressContainer = this.container.querySelector<HTMLDivElement>('.loading-screen__progress-container');
       const progressBar = progressContainer?.querySelector<HTMLDivElement>('.loading-screen__progress-bar');
       const progressFill = progressBar?.querySelector<HTMLDivElement>('.loading-screen__progress-fill');
-      const progressText = progressContainer?.querySelector<HTMLSpanElement>('.loading-screen__progress-text');
-      const titleSection = this.container.querySelector<HTMLDivElement>('.loading-screen__title');
-      const titleText = this.container.querySelector<HTMLHeadingElement>('.loading-screen__title-text');
-      const subtitle = this.container.querySelector<HTMLParagraphElement>('.loading-screen__subtitle');
-      const tipSection = this.container.querySelector<HTMLDivElement>('.loading-screen__tip');
-      const tipStrong = tipSection?.querySelector<HTMLSpanElement | HTMLElement>('strong');
+      const progressText = progressBar?.querySelector<HTMLSpanElement>('.loading-screen__progress-text');
 
-      if (!message || !progressContainer || !progressBar || !progressFill || !progressText) {
-        throw new Error('Preload loading screen markup is missing required elements.');
-      }
-
-      titleSection?.setAttribute('class', LoadingScreen.CLASS_NAMES.titleSection);
-      titleText?.setAttribute('class', LoadingScreen.CLASS_NAMES.titleText);
-      subtitle?.setAttribute('class', LoadingScreen.CLASS_NAMES.subtitle);
-      tipSection?.setAttribute('class', LoadingScreen.CLASS_NAMES.tip);
-      tipStrong?.setAttribute('class', LoadingScreen.CLASS_NAMES.tipStrong);
-
-      this.messageText = message;
-      this.messageText.setAttribute('class', LoadingScreen.CLASS_NAMES.message);
-      this.progressBar = progressBar;
-      this.progressBar.setAttribute('class', LoadingScreen.CLASS_NAMES.progressBar);
-      this.progressFill = progressFill;
-      this.progressFill.setAttribute('class', LoadingScreen.CLASS_NAMES.progressFill);
-      this.progressText = progressText;
-      this.progressText.setAttribute('class', LoadingScreen.CLASS_NAMES.progressText);
-      progressContainer.setAttribute('class', LoadingScreen.CLASS_NAMES.progressContainer);
-
-      let shine = this.progressFill.querySelector<HTMLDivElement>('.loading-screen__progress-shine');
-      if (!shine) {
-        shine = document.createElement('div');
-        shine.className = LoadingScreen.CLASS_NAMES.progressShine;
-        this.progressFill.appendChild(shine);
+      if (!stage1Container || !message || !progressContainer || !progressBar || !progressFill || !progressText) {
+        // If markup is not what we expect, recreate it
+        this.clearContainer();
+        this.buildDOM();
       } else {
-        shine.className = LoadingScreen.CLASS_NAMES.progressShine;
-      }
+        // Re-apply classes to ensure consistency
+        titleSection?.setAttribute('class', LoadingScreen.CLASS_NAMES.titleSection);
+        titleText?.setAttribute('class', LoadingScreen.CLASS_NAMES.titleText);
+        if (titleText) {
+          titleText.style.fontFamily = "'Russo One', sans-serif";
+        }
 
-      this.progressFill.style.width = '0%';
-      this.progressText.textContent = '0%';
-      this.messageText.textContent = this.footballMessages[0];
+        this.stage1Container = stage1Container;
+        this.stage1Container.className = LoadingScreen.CLASS_NAMES.stage1Container;
+        
+        this.messageText = message;
+        this.messageText.className = LoadingScreen.CLASS_NAMES.message;
+        
+        progressContainer.className = LoadingScreen.CLASS_NAMES.progressContainer;
+        
+        this.progressBar = progressBar;
+        this.progressBar.className = LoadingScreen.CLASS_NAMES.progressBar;
+        
+        this.progressFill = progressFill;
+        this.progressFill.className = LoadingScreen.CLASS_NAMES.progressFill;
+        
+        this.progressText = progressText;
+        this.progressText.className = LoadingScreen.CLASS_NAMES.progressText;
+
+        // Ensure shine effect exists
+        let shine = this.progressFill.querySelector<HTMLDivElement>('.loading-screen__progress-shine');
+        if (!shine) {
+          shine = document.createElement('div');
+          shine.className = LoadingScreen.CLASS_NAMES.progressShine;
+          this.progressFill.appendChild(shine);
+        } else {
+          shine.className = LoadingScreen.CLASS_NAMES.progressShine;
+        }
+
+        // Reset progress
+        this.progressFill.style.width = '0%';
+        this.progressText.textContent = '0%';
+        this.messageText.textContent = this.footballMessages[0];
+      }
     } else {
       this.container = document.createElement('div');
       this.container.className = LoadingScreen.CLASS_NAMES.container;
+      document.body.appendChild(this.container);
+      this.buildDOM();
+    }
 
+    // 축구공 UI 초기화
+    this.initializeSoccerBall();
+  }
+
+  private clearContainer() {
+    while(this.container.firstChild) {
+      this.container.removeChild(this.container.firstChild);
+    }
+  }
+
+  private buildDOM() {
       // 로고/타이틀 영역
       const titleSection = document.createElement('div');
       titleSection.className = LoadingScreen.CLASS_NAMES.titleSection;
 
       const title = document.createElement('h1');
       title.className = LoadingScreen.CLASS_NAMES.titleText;
-      title.textContent = 'MINI SHOOTOUT';
+      title.textContent = 'Snapshoot!';
+      title.style.fontFamily = "'Russo One', sans-serif";
       titleSection.appendChild(title);
 
-      const subtitle = document.createElement('p');
-      subtitle.className = LoadingScreen.CLASS_NAMES.subtitle;
-      subtitle.textContent = '3D';
-      titleSection.appendChild(subtitle);
-
-      // 메시지 영역
-      this.messageText = document.createElement('div');
-      this.messageText.className = LoadingScreen.CLASS_NAMES.message;
-      this.messageText.textContent = this.footballMessages[0];
+      // 스테이지 1 컨테이너 (로딩 메시지 + 프로그레스 바)
+      this.stage1Container = document.createElement('div');
+      this.stage1Container.className = LoadingScreen.CLASS_NAMES.stage1Container;
 
       // 프로그레스 바 컨테이너
       const progressContainer = document.createElement('div');
@@ -136,44 +174,146 @@ export class LoadingScreen {
       this.progressFill = document.createElement('div');
       this.progressFill.className = LoadingScreen.CLASS_NAMES.progressFill;
 
-      // 프로그레스 바 내부 shine 효과
       const progressShine = document.createElement('div');
       progressShine.className = LoadingScreen.CLASS_NAMES.progressShine;
       this.progressFill.appendChild(progressShine);
 
       this.progressBar.appendChild(this.progressFill);
-
-      // 퍼센트 텍스트
+      
+      // 퍼센트 텍스트 (프로그레스 바 안에 위치)
       this.progressText = document.createElement('span');
       this.progressText.className = LoadingScreen.CLASS_NAMES.progressText;
       this.progressText.textContent = '0%';
+      this.progressBar.appendChild(this.progressText);
 
       progressContainer.appendChild(this.progressBar);
-      progressContainer.appendChild(this.progressText);
 
-      // 팁 영역
-      const tipSection = document.createElement('div');
-      tipSection.className = LoadingScreen.CLASS_NAMES.tip;
-      const tipStrong = document.createElement('strong');
-      tipStrong.className = LoadingScreen.CLASS_NAMES.tipStrong;
-      tipStrong.textContent = 'TIP:';
-      const tipText = document.createTextNode(' 공의 다른 부분을 스와이프하여 커브와 스핀을 제어하세요!');
-      tipSection.appendChild(tipStrong);
-      tipSection.appendChild(tipText);
+      // 메시지 영역
+      this.messageText = document.createElement('div');
+      this.messageText.className = LoadingScreen.CLASS_NAMES.message;
+      this.messageText.textContent = this.footballMessages[0];
+
+      // 스테이지 1 컨테이너에 순서대로 추가 (프로그레스 바가 위)
+      this.stage1Container.appendChild(progressContainer);
+      this.stage1Container.appendChild(this.messageText);
 
       // 모두 조립
       this.container.appendChild(titleSection);
-      this.container.appendChild(this.messageText);
-      this.container.appendChild(progressContainer);
-      this.container.appendChild(tipSection);
+      this.container.appendChild(this.stage1Container);
+  }
 
-      document.body.appendChild(this.container);
+  /**
+   * 축구공 UI 및 스와이프 트래커 초기화
+   */
+  private initializeSoccerBall() {
+    // 축구공 컨테이너 생성
+    this.soccerBallContainer = document.createElement('div');
+    this.soccerBallContainer.className = LoadingScreen.CLASS_NAMES.soccerBallContainer;
+
+    // 축구공 이미지 생성
+    this.soccerBall = document.createElement('img');
+    this.soccerBall.src = soccerBallUrl;
+    this.soccerBall.className = LoadingScreen.CLASS_NAMES.soccerBall;
+    this.soccerBall.alt = 'Soccer Ball';
+
+    // 안내 메시지
+    const shootMessage = document.createElement('div');
+    shootMessage.className = 'text-center text-[20px] font-bold text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.6)]';
+    shootMessage.textContent = '위로 스와이프해 스냅슛!';
+
+    this.soccerBallContainer.appendChild(this.soccerBall);
+    this.soccerBallContainer.appendChild(shootMessage);
+    this.container.appendChild(this.soccerBallContainer);
+
+    // 투명 캔버스 생성 (스와이프 감지용)
+    this.swipeCanvas = document.createElement('canvas');
+    this.swipeCanvas.className = LoadingScreen.CLASS_NAMES.swipeCanvas;
+    this.swipeCanvas.width = window.innerWidth;
+    this.swipeCanvas.height = window.innerHeight;
+    this.container.appendChild(this.swipeCanvas);
+
+    // SwipeTracker 초기화
+    this.swipeTracker = new SwipeTracker(this.swipeCanvas, 10);
+
+    // 스와이프 이벤트 감지
+    this.swipeCanvas.addEventListener('pointerup', () => {
+      this.handleSwipe();
+    });
+  }
+
+  /**
+   * 스와이프 감지 시 호출되는 핸들러
+   */
+  private handleSwipe() {
+    if (!this.swipeTracker || this.isReadyToEnter) return;
+
+    const swipeData = this.swipeTracker.getLastSwipe();
+    if (!swipeData || swipeData.points.length < 2) return;
+
+    // 슛을 쏜 것으로 표시
+    this.isReadyToEnter = true;
+
+    // 스와이프 방향 계산
+    const firstPoint = swipeData.points[0];
+    const lastPoint = swipeData.points[swipeData.points.length - 1];
+    const deltaX = lastPoint.x - firstPoint.x;
+    const deltaY = lastPoint.y - firstPoint.y;
+
+    // 스와이프 강도 계산
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    const duration = swipeData.duration;
+    const speed = distance / (duration || 1);
+
+    // 슛 애니메이션 실행
+    this.animateShot(deltaX, deltaY, speed);
+  }
+
+  /**
+   * 축구공이 날아가는 애니메이션
+   */
+  private animateShot(deltaX: number, deltaY: number, speed: number) {
+    if (!this.soccerBall) return;
+
+    // Stop the bounce animation to prevent transform conflicts
+    this.soccerBall.classList.remove('animate-bounce-slow');
+
+    // 스와이프 캔버스 숨기기 (더 이상 스와이프 불가)
+    if (this.swipeCanvas) {
+      this.swipeCanvas.style.pointerEvents = 'none';
+      this.swipeCanvas.style.opacity = '0';
     }
 
-    // 배경 이미지 설정
-    this.container.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${splashUrl})`;
-    this.container.style.backgroundSize = 'cover';
-    this.container.style.backgroundPosition = 'center';
+    // 이동 거리 계산 (속도에 비례, 화면 밖으로 충분히 멀리)
+    const force = Math.min(Math.max(speed, 0.5), 5);
+    const translateX = deltaX * force * 1.5;
+    const translateY = deltaY * force * 1.5;
+
+    // 회전 각도 (스핀 효과)
+    const rotation = (deltaX / Math.abs(deltaX || 1)) * 720; // 2바퀴 회전
+
+    // 공 애니메이션 적용 (페이드아웃 없이 날아가기만)
+    this.soccerBall.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    this.soccerBall.style.transform = `translate(${translateX}px, ${translateY}px) scale(0.3) rotate(${rotation}deg)`;
+
+    // 0.5초 후 화면 전체 페이드아웃 시작
+    setTimeout(() => {
+      this.container.style.transition = 'opacity 0.6s ease-out';
+      this.container.style.opacity = '0';
+
+      // 페이드아웃 완료 후 게임 진입
+      setTimeout(() => {
+        this.checkAndEnterGame();
+      }, 600);
+    }, 500);
+  }
+
+  /**
+   * 로딩 완료 및 슛 완료 시 게임 진입
+   */
+  private checkAndEnterGame() {
+    if (this.isReadyToEnter && this.isLoadingComplete) {
+      this.hide();
+    }
   }
 
   /**
@@ -230,10 +370,30 @@ export class LoadingScreen {
       }, 10);
     }
 
-    if (percent >= 100 && !this.isComplete) {
-      this.isComplete = true;
-      setTimeout(() => this.hide(), 300);
+    if (percent >= 100 && !this.isLoadingComplete) {
+      this.isLoadingComplete = true;
+      this.transitionToStage2();
     }
+  }
+
+  /**
+   * 1단계 → 2단계 전환 (프로그레스 바 숨기고 축구공 표시)
+   */
+  private transitionToStage2() {
+    // 스테이지 1 컨테이너를 페이드아웃
+    if (this.stage1Container) {
+        this.stage1Container.style.opacity = '0';
+    }
+
+    // 0.8초 후 축구공을 페이드인
+    setTimeout(() => {
+      if (this.soccerBallContainer) {
+        this.soccerBallContainer.style.opacity = '1';
+      }
+
+      // 게임 진입 체크
+      this.checkAndEnterGame();
+    }, 800);
   }
 
   /**
@@ -250,6 +410,12 @@ export class LoadingScreen {
    * 로딩 화면 숨기기
    */
   public hide() {
+    // SwipeTracker 정리
+    if (this.swipeTracker) {
+      this.swipeTracker.destroy();
+      this.swipeTracker = null;
+    }
+
     this.container.classList.add('loading-screen--hidden');
     setTimeout(() => {
       if (this.container.parentElement) {

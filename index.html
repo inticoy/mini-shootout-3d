@@ -3,35 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/soccer_ball.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>Mini Shootout</title>
-    <style>
-      .loading-screen[data-preload="true"] {
-        background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/src/assets/splash/splash.jpg');
-        background-size: cover;
-        background-position: center;
-        background-color: #000000; /* Fallback color */
-      }
-    </style>
+    <title>Snapshoot!</title>
   </head>
   <body>
     <div id="game-container">
-      <div class="loading-screen loading-screen--initial fixed inset-0 z-[9999] flex h-full w-full flex-col items-center justify-center bg-[linear-gradient(135deg,#0f4d2e_0%,#1a5c3a_50%,#0a3d23_100%)] transition-opacity duration-500 ease-out text-white" data-preload="true">
-        <div class="loading-screen__title mb-[60px] text-center animate-fade-in-down">
-          <h1 class="loading-screen__title-text whitespace-nowrap text-[24px] font-black uppercase tracking-[1px] text-white md:text-[32px] md:tracking-[2px] lg:text-[56px] lg:tracking-[4px] [text-shadow:0_0_30px_rgba(255,255,255,0.3),0_4px_8px_rgba(0,0,0,0.5),0_0_60px_rgba(58,143,90,0.4)]">MINI SHOOTOUT</h1>
-          <p class="loading-screen__subtitle mt-[10px] text-[16px] font-bold uppercase tracking-[4px] text-[#7dd3a0] md:text-[20px] md:tracking-[6px] lg:text-[32px] lg:tracking-[12px] [text-shadow:0_2px_4px_rgba(0,0,0,0.3)]">3D</p>
+      <div class="loading-screen loading-screen--initial fixed inset-0 z-[9999] flex h-full w-full flex-col items-center justify-start pt-[25vh] bg-[linear-gradient(135deg,#0f4d2e_0%,#1a5c3a_50%,#0a3d23_100%)] transition-opacity duration-500 ease-out text-white" data-preload="true">
+        <div class="loading-screen__title mb-20 text-center animate-fade-in-down">
+          <h1 class="loading-screen__title-text whitespace-nowrap text-[56px] font-black tracking-[1px] text-white md:text-[56px] md:tracking-[2px] lg:text-[56px] lg:tracking-[4px] [text-shadow:0_0_30px_rgba(255,255,255,0.3),0_4px_8px_rgba(0,0,0,0.5),0_0_60px_rgba(58,143,90,0.4)]" style="font-family: 'Russo One', sans-serif;">Snapshoot!</h1>
         </div>
-        <div class="loading-screen__message mb-10 min-h-[32px] text-center text-[16px] font-semibold text-[rgba(255,255,255,0.9)] md:text-[18px] lg:text-[24px] [text-shadow:0_2px_4px_rgba(0,0,0,0.3)] animate-fade-in-up">양말 신는 중...</div>
-        <div class="loading-screen__progress-container relative w-[500px] max-w-[80vw]">
-          <div class="loading-screen__progress-bar relative h-[12px] w-full overflow-hidden rounded-[20px] border-[2px] border-[rgba(255,255,255,0.1)] bg-[rgba(0,0,0,0.3)] shadow-[inset_0_2px_8px_rgba(0,0,0,0.4),0_0_20px_rgba(0,0,0,0.2)]">
-            <div class="loading-screen__progress-fill relative h-full w-0 overflow-hidden rounded-[20px] bg-[linear-gradient(90deg,#3a8f5a_0%,#4db870_50%,#3a8f5a_100%)] shadow-[0_0_20px_rgba(77,184,112,0.6),inset_0_1px_0_rgba(255,255,255,0.3)] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
-              <div class="loading-screen__progress-shine absolute left-[-100%] top-0 h-full w-full animate-shine bg-[linear-gradient(90deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.3)_50%,rgba(255,255,255,0)_100%)]"></div>
+
+        <div class="loading-screen__stage1-container absolute left-1/2 bottom-[120px] -translate-x-1/2 flex w-[500px] max-w-[80vw] flex-col items-center gap-3 opacity-100 transition-opacity duration-300 ease-out">
+          <div class="loading-screen__progress-container relative w-full">
+            <div class="loading-screen__progress-bar relative h-5 w-full overflow-hidden rounded-full bg-black/30 backdrop-blur-sm border-2 border-white/20 shadow-inner">
+              <div class="loading-screen__progress-fill relative h-full w-0 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.7),0_0_20px_rgba(74,144,226,0.5)] transition-[width] duration-300 ease-out">
+                <div class="loading-screen__progress-shine absolute left-[-100%] top-0 h-full w-full animate-shine bg-[linear-gradient(90deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.4)_50%,rgba(255,255,255,0)_100%)]"></div>
+              </div>
+              <span class="loading-screen__progress-text absolute inset-0 flex items-center justify-center text-xs font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]">0%</span>
             </div>
           </div>
-          <span class="loading-screen__progress-text mt-4 block text-center text-[18px] font-bold text-[rgba(255,255,255,0.95)] tracking-[2px] [text-shadow:0_2px_4px_rgba(0,0,0,0.3)]">0%</span>
-        </div>
-        <div class="loading-screen__tip absolute left-1/2 bottom-[40px] max-w-[600px] -translate-x-1/2 px-[20px] text-center text-[14px] text-[rgba(255,255,255,0.7)] animate-fade-in-delayed lg:bottom-[60px] lg:text-[16px]">
-          <strong class="text-[#7dd3a0] font-bold">TIP:</strong> 곡선으로 그리면 바나나킥!
+          <div class="loading-screen__message min-h-[24px] text-center text-[16px] font-semibold text-[rgba(255,255,255,0.95)] md:text-[18px] lg:text-[20px] [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]">양말 신는 중...</div>
         </div>
       </div>
       <canvas id="game-canvas"></canvas>

@@ -109,4 +109,37 @@ body {
   .loading-screen--hidden {
     @apply pointer-events-none opacity-0;
   }
+
+  /* Grass hill curve effect */
+  .loading-screen::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: linear-gradient(180deg, #7EC850 0%, #6AB534 100%);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    transform: translateY(20%) scaleX(4); /* Move down and stretch for a gentle arc */
+    z-index: 0;
+  }
+
+  .loading-screen > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* Bounce animation for soccer ball */
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
 }

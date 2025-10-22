@@ -253,12 +253,8 @@ export class MiniShootout3D {
     this.isGameReady = true;
     console.log('All assets loaded, game ready!');
 
-    // 로딩 화면을 잠시 후 숨김 (부드러운 전환을 위해)
-    setTimeout(() => {
-      if (this.loadingScreen) {
-        this.loadingScreen.hide();
-      }
-    }, 500);
+    // 로딩 화면은 사용자가 축구공을 스와이프할 때까지 대기
+    // loadingScreen의 내부 로직에서 처리됨
   }
 
   private handleGoalCollision(event: { body: CANNON.Body }) {
