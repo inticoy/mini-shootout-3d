@@ -10,6 +10,7 @@ export interface LoadingItem {
 export class LoadingScreen {
   private container: HTMLDivElement;
   private stage1Container: HTMLDivElement | null = null;
+  private titleSection: HTMLDivElement | null = null; // 타이틀 섹션
   private progressBar: HTMLDivElement;
   private progressFill: HTMLDivElement;
   private progressText: HTMLSpanElement;
@@ -43,13 +44,13 @@ export class LoadingScreen {
 
   private static readonly CLASS_NAMES = {
     container: 'loading-screen fixed inset-0 z-[9999] flex h-full w-full flex-col items-center justify-start pt-[25vh] bg-[linear-gradient(180deg,#87CEEB_0%,#5BA3D8_50%,#4A90E2_100%)] transition-opacity duration-500 ease-out text-white overflow-hidden',
-    titleSection: 'loading-screen__title mb-20 text-center animate-fade-in-down',
+    titleSection: 'loading-screen__title mb-20 text-center animate-fade-in-down-large',
     titleText: 'loading-screen__title-text whitespace-nowrap text-[56px] font-black tracking-[1px] text-white md:text-[56px] md:tracking-[2px] lg:text-[56px] lg:tracking-[4px] [text-shadow:0_0_30px_rgba(255,255,255,0.3),0_4px_8px_rgba(0,0,0,0.5),0_0_60px_rgba(58,143,90,0.4)]',
-    subtitle: 'loading-screen__subtitle mt-[10px] text-[16px] font-bold uppercase tracking-[4px] text-[#7dd3a0] md:text-[20px] md:tracking-[6px] lg:text-[32px] lg:tracking-[12px] [text-shadow:0_2px_4px_rgba(0,0,0,0.3)]',
+    subtitle: 'loading-screen__subtitle mt-[10px] text-[18px] font-bold tracking-[2px] text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.3)]',
     
-    stage1Container: 'loading-screen__stage1-container absolute left-1/2 bottom-[120px] -translate-x-1/2 flex w-[500px] max-w-[80vw] flex-col items-center gap-3 opacity-100 transition-opacity duration-300 ease-out',
+    stage1Container: 'loading-screen__stage1-container absolute left-1/2 bottom-[120px] -translate-x-1/2 flex w-[500px] max-w-[80vw] flex-col items-center gap-12 opacity-100 transition-opacity duration-300 ease-out',
     
-    message: 'loading-screen__message min-h-[24px] text-center text-[16px] font-semibold text-[rgba(255,255,255,0.95)] md:text-[18px] lg:text-[20px] [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]',
+    message: 'loading-screen__message min-h-[24px] text-center text-[20px] font-bold text-[rgba(255,255,255,0.95)] [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]',
 
     progressContainer: 'loading-screen__progress-container relative w-full',
     progressBar: 'loading-screen__progress-bar relative h-5 w-full overflow-hidden rounded-full bg-black/30 backdrop-blur-sm border-2 border-white/20 shadow-inner',
@@ -59,7 +60,7 @@ export class LoadingScreen {
 
     tip: 'loading-screen__tip absolute left-1/2 bottom-[40px] max-w-[600px] -translate-x-1/2 px-[20px] text-center text-[14px] text-[rgba(255,255,255,0.7)] animate-fade-in-delayed lg:bottom-[60px] lg:text-[16px]',
     tipStrong: 'text-[#7dd3a0] font-bold',
-    soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[120px] -translate-x-1/2 flex flex-col items-center gap-4 opacity-0 transition-opacity duration-800',
+    soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[120px] -translate-x-1/2 flex flex-col items-center gap-8 opacity-0 transition-opacity duration-1000',
     soccerBall: 'loading-screen__soccer-ball w-[96px] h-[96px] cursor-pointer animate-bounce-slow drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]',
     swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[10000] touch-none pointer-events-auto'
   };
@@ -98,13 +99,31 @@ export class LoadingScreen {
         titleText?.setAttribute('class', LoadingScreen.CLASS_NAMES.titleText);
         if (titleText) {
           titleText.style.fontFamily = "'Russo One', sans-serif";
+          titleText.innerHTML = '<span style="color: #ffe600ff;">Snap</span><span style="color: #ffffffff;">shoot!</span>';
         }
+
+        // Subtitle 추가 (없으면)
+        let subtitle = titleSection?.querySelector<HTMLParagraphElement>('.loading-screen__subtitle');
+        if (!subtitle && titleSection) {
+          subtitle = document.createElement('p');
+          subtitle.className = LoadingScreen.CLASS_NAMES.subtitle;
+          subtitle.textContent = 'by Inticoy';
+          subtitle.style.fontFamily = "'Outfit', sans-serif";
+          titleSection.appendChild(subtitle);
+        } else if (subtitle) {
+          subtitle.setAttribute('class', LoadingScreen.CLASS_NAMES.subtitle);
+          subtitle.textContent = 'by Inticoy';
+          subtitle.style.fontFamily = "'Outfit', sans-serif";
+        }
+
+        this.titleSection = titleSection;
 
         this.stage1Container = stage1Container;
         this.stage1Container.className = LoadingScreen.CLASS_NAMES.stage1Container;
         
         this.messageText = message;
         this.messageText.className = LoadingScreen.CLASS_NAMES.message;
+        this.messageText.style.fontFamily = "'Chiron GoRound TC', sans-serif";
         
         progressContainer.className = LoadingScreen.CLASS_NAMES.progressContainer;
         
@@ -156,9 +175,17 @@ export class LoadingScreen {
 
       const title = document.createElement('h1');
       title.className = LoadingScreen.CLASS_NAMES.titleText;
-      title.textContent = 'Snapshoot!';
+      title.innerHTML = '<span style="color: #FFD700;">Snap</span><span style="color: #FF6B6B;">shoot!</span>';
       title.style.fontFamily = "'Russo One', sans-serif";
       titleSection.appendChild(title);
+
+      const subtitle = document.createElement('p');
+      subtitle.className = LoadingScreen.CLASS_NAMES.subtitle;
+      subtitle.textContent = 'by Inticoy';
+      subtitle.style.fontFamily = "'Outfit', sans-serif";
+      titleSection.appendChild(subtitle);
+
+      this.titleSection = titleSection;
 
       // 스테이지 1 컨테이너 (로딩 메시지 + 프로그레스 바)
       this.stage1Container = document.createElement('div');
@@ -192,6 +219,7 @@ export class LoadingScreen {
       this.messageText = document.createElement('div');
       this.messageText.className = LoadingScreen.CLASS_NAMES.message;
       this.messageText.textContent = this.footballMessages[0];
+      this.messageText.style.fontFamily = "'Chiron GoRound TC', sans-serif";
 
       // 스테이지 1 컨테이너에 순서대로 추가 (프로그레스 바가 위)
       this.stage1Container.appendChild(progressContainer);
@@ -220,6 +248,7 @@ export class LoadingScreen {
     const shootMessage = document.createElement('div');
     shootMessage.className = 'text-center text-[20px] font-bold text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.6)]';
     shootMessage.textContent = '위로 스와이프해 스냅슛!';
+    shootMessage.style.fontFamily = "'Chiron GoRound TC', sans-serif";
 
     this.soccerBallContainer.appendChild(this.soccerBall);
     this.soccerBallContainer.appendChild(shootMessage);
@@ -271,11 +300,12 @@ export class LoadingScreen {
   /**
    * 축구공이 날아가는 애니메이션
    */
-  private animateShot(deltaX: number, deltaY: number, speed: number) {
+  private animateShot(deltaX: number, _deltaY: number, speed: number) {
     if (!this.soccerBall) return;
 
-    // Stop the bounce animation to prevent transform conflicts
+    // Stop the bounce animation and reset transform
     this.soccerBall.classList.remove('animate-bounce-slow');
+    this.soccerBall.style.transform = ''; // 초기화
 
     // 스와이프 캔버스 숨기기 (더 이상 스와이프 불가)
     if (this.swipeCanvas) {
@@ -286,14 +316,26 @@ export class LoadingScreen {
     // 이동 거리 계산 (속도에 비례, 화면 밖으로 충분히 멀리)
     const force = Math.min(Math.max(speed, 0.5), 5);
     const translateX = deltaX * force * 1.5;
-    const translateY = deltaY * force * 1.5;
+    const translateY = -window.innerHeight * 0.8; // 높이로는 무조건 화면 최상단 밖으로 나감
 
     // 회전 각도 (스핀 효과)
     const rotation = (deltaX / Math.abs(deltaX || 1)) * 720; // 2바퀴 회전
 
-    // 공 애니메이션 적용 (페이드아웃 없이 날아가기만)
-    this.soccerBall.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-    this.soccerBall.style.transform = `translate(${translateX}px, ${translateY}px) scale(0.3) rotate(${rotation}deg)`;
+    // 다음 프레임에서 애니메이션 시작 (transform 충돌 방지)
+    requestAnimationFrame(() => {
+      this.soccerBall!.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+      this.soccerBall!.style.transform = `translate(${translateX}px, ${translateY}px) scale(0.3) rotate(${rotation}deg)`;
+
+      // 언덕 배경을 아래로 내리는 애니메이션 (CSS custom property 사용)
+      this.container.style.setProperty('--hill-offset', '200px');
+
+      // 타이틀을 위로 올리면서 페이드아웃
+      if (this.titleSection) {
+        this.titleSection.style.transition = 'transform 0.8s ease-out, opacity 0.8s ease-out';
+        this.titleSection.style.transform = 'translateY(-150px)';
+        this.titleSection.style.opacity = '0';
+      }
+    });
 
     // 0.5초 후 화면 전체 페이드아웃 시작
     setTimeout(() => {

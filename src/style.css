@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@200..900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -118,9 +120,10 @@ body {
     left: 0;
     right: 0;
     height: 60%;
-    background: linear-gradient(180deg, #7EC850 0%, #6AB534 100%);
+    background: linear-gradient(180deg, #8dda5d 0%, #5ca628 100%);
     border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-    transform: translateY(20%) scaleX(4); /* Move down and stretch for a gentle arc */
+    transform: translateY(calc(20% + var(--hill-offset, 0px))) scaleX(4); /* Move down and stretch for a gentle arc */
+    transition: transform 0.8s ease-out;
     z-index: 0;
   }
 
@@ -142,4 +145,20 @@ body {
 
 .animate-bounce-slow {
   animation: bounce-slow 2s ease-in-out infinite;
+}
+
+/* Larger fade-in-down animation for title */
+@keyframes fade-in-down-large {
+  0% {
+    opacity: 0;
+    transform: translateY(-60px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-down-large {
+  animation: fade-in-down-large 0.8s ease-out;
 }
