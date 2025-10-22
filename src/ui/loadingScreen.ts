@@ -45,7 +45,7 @@ export class LoadingScreen {
   private static readonly CLASS_NAMES = {
     container: 'loading-screen fixed inset-0 z-[9999] flex h-full w-full flex-col items-center justify-start pt-[25vh] bg-[linear-gradient(180deg,#87CEEB_0%,#5BA3D8_50%,#4A90E2_100%)] transition-opacity duration-500 ease-out text-white overflow-hidden',
     titleSection: 'loading-screen__title mb-20 text-center animate-fade-in-down-large',
-    titleText: 'loading-screen__title-text whitespace-nowrap text-[56px] font-black tracking-[1px] text-white md:text-[56px] md:tracking-[2px] lg:text-[56px] lg:tracking-[4px]',
+    titleText: 'loading-screen__title-text whitespace-nowrap text-[56px] font-black tracking-[1px] text-white md:text-[56px] md:tracking-[2px] lg:text-[56px] lg:tracking-[4px] [text-shadow:0_4px_8px_rgba(0,0,0,0.5)]',
     subtitle: 'loading-screen__subtitle mt-[10px] text-[18px] font-bold tracking-[2px] text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.3)]',
     
     stage1Container: 'loading-screen__stage1-container absolute left-1/2 bottom-[120px] -translate-x-1/2 flex w-[500px] max-w-[80vw] flex-col items-center gap-12 opacity-100 transition-opacity duration-300 ease-out',
