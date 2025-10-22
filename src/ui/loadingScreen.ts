@@ -45,18 +45,18 @@ export class LoadingScreen {
   private static readonly CLASS_NAMES = {
     container: 'loading-screen fixed inset-0 z-[9999] flex h-full w-full flex-col items-center justify-start pt-[18vh] bg-[linear-gradient(180deg,#87CEEB_0%,#5BA3D8_50%,#4A90E2_100%)] transition-opacity duration-500 ease-out text-white overflow-hidden',
     titleSection: 'loading-screen__title mb-20 text-center animate-fade-in-down-large',
-    titleText: 'loading-screen__title-text whitespace-nowrap text-[56px] font-black tracking-[1px] text-white md:text-[56px] md:tracking-[2px] lg:text-[56px] lg:tracking-[4px] [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]',
-    subtitle: 'loading-screen__subtitle mt-[10px] text-[18px] font-bold tracking-[2px] text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]',
+    titleText: 'loading-screen__title-text mx-6 w-[80vw] max-w-[500px] h-auto whitespace-nowrap text-[56px] font-black tracking-[2px] text-white md:text-[56px] md:tracking-[2px] lg:text-[56px] lg:tracking-[2px] [text-shadow:0_2px_6px_rgba(0,0,0,0.1)]',
+    subtitle: 'loading-screen__subtitle mt-[10px] text-[18px] font-bold tracking-[3px] text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]',
     
     stage1Container: 'loading-screen__stage1-container absolute left-1/2 bottom-[80px] -translate-x-1/2 flex w-[500px] max-w-[80vw] flex-col items-center gap-12 opacity-100 transition-opacity duration-300 ease-out',
     
-    message: 'loading-screen__message min-h-[24px] text-center text-[20px] font-bold text-[rgba(255,255,255,0.95)] [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]',
+    message: 'loading-screen__message min-h-[24px] text-center text-[20px] font-bold text-[rgba(255,255,255,0.95)] [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]',
 
     progressContainer: 'loading-screen__progress-container relative w-full',
     progressBar: 'loading-screen__progress-bar relative h-5 w-full overflow-hidden rounded-full bg-black/30 backdrop-blur-sm border-2 border-white/20 shadow-inner',
     progressFill: 'loading-screen__progress-fill relative h-full w-0 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.7),0_0_20px_rgba(74,144,226,0.5)] transition-[width] duration-300 ease-out',
     progressShine: 'loading-screen__progress-shine absolute left-[-100%] top-0 h-full w-full animate-shine bg-[linear-gradient(90deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.4)_50%,rgba(255,255,255,0)_100%)]',
-    progressText: 'loading-screen__progress-text absolute inset-0 flex items-center justify-center text-xs font-bold text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]',
+    progressText: 'loading-screen__progress-text absolute inset-0 flex items-center justify-center text-xs font-bold text-black [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]',
 
     tip: 'loading-screen__tip absolute left-1/2 bottom-[20px] max-w-[600px] -translate-x-1/2 px-[20px] text-center text-[14px] text-[rgba(255,255,255,0.7)] animate-fade-in-delayed lg:bottom-[30px] lg:text-[16px]',
     tipStrong: 'text-[#7dd3a0] font-bold',
@@ -173,10 +173,10 @@ export class LoadingScreen {
       const titleSection = document.createElement('div');
       titleSection.className = LoadingScreen.CLASS_NAMES.titleSection;
 
-      const title = document.createElement('h1');
+      const title = document.createElement('img');
+      title.src = '/assets/Snapshoot!.png';
+      title.alt = 'Snapshoot!';
       title.className = LoadingScreen.CLASS_NAMES.titleText;
-      title.innerHTML = '<span style="color: #FFD700;">Snap</span><span style="color: #FF6B6B;">shoot!</span>';
-      title.style.fontFamily = "'Russo One', sans-serif";
       titleSection.appendChild(title);
 
       const subtitle = document.createElement('p');
@@ -246,7 +246,7 @@ export class LoadingScreen {
 
     // 안내 메시지
     const shootMessage = document.createElement('div');
-    shootMessage.className = 'text-center text-[20px] font-bold text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]';
+    shootMessage.className = 'text-center text-[20px] font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]';
     shootMessage.textContent = '위로 스와이프해 스냅슛!';
     shootMessage.style.fontFamily = "'Chiron GoRound TC', sans-serif";
 
