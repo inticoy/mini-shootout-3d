@@ -10,13 +10,12 @@ export class AudioManager {
   // 음악 버퍼
   private readonly musicBuffers = new Map<MusicTrack, AudioBuffer[]>();
 
-  // 현재 재생 중인 음악
-  private currentMusic: {
-    track: MusicTrack;
+  // 현재 재생 중인 음악 (멀티 트랙 지원)
+  private readonly currentMusic = new Map<MusicTrack, {
     source: AudioBufferSourceNode;
     gain: GainNode;
     currentIndex: number;
-  } | null = null;
+  }>();
 
   async loadAll(): Promise<void> {
     if (this.loadingPromise) return this.loadingPromise;
@@ -103,11 +102,13 @@ export class AudioManager {
   }
 
   /**
-   * 배경 음악 재생
+   * 배경 음악 재생 (멀티 트랙 지원)
    */
   async playMusic(track: MusicTrack, options?: { fadeIn?: boolean; volumeOverride?: number }): Promise<void> {
-    // 기존 음악 중지
-    this.stopMusic();
+    // 동일 트랙이 이미 재생 중이면 중지
+    if (this.currentMusic.has(track)) {
+      this.stopMusic(track);
+    }
 
     // Context 준비
     await this.ensureContextRunning();
@@ -162,8 +163,8 @@ export class AudioManager {
       return;
     }
 
-    // 상태 저장
-    this.currentMusic = { track, source, gain, currentIndex: index };
+    // 상태 저장 (Map에 추가)
+    this.currentMusic.set(track, { source, gain, currentIndex: index });
   }
 
   /**
@@ -195,30 +196,52 @@ export class AudioManager {
 
     source.start();
 
-    // 상태 업데이트
-    this.currentMusic = { track, source, gain, currentIndex: index };
+    // 상태 업데이트 (Map에 저장)
+    this.currentMusic.set(track, { source, gain, currentIndex: index });
   }
 
   /**
-   * 음악 정지
+   * 특정 트랙 또는 모든 음악 정지
    */
-  stopMusic(): void {
-    if (this.currentMusic) {
-      try {
-        this.currentMusic.source.stop();
-      } catch (error) {
-        // 이미 중지된 경우 무시
+  stopMusic(track?: MusicTrack): void {
+    if (track) {
+      // 특정 트랙 중지
+      const music = this.currentMusic.get(track);
+      if (music) {
+        try {
+          music.source.stop();
+        } catch (error) {
+          // 이미 중지된 경우 무시
+        }
+        this.currentMusic.delete(track);
       }
-      this.currentMusic = null;
+    } else {
+      // 모든 음악 중지
+      this.stopAllMusic();
     }
   }
 
   /**
-   * 음악 볼륨 설정
+   * 모든 음악 정지
    */
-  setMusicVolume(volume: number): void {
-    if (this.currentMusic) {
-      this.currentMusic.gain.gain.value = Math.max(0, Math.min(1, volume));
+  stopAllMusic(): void {
+    this.currentMusic.forEach((music) => {
+      try {
+        music.source.stop();
+      } catch (error) {
+        // 이미 중지된 경우 무시
+      }
+    });
+    this.currentMusic.clear();
+  }
+
+  /**
+   * 특정 트랙 볼륨 설정
+   */
+  setMusicVolume(track: MusicTrack, volume: number): void {
+    const music = this.currentMusic.get(track);
+    if (music) {
+      music.gain.gain.value = Math.max(0, Math.min(1, volume));
     }
   }
 
