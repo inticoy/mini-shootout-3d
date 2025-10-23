@@ -5,13 +5,15 @@ import saveUrl from '../assets/audio/save.mp3?url';
 import postUrl from '../assets/audio/post.mp3?url';
 import resetUrl from '../assets/audio/reset.mp3?url';
 import netUrl from '../assets/audio/net.mp3?url';
+import cheerUrl from '../assets/audio/cheer.mp3?url';
+import recordUrl from '../assets/audio/record.mp3?url';
 import chantUrl from '../assets/audio/chant.wav?url';
 import bg1Url from '../assets/audio/bg1.mp3?url';
 
 /**
  * 효과음 키 타입
  */
-export type SoundKey = 'kick' | 'bounce' | 'goal' | 'save' | 'post' | 'reset' | 'net';
+export type SoundKey = 'kick' | 'bounce' | 'goal' | 'save' | 'post' | 'reset' | 'net' | 'cheer' | 'record';
 
 /**
  * 음악 트랙 타입
@@ -53,7 +55,9 @@ export const AUDIO_CONFIG = {
     save: { url: saveUrl, volume: 0.3 },
     post: { url: postUrl, volume: 0.3 },
     reset: { url: resetUrl, volume: 0.3 },
-    net: { url: netUrl, volume: 0.3 }
+    net: { url: netUrl, volume: 0.3 },
+    cheer: { url: cheerUrl, volume: 0.4 },
+    record: { url: recordUrl, volume: 0.2 }
   } as const satisfies Record<SoundKey, SoundConfig>,
 
   /**

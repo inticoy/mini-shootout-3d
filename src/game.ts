@@ -22,6 +22,7 @@ import { ShotInfoHud } from './ui/shotInfoHud';
 import { AudioManager } from './core/audio';
 import { LoadingScreen } from './ui/loadingScreen';
 import { SwipeTracker } from './input/swipeTracker';
+import type { ScoreDisplay } from './ui/scoreDisplay';
 import { normalizeSwipeData, debugNormalizedSwipe } from './shooting/swipeNormalizer';
 import { analyzeShotType, debugShotAnalysis, ShotType } from './shooting/shotAnalyzer';
 import { calculateShotParameters, debugShotParameters } from './shooting/shotParameters';
@@ -35,6 +36,7 @@ const BOUNCE_COOLDOWN_MS = 120;
 export class MiniShootout3D {
   private readonly onScoreChange: (score: number) => void;
   private readonly onShowTouchGuide: (show: boolean) => void;
+  private readonly scoreDisplay: ScoreDisplay;
 
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene: THREE.Scene;
@@ -103,9 +105,10 @@ export class MiniShootout3D {
   private threeItemsTotal = 0;
   private isGameReady = false;
 
-  constructor(canvas: HTMLCanvasElement, onScoreChange: (score: number) => void, onShowTouchGuide: (show: boolean) => void) {
+  constructor(canvas: HTMLCanvasElement, onScoreChange: (score: number) => void, onShowTouchGuide: (show: boolean) => void, scoreDisplay: ScoreDisplay) {
     this.onScoreChange = onScoreChange;
     this.onShowTouchGuide = onShowTouchGuide;
+    this.scoreDisplay = scoreDisplay;
 
     // 로딩 화면 생성 및 표시
     this.loadingScreen = new LoadingScreen(
@@ -294,10 +297,21 @@ export class MiniShootout3D {
       this.ball.body.position.z
     );
     this.goal.triggerNetPulse(this.tempBallPosition, 1);
-    this.audio.playSound('goal', 0.2);
 
-    // 광고판 효과: GOAL 광고로 변경 + 깜빡임 시작
-    this.field.adBoard.switchAdSet('goal');
+    // 골 사운드: 최고 기록 경신 중이면 record, 아니면 goal
+    const isNewRecord = this.scoreDisplay.isNewRecordAchieved();
+    if (isNewRecord) {
+      this.audio.playSound('record', 0.2);
+    } else {
+      this.audio.playSound('goal', 0.2);
+    }
+
+    // 광고판 효과: 최고 기록이면 record, 아니면 goal
+    if (isNewRecord) {
+      this.field.adBoard.switchAdSet('record');
+    } else {
+      this.field.adBoard.switchAdSet('goal');
+    }
     this.field.adBoard.startBlinking();
   }
 
@@ -994,9 +1008,15 @@ export class MiniShootout3D {
 
     // 골을 넣지 못했으면
     if (!this.hasScored) {
+      // 실패시 항상 리셋 사운드
       this.audio.playSound('reset', 0.3);
+
+      // 점수 초기화
       this.score = 0;
       this.onScoreChange(this.score);
+
+      // 최고 기록 플래그 리셋
+      this.scoreDisplay.resetNewRecordFlag();
     }
 
     // 공 리셋

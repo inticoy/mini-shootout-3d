@@ -39,6 +39,7 @@ export interface AdBoardConfig {
   adSets: {
     default: readonly AdItem[];
     goal: readonly AdItem[];
+    record: readonly AdItem[];
   };
 }
 
@@ -132,6 +133,41 @@ export const AD_BOARD_CONFIG: AdBoardConfig = {
       },
       {
         text: '골!!!',
+        backgroundColor: '#000000',
+        textColor: '#FFFFFF',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+    ] as const,
+	// 최고기록 경신 광고 세트
+	record: [
+      {
+        text: 'HIGH!!!',
+        backgroundColor: '#FFFFFF',
+        textColor: '#000000',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+      {
+        text: 'SCORE!!!',
+        backgroundColor: '#000000',
+        textColor: '#FFFFFF',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+       {
+        text: '최고!!!',
+        backgroundColor: '#FFFFFF',
+        textColor: '#000000',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+      {
+        text: '기록!!!',
         backgroundColor: '#000000',
         textColor: '#FFFFFF',
         fontSize: 120,

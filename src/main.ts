@@ -18,5 +18,6 @@ const touchGuide = new TouchGuide(uiContainer);
 new MiniShootout3D(
   canvas,
   (score) => scoreDisplay.update(score),
-  (show) => touchGuide.show(show)
+  (show) => touchGuide.show(show),
+  scoreDisplay
 );

@@ -9,7 +9,7 @@ export class AdBoard {
   private readonly material: THREE.MeshStandardMaterial;
   private canvasTexture: THREE.CanvasTexture | null = null;
   private scrollOffset = 0;
-  private currentAdSet: 'default' | 'goal' = 'default';
+  private currentAdSet: 'default' | 'goal' | 'record' = 'default';
   private autoResetTimer: number | null = null;
   private isBlinking = false;
   private blinkTimer = 0;
@@ -103,10 +103,10 @@ export class AdBoard {
 
   /**
    * 광고 세트를 변경합니다.
-   * @param adSetName - 광고 세트 이름 ('default' | 'goal')
+   * @param adSetName - 광고 세트 이름 ('default' | 'goal' | 'record')
    * @param autoResetMs - 자동으로 default로 돌아갈 시간(ms). 0이면 자동 복원 안함
    */
-  switchAdSet(adSetName: 'default' | 'goal', autoResetMs = 0) {
+  switchAdSet(adSetName: 'default' | 'goal' | 'record', autoResetMs = 0) {
     if (this.currentAdSet === adSetName) return;
 
     // 기존 타이머 취소
