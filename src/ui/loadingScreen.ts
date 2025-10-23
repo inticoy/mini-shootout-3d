@@ -1,4 +1,5 @@
 import soccerBallUrl from '/soccer_ball.svg?url';
+import logoUrl from '../assets/Snapshoot!.png?url';
 import { SwipeTracker } from '../input/swipeTracker';
 
 export interface LoadingItem {
@@ -112,7 +113,7 @@ export class LoadingScreen {
       titleSection.className = LoadingScreen.CLASS_NAMES.titleSection;
 
       const title = document.createElement('img');
-      title.src = '/assets/Snapshoot!.png';
+      title.src = logoUrl;
       title.alt = 'Snapshoot!';
       title.className = LoadingScreen.CLASS_NAMES.titleText;
       titleSection.appendChild(title);
