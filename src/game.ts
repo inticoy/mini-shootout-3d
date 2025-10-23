@@ -108,16 +108,16 @@ export class MiniShootout3D {
     this.onShowTouchGuide = onShowTouchGuide;
 
     // 로딩 화면 생성 및 표시
-    const bgVolume = 0.05;
-    const chantVolume = 0.1;
-    
-    this.loadingScreen = new LoadingScreen(() => {
-      // 로딩 화면 스와이프 시 배경음악 시작 (페이드인)
-      this.audio.playBackgroundMusic(chantVolume, true);
-    }, () => {
-      // 로딩 완료 시 BG 음악 시작
-      this.audio.playBGMusic(bgVolume);
-    });
+    this.loadingScreen = new LoadingScreen(
+      () => {
+        // 로딩 화면 스와이프 시 관중 함성 시작 (페이드인)
+        void this.audio.playMusic('chant', { fadeIn: true });
+      },
+      () => {
+        // 로딩 완료 시 게임플레이 음악 시작
+        void this.audio.playMusic('gameplay');
+      }
+    );
     this.loadingScreen.show();
     this.loadingScreen.setProgress(0);
     this.setupAssetLoadingTracker();
@@ -416,8 +416,7 @@ export class MiniShootout3D {
     this.swipeTracker.destroy();
 
     // 배경음악 중지
-    this.audio.pauseBackgroundMusic();
-    this.audio.pauseBGMusic();
+    this.audio.stopMusic();
   }
 
   private createBallColliderMesh(): THREE.Mesh {
