@@ -72,97 +72,16 @@ export class LoadingScreen {
   constructor(onSwipe?: () => void, onLoadingComplete?: () => void) {
     this.onSwipe = onSwipe;
     this.onLoadingComplete = onLoadingComplete;
-    const bootstrap = document.querySelector<HTMLDivElement>('.loading-screen[data-preload="true"]');
 
-    if (bootstrap) {
-      this.container = bootstrap;
-      this.container.className = LoadingScreen.CLASS_NAMES.container;
-      this.container.classList.remove('loading-screen--initial');
-      this.container.removeAttribute('data-preload');
-
-      if (this.container.parentElement !== document.body) {
-        document.body.appendChild(this.container);
-      }
-
-      const titleSection = this.container.querySelector<HTMLDivElement>('.loading-screen__title');
-      const titleText = this.container.querySelector<HTMLHeadingElement>('.loading-screen__title-text');
-      
-      // Find existing stage 1 elements
-      const stage1Container = this.container.querySelector<HTMLDivElement>('.loading-screen__stage1-container');
-      const message = this.container.querySelector<HTMLDivElement>('.loading-screen__message');
-      const progressContainer = this.container.querySelector<HTMLDivElement>('.loading-screen__progress-container');
-      const progressBar = progressContainer?.querySelector<HTMLDivElement>('.loading-screen__progress-bar');
-      const progressFill = progressBar?.querySelector<HTMLDivElement>('.loading-screen__progress-fill');
-      const progressText = progressBar?.querySelector<HTMLSpanElement>('.loading-screen__progress-text');
-
-      if (!stage1Container || !message || !progressContainer || !progressBar || !progressFill || !progressText) {
-        // If markup is not what we expect, recreate it
-        this.clearContainer();
-        this.buildDOM();
-      } else {
-        // Re-apply classes to ensure consistency
-        titleSection?.setAttribute('class', LoadingScreen.CLASS_NAMES.titleSection);
-        titleText?.setAttribute('class', LoadingScreen.CLASS_NAMES.titleText);
-        if (titleText) {
-          titleText.style.fontFamily = "'Russo One', sans-serif";
-          titleText.innerHTML = '<span style="color: #ffe600ff;">Snap</span><span style="color: #ffffffff;">shoot!</span>';
-        }
-
-        // Subtitle 추가 (없으면)
-        let subtitle = titleSection?.querySelector<HTMLParagraphElement>('.loading-screen__subtitle');
-        if (!subtitle && titleSection) {
-          subtitle = document.createElement('p');
-          subtitle.className = LoadingScreen.CLASS_NAMES.subtitle;
-          subtitle.textContent = 'by Inticoy';
-          subtitle.style.fontFamily = "'Outfit', sans-serif";
-          titleSection.appendChild(subtitle);
-        } else if (subtitle) {
-          subtitle.setAttribute('class', LoadingScreen.CLASS_NAMES.subtitle);
-          subtitle.textContent = 'by Inticoy';
-          subtitle.style.fontFamily = "'Outfit', sans-serif";
-        }
-
-        this.titleSection = titleSection;
-
-        this.stage1Container = stage1Container;
-        this.stage1Container.className = LoadingScreen.CLASS_NAMES.stage1Container;
-        
-        this.messageText = message;
-        this.messageText.className = LoadingScreen.CLASS_NAMES.message;
-        this.messageText.style.fontFamily = "'Chiron GoRound TC', sans-serif";
-        
-        progressContainer.className = LoadingScreen.CLASS_NAMES.progressContainer;
-        
-        this.progressBar = progressBar;
-        this.progressBar.className = LoadingScreen.CLASS_NAMES.progressBar;
-        
-        this.progressFill = progressFill;
-        this.progressFill.className = LoadingScreen.CLASS_NAMES.progressFill;
-        
-        this.progressText = progressText;
-        this.progressText.className = LoadingScreen.CLASS_NAMES.progressText;
-
-        // Ensure shine effect exists
-        let shine = this.progressFill.querySelector<HTMLDivElement>('.loading-screen__progress-shine');
-        if (!shine) {
-          shine = document.createElement('div');
-          shine.className = LoadingScreen.CLASS_NAMES.progressShine;
-          this.progressFill.appendChild(shine);
-        } else {
-          shine.className = LoadingScreen.CLASS_NAMES.progressShine;
-        }
-
-        // Reset progress
-        this.progressFill.style.width = '0%';
-        this.progressText.textContent = '0%';
-        this.messageText.textContent = this.footballMessages[0];
-      }
-    } else {
-      this.container = document.createElement('div');
-      this.container.className = LoadingScreen.CLASS_NAMES.container;
-      document.body.appendChild(this.container);
-      this.buildDOM();
+    // HTML에 있는 로딩 화면 컨테이너 찾기
+    const container = document.getElementById('loading-screen');
+    if (!container) {
+      throw new Error('Loading screen container (#loading-screen) not found in HTML');
     }
+
+    this.container = container as HTMLDivElement;
+    this.container.className = LoadingScreen.CLASS_NAMES.container;
+    this.buildDOM();
 
     // 축구공 UI 초기화
     this.initializeSoccerBall();
