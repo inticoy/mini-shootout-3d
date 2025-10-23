@@ -1,6 +1,10 @@
 import { PHYSICS_LINEAR_DAMPING } from '../physics/constants';
-import basicBallModel from '../assets/ball/basic/basic.glb?url';
-import moonBallModel from '../assets/ball/moon/moon.glb?url';
+import type { SoundKey } from './audio';
+import basicBallModel from '../assets/ball/basic.glb?url';
+import moonBallModel from '../assets/ball/moon.glb?url';
+import basketBallModel from '../assets/ball/basketball.glb?url';
+import volleyBallModel from '../assets/ball/volleyball.glb?url';
+import earthBallModel from '../assets/ball/earth.glb?url';
 
 // 공통 물리 속성 (모든 테마에서 공유)
 export interface BallPhysicsConfig {
@@ -16,6 +20,13 @@ export interface BallTheme {
   name: string;
   modelUrl: string;  // 실제 URL을 저장
   gltfScale: number;
+  material?: {
+    roughness?: number;
+    metalness?: number;
+  };
+  sounds?: {
+    bounce?: SoundKey;  // 바운스 사운드 이름 (기본값: 'bounce')
+  };
 }
 
 // 전체 Ball 설정 (물리 + 테마)
@@ -48,11 +59,34 @@ export const BALL_THEMES = {
   MOON: {
     name: 'moon',
     modelUrl: moonBallModel,
-    gltfScale: 0.0048
+    gltfScale: 0.0048,
+	material: {
+	  roughness: 0.,
+	  metalness: 0.3,
+	},
+	sounds: {
+    bounce: 'post'  // 다른 사운드 사용 가능
+  }
   } as BallTheme,
-  // 나중에 추가할 테마들
-  // BASKETBALL: { name: 'basketball', modelUrl: basketballModel, gltfScale: 1.5 },
-  // VOLLEYBALL: { name: 'volleyball', modelUrl: volleyballModel, gltfScale: 1.3 },
+  BASKETBALL : {
+	name: 'basketball',
+	modelUrl: basketBallModel,
+	gltfScale: 0.69
+  } as BallTheme,
+  VOLLEYBALL : {
+	name: 'volleyball',
+	modelUrl: volleyBallModel,
+	gltfScale: 1.3
+  } as BallTheme,
+  EARTH : {
+	name: 'earth',
+	modelUrl: earthBallModel,
+	gltfScale: 0.11,
+	material: {
+	  roughness: 0.,
+	  metalness: 0.3,
+	}
+  } as BallTheme,
 } as const;
 
 // 기본 테마 설정

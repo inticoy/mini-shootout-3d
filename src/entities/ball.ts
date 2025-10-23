@@ -127,6 +127,17 @@ export class Ball {
         if (mat.map) {
           mat.map.colorSpace = THREE.SRGBColorSpace;
         }
+
+        // 테마별 material 속성 오버라이드 (있는 경우)
+        if (this.theme.material) {
+          if (this.theme.material.roughness !== undefined) {
+            mat.roughness = this.theme.material.roughness;
+          }
+          if (this.theme.material.metalness !== undefined) {
+            mat.metalness = this.theme.material.metalness;
+          }
+        }
+
         mat.needsUpdate = true;
       }
     });

@@ -325,7 +325,10 @@ export class MiniShootout3D {
       const vy = Math.abs(this.ball.body.velocity.y);
       if (vy < MIN_VERTICAL_BOUNCE_SPEED) return;
       this.lastBounceSoundTime = now;
-      this.audio.playSound('bounce', 0.3);
+
+      // 테마별 바운스 사운드 사용 (지정되지 않으면 기본 'bounce' 사용)
+      const bounceSound = this.ball.getTheme().sounds?.bounce ?? 'bounce';
+      this.audio.playSound(bounceSound, 0.3);
     } else if (this.goalKeepers.some((keeper) => keeper.body === event.body)) {
       this.audio.playSound('save', 0.3);
     } else if (
