@@ -1,7 +1,14 @@
-import adTexture1Url from '../assets/ad/burger_queen.png?url';
-import adTexture2Url from '../assets/ad/coloc_coloc.png?url';
-import adTexture3Url from '../assets/ad/sansung.png?url';
-import adTexture4Url from '../assets/ad/star_cups.png?url';
+export type AdTextItem = {
+  text: string;
+  backgroundColor: string;
+  textColor: string;
+  fontSize: number;
+  fontFamily?: string;
+  fontWeight?: string;
+  textAlign?: 'left' | 'center' | 'right';
+};
+
+export type AdItem = AdTextItem;
 
 export interface AdBoardConfig {
   size: {
@@ -21,18 +28,29 @@ export interface AdBoardConfig {
     emissiveIntensity: number;
   };
   scrollSpeed: number;
-  textures: readonly string[];
+  canvas: {
+    width: number;
+    height: number;
+  };
+  display: {
+    repeatX: number;
+    repeatY: number;
+  };
+  adSets: {
+    default: readonly AdItem[];
+    goal: readonly AdItem[];
+  };
 }
 
 export const AD_BOARD_CONFIG: AdBoardConfig = {
   size: {
-    width: 80,
+    width: 40,
     height: 1.2,
-    depth: 0.3
+    depth: 0.5
   },
   position: {
     x: 0,
-    y: 0.65,
+    y: 0.5,
     depthOffset: -6
   },
   material: {
@@ -42,6 +60,85 @@ export const AD_BOARD_CONFIG: AdBoardConfig = {
     emissiveIntensity: 0.6
   },
   scrollSpeed: 0.05,
-  textures: [adTexture1Url, adTexture2Url, adTexture3Url, adTexture4Url] as const
+  canvas: {
+    width: 1024,
+    height: 192
+  },
+  display: {
+    repeatX: 2,
+    repeatY: 1
+  },
+  adSets: {
+    // 기본 광고 세트 (일반 게임 중)
+    default: [
+      {
+        text: 'SANSUNGBI',
+        backgroundColor: '#0073ffff',
+        textColor: '#FFFFFF',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+	  {
+        text: 'STOPBUSS',
+        backgroundColor: '#059a00ff',
+        textColor: '#FFFFFF',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+      {
+        text: 'BAGLE QUEEN',
+        backgroundColor: '#ffc400ff',
+        textColor: '#ff0000ff',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+      {
+        text: 'Coloc Coloc',
+        backgroundColor: '#ff0000ff',
+        textColor: '#FFFFFF',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      }
+    ] as const,
+    // 골 넣었을 때 광고 세트
+    goal: [
+      {
+        text: 'GOAL!!!',
+        backgroundColor: '#FFFFFF',
+        textColor: '#000000',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+      {
+        text: '골!!!',
+        backgroundColor: '#000000',
+        textColor: '#FFFFFF',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+       {
+        text: 'GOAL!!!',
+        backgroundColor: '#FFFFFF',
+        textColor: '#000000',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+      {
+        text: '골!!!',
+        backgroundColor: '#000000',
+        textColor: '#FFFFFF',
+        fontSize: 120,
+        fontWeight: 'bold',
+        textAlign: 'center'
+      },
+    ] as const
+  }
 };
 

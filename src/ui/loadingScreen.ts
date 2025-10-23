@@ -118,12 +118,6 @@ export class LoadingScreen {
       title.className = LoadingScreen.CLASS_NAMES.titleText;
       titleSection.appendChild(title);
 
-      const subtitle = document.createElement('p');
-      subtitle.className = LoadingScreen.CLASS_NAMES.subtitle;
-      subtitle.textContent = 'by Inticoy';
-      subtitle.style.fontFamily = "'Outfit', sans-serif";
-      titleSection.appendChild(subtitle);
-
       return titleSection;
   }
 
