@@ -82,9 +82,6 @@ export class LoadingScreen {
     this.container = container as HTMLDivElement;
     this.container.className = LoadingScreen.CLASS_NAMES.container;
     this.buildDOM();
-
-    // 축구공 UI 초기화
-    this.initializeSoccerBall();
   }
 
   private clearContainer() {
@@ -94,7 +91,29 @@ export class LoadingScreen {
   }
 
   private buildDOM() {
-      // 로고/타이틀 영역
+      // 타이틀 섹션 생성
+      this.titleSection = this.createTitleSection();
+
+      // Stage 1 (프로그레스 바) 생성
+      this.stage1Container = this.createStage1Container();
+
+      // 축구공 UI 생성
+      this.soccerBallContainer = this.createSoccerBallUI();
+
+      // 스와이프 캔버스 생성
+      this.swipeCanvas = this.createSwipeCanvas();
+
+      // DOM 조립
+      this.container.appendChild(this.titleSection);
+      this.container.appendChild(this.stage1Container);
+      this.container.appendChild(this.soccerBallContainer);
+      this.container.appendChild(this.swipeCanvas);
+
+      // 스와이프 이벤트 리스너 설정
+      this.setupSwipeListener();
+  }
+
+  private createTitleSection(): HTMLDivElement {
       const titleSection = document.createElement('div');
       titleSection.className = LoadingScreen.CLASS_NAMES.titleSection;
 
@@ -110,11 +129,13 @@ export class LoadingScreen {
       subtitle.style.fontFamily = "'Outfit', sans-serif";
       titleSection.appendChild(subtitle);
 
-      this.titleSection = titleSection;
+      return titleSection;
+  }
 
+  private createStage1Container(): HTMLDivElement {
       // 스테이지 1 컨테이너 (로딩 메시지 + 프로그레스 바)
-      this.stage1Container = document.createElement('div');
-      this.stage1Container.className = LoadingScreen.CLASS_NAMES.stage1Container;
+      const stage1Container = document.createElement('div');
+      stage1Container.className = LoadingScreen.CLASS_NAMES.stage1Container;
 
       // 프로그레스 바 컨테이너
       const progressContainer = document.createElement('div');
@@ -131,7 +152,7 @@ export class LoadingScreen {
       this.progressFill.appendChild(progressShine);
 
       this.progressBar.appendChild(this.progressFill);
-      
+
       // 퍼센트 텍스트 (프로그레스 바 안에 위치)
       this.progressText = document.createElement('span');
       this.progressText.className = LoadingScreen.CLASS_NAMES.progressText;
@@ -147,52 +168,55 @@ export class LoadingScreen {
       this.messageText.style.fontFamily = "'Chiron GoRound TC', sans-serif";
 
       // 스테이지 1 컨테이너에 순서대로 추가 (프로그레스 바가 위)
-      this.stage1Container.appendChild(progressContainer);
-      this.stage1Container.appendChild(this.messageText);
+      stage1Container.appendChild(progressContainer);
+      stage1Container.appendChild(this.messageText);
 
-      // 모두 조립
-      this.container.appendChild(titleSection);
-      this.container.appendChild(this.stage1Container);
+      return stage1Container;
   }
 
-  /**
-   * 축구공 UI 및 스와이프 트래커 초기화
-   */
-  private initializeSoccerBall() {
-    // 축구공 컨테이너 생성
-    this.soccerBallContainer = document.createElement('div');
-    this.soccerBallContainer.className = LoadingScreen.CLASS_NAMES.soccerBallContainer;
+  private createSoccerBallUI(): HTMLDivElement {
+      // 축구공 컨테이너 생성
+      const soccerBallContainer = document.createElement('div');
+      soccerBallContainer.className = LoadingScreen.CLASS_NAMES.soccerBallContainer;
 
-    // 축구공 이미지 생성
-    this.soccerBall = document.createElement('img');
-    this.soccerBall.src = soccerBallUrl;
-    this.soccerBall.className = LoadingScreen.CLASS_NAMES.soccerBall;
-    this.soccerBall.alt = 'Soccer Ball';
+      // 축구공 이미지 생성
+      this.soccerBall = document.createElement('img');
+      this.soccerBall.src = soccerBallUrl;
+      this.soccerBall.className = LoadingScreen.CLASS_NAMES.soccerBall;
+      this.soccerBall.alt = 'Soccer Ball';
 
-    // 안내 메시지
-    const shootMessage = document.createElement('div');
-    shootMessage.className = 'text-center text-[20px] font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]';
-    shootMessage.textContent = '위로 스와이프해 스냅슛!';
-    shootMessage.style.fontFamily = "'Chiron GoRound TC', sans-serif";
+      // 안내 메시지
+      const shootMessage = document.createElement('div');
+      shootMessage.className = 'text-center text-[20px] font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]';
+      shootMessage.textContent = '위로 스와이프해 스냅슛!';
+      shootMessage.style.fontFamily = "'Chiron GoRound TC', sans-serif";
 
-    this.soccerBallContainer.appendChild(this.soccerBall);
-    this.soccerBallContainer.appendChild(shootMessage);
-    this.container.appendChild(this.soccerBallContainer);
+      soccerBallContainer.appendChild(this.soccerBall);
+      soccerBallContainer.appendChild(shootMessage);
 
-    // 투명 캔버스 생성 (스와이프 감지용)
-    this.swipeCanvas = document.createElement('canvas');
-    this.swipeCanvas.className = LoadingScreen.CLASS_NAMES.swipeCanvas;
-    this.swipeCanvas.width = window.innerWidth;
-    this.swipeCanvas.height = window.innerHeight;
-    this.container.appendChild(this.swipeCanvas);
+      return soccerBallContainer;
+  }
 
-    // SwipeTracker 초기화
-    this.swipeTracker = new SwipeTracker(this.swipeCanvas, 10);
+  private createSwipeCanvas(): HTMLCanvasElement {
+      // 투명 캔버스 생성 (스와이프 감지용)
+      const swipeCanvas = document.createElement('canvas');
+      swipeCanvas.className = LoadingScreen.CLASS_NAMES.swipeCanvas;
+      swipeCanvas.width = window.innerWidth;
+      swipeCanvas.height = window.innerHeight;
 
-    // 스와이프 이벤트 감지
-    this.swipeCanvas.addEventListener('pointerup', () => {
-      this.handleSwipe();
-    });
+      return swipeCanvas;
+  }
+
+  private setupSwipeListener(): void {
+      if (!this.swipeCanvas) return;
+
+      // SwipeTracker 초기화
+      this.swipeTracker = new SwipeTracker(this.swipeCanvas, 10);
+
+      // 스와이프 이벤트 감지
+      this.swipeCanvas.addEventListener('pointerup', () => {
+          this.handleSwipe();
+      });
   }
 
   /**
