@@ -295,6 +295,10 @@ export class MiniShootout3D {
     );
     this.goal.triggerNetPulse(this.tempBallPosition, 1);
     this.audio.playSound('goal', 0.2);
+
+    // 광고판 효과: GOAL 광고로 변경 + 깜빡임 시작
+    this.field.adBoard.switchAdSet('goal');
+    this.field.adBoard.startBlinking();
   }
 
   private handleBallCollide(event: { body: CANNON.Body }) {
@@ -1033,6 +1037,10 @@ export class MiniShootout3D {
 
     this.goalKeepers.forEach((keeper) => keeper.resetTracking());
     this.updateDifficulty(true);
+
+    // 광고판 효과: 깜빡임 중지 + 기본 광고로 복원
+    this.field.adBoard.stopBlinking();
+    this.field.adBoard.switchAdSet('default');
 
     // 터치 가이드 타이머 시작 (점수가 0일 때만, 1초 후 표시)
     if (this.score === 0) {

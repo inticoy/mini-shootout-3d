@@ -88,7 +88,7 @@ export const AD_BOARD_CONFIG: AdBoardConfig = {
         textAlign: 'center'
       },
       {
-        text: 'BAGLE QUEEN',
+        text: 'Booger Queen',
         backgroundColor: '#ffc400ff',
         textColor: '#ff0000ff',
         fontSize: 120,

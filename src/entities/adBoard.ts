@@ -11,6 +11,10 @@ export class AdBoard {
   private scrollOffset = 0;
   private currentAdSet: 'default' | 'goal' = 'default';
   private autoResetTimer: number | null = null;
+  private isBlinking = false;
+  private blinkTimer = 0;
+  private readonly blinkInterval = 0.2; // 0.2초 간격
+  private isInverted = false;
 
   constructor(scene: THREE.Scene, world: CANNON.World, depth: number) {
     this.material = new THREE.MeshStandardMaterial({
@@ -55,8 +59,20 @@ export class AdBoard {
 
   update(deltaTime: number) {
     if (!this.canvasTexture) return;
+
+    // 스크롤 애니메이션
     this.scrollOffset = (this.scrollOffset - deltaTime * AD_BOARD_CONFIG.scrollSpeed) % 1;
     this.canvasTexture.offset.x = this.scrollOffset;
+
+    // 깜빡임 로직
+    if (this.isBlinking) {
+      this.blinkTimer += deltaTime;
+      if (this.blinkTimer >= this.blinkInterval) {
+        this.blinkTimer = 0;
+        this.isInverted = !this.isInverted;
+        this.createAdTexture(); // 색상 반전된 텍스처 재생성
+      }
+    }
   }
 
   reset() {
@@ -64,6 +80,25 @@ export class AdBoard {
     if (this.canvasTexture) {
       this.canvasTexture.offset.x = 0;
     }
+  }
+
+  /**
+   * 깜빡임 효과를 시작합니다 (골 넣었을 때).
+   */
+  startBlinking() {
+    this.isBlinking = true;
+    this.blinkTimer = 0;
+    this.isInverted = false;
+  }
+
+  /**
+   * 깜빡임 효과를 중지하고 원래 색상으로 복원합니다.
+   */
+  stopBlinking() {
+    this.isBlinking = false;
+    this.blinkTimer = 0;
+    this.isInverted = false;
+    this.createAdTexture(); // 원래 색상으로 복원
   }
 
   /**
@@ -116,15 +151,19 @@ export class AdBoard {
     canvas.height = AD_BOARD_CONFIG.canvas.height;
     const ctx = canvas.getContext('2d')!;
 
+    // 깜빡임 상태에 따라 색상 반전
+    const bgColor = this.isInverted ? config.textColor : config.backgroundColor;
+    const txtColor = this.isInverted ? config.backgroundColor : config.textColor;
+
     // 배경색
-    ctx.fillStyle = config.backgroundColor;
+    ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // 텍스트 스타일 설정
     const fontWeight = config.fontWeight || 'bold';
     const fontFamily = config.fontFamily || 'Arial, sans-serif';
     ctx.font = `${fontWeight} ${config.fontSize}px ${fontFamily}`;
-    ctx.fillStyle = config.textColor;
+    ctx.fillStyle = txtColor;
     ctx.textAlign = config.textAlign || 'center';
     ctx.textBaseline = 'middle';
 
@@ -161,6 +200,9 @@ export class AdBoard {
       ctx.drawImage(canvas, canvasWidth * index, 0, canvasWidth, canvasHeight);
     });
 
+    // 현재 스크롤 오프셋 보존 (깜빡임 시 애니메이션이 끊기지 않도록)
+    const preservedOffset = this.scrollOffset;
+
     // THREE.js 텍스처로 변환
     const texture = new THREE.CanvasTexture(combined);
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -177,9 +219,9 @@ export class AdBoard {
     this.material.map = texture;
     this.material.needsUpdate = true;
 
-    // 스크롤 오프셋 초기화
-    this.scrollOffset = 0;
-    this.canvasTexture.offset.x = 0;
+    // 스크롤 오프셋 복원 (깜빡임 중일 때는 보존, 새로 시작할 때는 0)
+    this.scrollOffset = preservedOffset;
+    this.canvasTexture.offset.x = preservedOffset;
   }
 
   /**
