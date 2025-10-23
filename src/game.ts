@@ -78,8 +78,7 @@ export class MiniShootout3D {
   private shotResetTimer: number | null = null;
   private hasScored = false;
   private readonly ballInitialMass: number;
-  private isBallGravityEnabled = true;
-  private currentDifficulty: DifficultyLevelConfig | null = null;
+  private isBackgroundMusicStarted = false;
 
   // 🔍 궤적 디버깅
   private isTrackingBall = false;
@@ -108,7 +107,10 @@ export class MiniShootout3D {
     this.onShowTouchGuide = onShowTouchGuide;
 
     // 로딩 화면 생성 및 표시
-    this.loadingScreen = new LoadingScreen();
+    this.loadingScreen = new LoadingScreen(() => {
+      // 로딩 화면 스와이프 시 배경음악 시작 (페이드인)
+      this.audio.playBackgroundMusic(0.2, true);
+    });
     this.loadingScreen.show();
     this.loadingScreen.setProgress(0);
     this.setupAssetLoadingTracker();
@@ -285,7 +287,7 @@ export class MiniShootout3D {
       this.ball.body.position.z
     );
     this.goal.triggerNetPulse(this.tempBallPosition, 1);
-    this.audio.play('goal', { volume: 1 });
+    this.audio.play('goal', { volume: 0.4 });
   }
 
   private handleBallCollide(event: { body: CANNON.Body }) {
@@ -296,9 +298,9 @@ export class MiniShootout3D {
       if (vy < MIN_VERTICAL_BOUNCE_SPEED) return;
       this.lastBounceSoundTime = now;
       const volume = THREE.MathUtils.clamp(vy / 6 + 0.15, 0.1, 1);
-      this.audio.play('bounce', { volume });
+      this.audio.play('bounce', { volume : 0.5 });
     } else if (this.goalKeepers.some((keeper) => keeper.body === event.body)) {
-      this.audio.play('save', { volume: 0.7 });
+      this.audio.play('save', { volume: 0.4 });
     } else if (
       event.body === this.goal.bodies.leftPost ||
       event.body === this.goal.bodies.rightPost ||
@@ -311,10 +313,10 @@ export class MiniShootout3D {
       event.body === this.goal.bodies.floorBack ||
       event.body === this.goal.bodies.crossbar
     ) {
-      this.audio.play('post', { volume: 0.9 });
+      this.audio.play('post', { volume: 0.5 });
     } else if (this.goal.isNetCollider(event.body)) {
       this.goal.handleNetCollision(this.ball.body);
-      this.audio.play('net', { volume: 0.6 });
+      this.audio.play('net', { volume: 0.3 });
     }
   }
 
@@ -406,6 +408,9 @@ export class MiniShootout3D {
     this.goalKeepers.forEach((keeper) => keeper.dispose());
     this.goalKeepers = [];
     this.swipeTracker.destroy();
+
+    // 배경음악 중지
+    this.audio.pauseBackgroundMusic();
   }
 
   private createBallColliderMesh(): THREE.Mesh {
@@ -808,9 +813,6 @@ export class MiniShootout3D {
     });
   }
 
-  /**
-   * 캔버스 pointerup 이벤트 핸들러 (스와이프 완료 시)
-   */
   private handleCanvasPointerUp() {
     const swipeData = this.swipeTracker.getLastSwipe();
     if (!swipeData) return;
@@ -982,7 +984,7 @@ export class MiniShootout3D {
 
     // 골을 넣지 못했으면
     if (!this.hasScored) {
-      this.audio.play('reset', { volume: 0.8 });
+      this.audio.play('reset', { volume: 0.3 });
       this.score = 0;
       this.onScoreChange(this.score);
     }

@@ -28,6 +28,9 @@ export class LoadingScreen {
   private isReadyToEnter = false; // 슛을 쏘았는지
   private isLoadingComplete = false; // 로딩이 완료되었는지
 
+  // 콜백
+  private onSwipe?: () => void;
+
   // 축구 테마 로딩 메시지
   private readonly footballMessages: string[] = [
     '양말 신는 중...',
@@ -65,7 +68,8 @@ export class LoadingScreen {
     swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[10000] touch-none pointer-events-auto'
   };
 
-  constructor() {
+  constructor(onSwipe?: () => void) {
+    this.onSwipe = onSwipe;
     const bootstrap = document.querySelector<HTMLDivElement>('.loading-screen[data-preload="true"]');
 
     if (bootstrap) {
@@ -281,6 +285,9 @@ export class LoadingScreen {
 
     // 슛을 쏜 것으로 표시
     this.isReadyToEnter = true;
+
+    // onSwipe 콜백 호출 (배경음악 시작)
+    this.onSwipe?.();
 
     // 스와이프 방향 계산
     const firstPoint = swipeData.points[0];
