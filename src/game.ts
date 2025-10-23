@@ -944,7 +944,7 @@ export class MiniShootout3D {
     const nextDifficulty = getDifficultyForScore(this.score);
     const levelChanged = !this.currentDifficulty || this.currentDifficulty.threshold !== nextDifficulty.threshold;
 
-    if (levelChanged || forceRefresh) {
+    if (forceRefresh) {
       this.syncGoalKeepers(nextDifficulty.keepers);
 
       if (levelChanged) {
