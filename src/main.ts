@@ -1,24 +1,18 @@
 import './style.css';
 import { MiniShootout3D } from './game';
+import { ScoreDisplay } from './ui/scoreDisplay';
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
-const scoreElement = document.getElementById('score') as HTMLDivElement | null;
+const uiContainer = document.getElementById('ui') as HTMLDivElement | null;
 const touchGuideElement = document.getElementById('touch-guide') as HTMLDivElement | null;
 
-if (!canvas || !scoreElement || !touchGuideElement) {
+if (!canvas || !uiContainer || !touchGuideElement) {
   throw new Error('필수 DOM 요소를 찾을 수 없습니다.');
 }
 
-const scoreDisplay = scoreElement;
+// UI 컴포넌트 생성
+const scoreDisplay = new ScoreDisplay(uiContainer);
 const touchGuideDisplay = touchGuideElement;
-
-function updateScore(score: number) {
-  scoreDisplay.textContent = score.toString();
-  scoreDisplay.classList.add('score-changed');
-  setTimeout(() => {
-    scoreDisplay.classList.remove('score-changed');
-  }, 300);
-}
 
 function showTouchGuide(show: boolean) {
   if (show) {
@@ -28,4 +22,4 @@ function showTouchGuide(show: boolean) {
   }
 }
 
-new MiniShootout3D(canvas, updateScore, showTouchGuide);
+new MiniShootout3D(canvas, (score) => scoreDisplay.update(score), showTouchGuide);
