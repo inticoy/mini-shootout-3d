@@ -55,10 +55,10 @@ export const AD_BOARD_CONFIG: AdBoardConfig = {
     depthOffset: -6
   },
   material: {
-    roughness: 0.45,
-    metalness: 0.1,
-    emissive: 0x333333,
-    emissiveIntensity: 0.6
+    roughness: 0.,
+    metalness: 0.,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.
   },
   scrollSpeed: 0.05,
   canvas: {

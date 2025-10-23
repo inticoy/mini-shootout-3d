@@ -31,14 +31,14 @@ export const DIFFICULTY_LEVELS: DifficultyLevelConfig[] = [
     threshold: 0,
     name: 'Level 1',
     keepers: [
-      { type: 'static', z: -5.6, xRange: [-0.8, 0.8] }
+    //   { type: 'static', z: -5.6, xRange: [-0.8, 0.8] }
     ]
   },
   {
     threshold: 1,
     name: 'Level 2',
     keepers: [
-      { type: 'static', z: -5.0, xRange: [-0.9, 0.9] }
+      { type: 'static', z: -5.5, xRange: [-0., 0.] }
     ]
   },
   {
