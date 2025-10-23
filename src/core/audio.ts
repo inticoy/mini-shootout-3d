@@ -222,27 +222,6 @@ export class AudioManager {
     }
   }
 
-  // 하위 호환성을 위한 별칭 (나중에 제거 예정)
-  play(key: SoundKey, options: { volume?: number } = {}): void {
-    this.playSound(key, options.volume);
-  }
-
-  pauseBackgroundMusic(): void {
-    this.stopMusic();
-  }
-
-  pauseBGMusic(): void {
-    this.stopMusic();
-  }
-
-  playBackgroundMusic(volume: number, fadeIn: boolean): void {
-    void this.playMusic('chant', { fadeIn, volumeOverride: volume });
-  }
-
-  playBGMusic(volume?: number): void {
-    void this.playMusic('gameplay', { volumeOverride: volume });
-  }
-
   private getContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();

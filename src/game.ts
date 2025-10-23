@@ -294,7 +294,7 @@ export class MiniShootout3D {
       this.ball.body.position.z
     );
     this.goal.triggerNetPulse(this.tempBallPosition, 1);
-    this.audio.play('goal', { volume: 0.2 });
+    this.audio.playSound('goal', 0.2);
   }
 
   private handleBallCollide(event: { body: CANNON.Body }) {
@@ -304,9 +304,9 @@ export class MiniShootout3D {
       const vy = Math.abs(this.ball.body.velocity.y);
       if (vy < MIN_VERTICAL_BOUNCE_SPEED) return;
       this.lastBounceSoundTime = now;
-      this.audio.play('bounce', { volume : 0.3 });
+      this.audio.playSound('bounce', 0.3);
     } else if (this.goalKeepers.some((keeper) => keeper.body === event.body)) {
-      this.audio.play('save', { volume: 0.3 });
+      this.audio.playSound('save', 0.3);
     } else if (
       event.body === this.goal.bodies.leftPost ||
       event.body === this.goal.bodies.rightPost ||
@@ -319,10 +319,10 @@ export class MiniShootout3D {
       event.body === this.goal.bodies.floorBack ||
       event.body === this.goal.bodies.crossbar
     ) {
-      this.audio.play('post', { volume: 0.3 });
+      this.audio.playSound('post', 0.3);
     } else if (this.goal.isNetCollider(event.body)) {
       this.goal.handleNetCollision(this.ball.body);
-      this.audio.play('net', { volume: 0.3 });
+      this.audio.playSound('net', 0.3);
     }
   }
 
@@ -990,7 +990,7 @@ export class MiniShootout3D {
 
     // 골을 넣지 못했으면
     if (!this.hasScored) {
-      this.audio.play('reset', { volume: 0.3 });
+      this.audio.playSound('reset', 0.3);
       this.score = 0;
       this.onScoreChange(this.score);
     }
