@@ -11,24 +11,7 @@
   </head>
   <body>
     <div id="game-container">
-      <div class="loading-screen loading-screen--initial fixed inset-0 z-[9999] flex h-full w-full flex-col items-center justify-start pt-[25vh] bg-[linear-gradient(135deg,#0f4d2e_0%,#1a5c3a_50%,#0a3d23_100%)] transition-opacity duration-500 ease-out text-white" data-preload="true">
-        <div class="loading-screen__title mb-20 text-center animate-fade-in-down">
-          <img src="/assets/Snapshoot!.png" alt="Snapshoot!" class="loading-screen__title-text mx-6 w-[80vw] max-w-[500px] h-auto whitespace-nowrap text-[56px] font-black tracking-[2px] text-white md:text-[56px] md:tracking-[2px] lg:text-[56px] lg:tracking-[2px] [text-shadow:0_2px_6px_rgba(0,0,0,0.1)]" style="font-family: 'Russo One', sans-serif;">
-          <p class="loading-screen__subtitle mt-[10px] text-[18px] font-bold tracking-[2px] text-white md:text-[22px] md:tracking-[3px] lg:text-[34px] lg:tracking-[6px] [text-shadow:0_2px_4px_rgba(0,0,0,0.3)]" style="font-family: 'Outfit', sans-serif;">by Inticoy</p>
-        </div>
-
-        <div class="loading-screen__stage1-container absolute left-1/2 bottom-[120px] -translate-x-1/2 flex w-[500px] max-w-[80vw] flex-col items-center gap-3 opacity-100 transition-opacity duration-300 ease-out">
-          <div class="loading-screen__progress-container relative w-full">
-            <div class="loading-screen__progress-bar relative h-5 w-full overflow-hidden rounded-full bg-black/30 backdrop-blur-sm border-2 border-white/20 shadow-inner">
-              <div class="loading-screen__progress-fill relative h-full w-0 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.7),0_0_20px_rgba(74,144,226,0.5)] transition-[width] duration-300 ease-out">
-                <div class="loading-screen__progress-shine absolute left-[-100%] top-0 h-full w-full animate-shine bg-[linear-gradient(90deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.4)_50%,rgba(255,255,255,0)_100%)]"></div>
-              </div>
-              <span class="loading-screen__progress-text absolute inset-0 flex items-center justify-center text-xs font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]">0%</span>
-            </div>
-          </div>
-          <div class="loading-screen__message min-h-[24px] text-center text-[16px] font-semibold text-[rgba(255,255,255,0.95)] md:text-[18px] lg:text-[20px] [text-shadow:0_2px_8px_rgba(0,0,0,0.5)]">양말 신는 중...</div>
-        </div>
-      </div>
+      <div id="loading-screen"></div>
       <canvas id="game-canvas"></canvas>
       <div id="ui">
         <div id="score">0</div>
