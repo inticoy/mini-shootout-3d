@@ -133,18 +133,121 @@ body {
   }
 }
 
-/* Bounce animation for soccer ball */
-@keyframes bounce-slow {
-  0%, 100% {
+.touch-guide {
+  position: absolute;
+  bottom: 20vh;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.touch-guide.show {
+  opacity: 1;
+}
+
+.touch-guide__icon {
+  width: 24px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  animation: swipe-up 2s infinite ease-in-out;
+  position: relative;
+  z-index: 2;
+}
+
+.touch-guide__trail {
+  width: 24px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.touch-guide__trail--1 {
+  animation: trail-1 2s infinite ease-in-out;
+  opacity: 0.3;
+}
+
+.touch-guide__trail--2 {
+  animation: trail-2 2s infinite ease-in-out;
+  opacity: 0.2;
+}
+
+.touch-guide__trail--3 {
+  animation: trail-3 2s infinite ease-in-out;
+  opacity: 0.1;
+}
+
+.touch-guide__trail--4 {
+  animation: trail-4 2s infinite ease-in-out;
+  opacity: 0.05;
+}
+
+@keyframes trail-1 {
+    0%, 100% {
     transform: translateY(0);
   }
-  50% {
-    transform: translateY(-20px);
+  100% {
+    transform: translateY(-29vh);
   }
 }
 
-.animate-bounce-slow {
-  animation: bounce-slow 2s ease-in-out infinite;
+@keyframes trail-2 {
+    0%, 100% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-28vh);
+  }
+}
+
+@keyframes trail-3 {
+    0%, 100% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-27vh);
+  }
+}
+
+@keyframes trail-4 {
+    0%, 100% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-26vh);
+  }
+}
+
+@keyframes swipe-up {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-30vh);
+  }
+}
+
+@keyframes bounce-hint {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
 }
 
 /* Larger fade-in-down animation for title */

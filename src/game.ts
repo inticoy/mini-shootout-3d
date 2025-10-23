@@ -34,6 +34,7 @@ const BOUNCE_COOLDOWN_MS = 120;
 
 export class MiniShootout3D {
   private readonly onScoreChange: (score: number) => void;
+  private readonly onShowTouchGuide: (show: boolean) => void;
 
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene: THREE.Scene;
@@ -94,6 +95,7 @@ export class MiniShootout3D {
   private readonly handleGoalCollisionBound = (event: { body: CANNON.Body }) => this.handleGoalCollision(event);
   private readonly handleDebugButtonClickBound = () => this.toggleDebugMode();
   private readonly handleCanvasPointerUpBound = () => this.handleCanvasPointerUp();
+  private touchGuideTimer: number | null = null;
   private loadingScreen: LoadingScreen | null = null;
   private threeAssetsProgress = 0;
   private audioProgress = 0;
@@ -101,8 +103,9 @@ export class MiniShootout3D {
   private threeItemsTotal = 0;
   private isGameReady = false;
 
-  constructor(canvas: HTMLCanvasElement, onScoreChange: (score: number) => void) {
+  constructor(canvas: HTMLCanvasElement, onScoreChange: (score: number) => void, onShowTouchGuide: (show: boolean) => void) {
     this.onScoreChange = onScoreChange;
+    this.onShowTouchGuide = onShowTouchGuide;
 
     // 로딩 화면 생성 및 표시
     this.loadingScreen = new LoadingScreen();
@@ -267,6 +270,13 @@ export class MiniShootout3D {
     this.score += 1;
     this.onScoreChange(this.score);
     this.updateDifficulty();
+
+    // 점수가 올라갔으므로 터치 가이드 숨김
+    if (this.touchGuideTimer !== null) {
+      clearTimeout(this.touchGuideTimer);
+      this.touchGuideTimer = null;
+    }
+    this.onShowTouchGuide(false);
     this.hasScored = true;
     this.goalKeepers.forEach((keeper) => keeper.stopTracking());
     this.tempBallPosition.set(
@@ -375,6 +385,9 @@ export class MiniShootout3D {
   public destroy() {
     if (this.shotResetTimer !== null) {
       clearTimeout(this.shotResetTimer);
+    }
+    if (this.touchGuideTimer !== null) {
+      clearTimeout(this.touchGuideTimer);
     }
     window.removeEventListener('resize', this.handleResizeBound);
     this.renderer.domElement.removeEventListener('pointerup', this.handleCanvasPointerUpBound);
@@ -872,6 +885,13 @@ export class MiniShootout3D {
     // 골키퍼 추적 시작
     this.goalKeepers.forEach((keeper) => keeper.startTracking());
 
+    // 터치 가이드 타이머 취소 및 숨김
+    if (this.touchGuideTimer !== null) {
+      clearTimeout(this.touchGuideTimer);
+      this.touchGuideTimer = null;
+    }
+    this.onShowTouchGuide(false);
+
     // 2.5초 후 리셋 타이머 설정
     this.shotResetTimer = window.setTimeout(() => {
       this.resetAfterShot();
@@ -1005,6 +1025,13 @@ export class MiniShootout3D {
 
     this.goalKeepers.forEach((keeper) => keeper.resetTracking());
     this.updateDifficulty(true);
+
+    // 터치 가이드 타이머 시작 (점수가 0일 때만, 1초 후 표시)
+    if (this.score === 0) {
+      this.touchGuideTimer = window.setTimeout(() => {
+        this.onShowTouchGuide(true);
+      }, 1000);
+    }
   }
 
 }
