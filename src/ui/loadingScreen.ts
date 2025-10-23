@@ -218,7 +218,7 @@ export class LoadingScreen {
    * 스와이프 감지 시 호출되는 핸들러
    */
   private handleSwipe() {
-    if (!this.swipeTracker || this.isReadyToEnter) return;
+    if (!this.swipeTracker || this.isReadyToEnter || !this.isLoadingComplete) return;
 
     const swipeData = this.swipeTracker.getLastSwipe();
     if (!swipeData || swipeData.points.length < 2) return;
