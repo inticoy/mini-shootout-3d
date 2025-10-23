@@ -7,7 +7,7 @@ import resetUrl from '../assets/audio/reset.mp3?url';
 import netUrl from '../assets/audio/net.mp3?url';
 import cheerUrl from '../assets/audio/cheer.mp3?url';
 import recordUrl from '../assets/audio/record.mp3?url';
-import chantUrl from '../assets/audio/chant.wav?url';
+import chantUrl from '../assets/audio/chant.mp3?url';
 import bg1Url from '../assets/audio/bg1.mp3?url';
 
 /**

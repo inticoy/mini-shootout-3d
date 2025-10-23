@@ -1,9 +1,6 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import grassColorUrl from '../assets/Grass005_2K-PNG/Grass005_2K-PNG_Color.png?url';
-import grassNormalUrl from '../assets/Grass005_2K-PNG/Grass005_2K-PNG_NormalGL.png?url';
-import grassAoUrl from '../assets/Grass005_2K-PNG/Grass005_2K-PNG_AmbientOcclusion.png?url';
-import grassRoughnessUrl from '../assets/Grass005_2K-PNG/Grass005_2K-PNG_Roughness.png?url';
+import grassColorUrl from '../assets/grass/Grass005_1K-JPG_Color.jpg?url';
 import { GOAL_DEPTH, GOAL_WIDTH } from '../config/goal';
 import { FIELD_DIMENSIONS, FIELD_OFFSETS, FIELD_STRIPES, FIELD_TEXTURE_REPEAT } from '../config/field';
 import { AD_BOARD_CONFIG } from '../config/adBoard';
@@ -37,34 +34,15 @@ export class Field {
     grassTexture.wrapT = THREE.RepeatWrapping;
     grassTexture.repeat.set(FIELD_TEXTURE_REPEAT, FIELD_TEXTURE_REPEAT);
 
-    const normalTexture = loader.load(grassNormalUrl);
-    normalTexture.wrapS = THREE.RepeatWrapping;
-    normalTexture.wrapT = THREE.RepeatWrapping;
-    normalTexture.repeat.set(FIELD_TEXTURE_REPEAT, FIELD_TEXTURE_REPEAT);
-
-    const aoTexture = loader.load(grassAoUrl);
-    aoTexture.wrapS = THREE.RepeatWrapping;
-    aoTexture.wrapT = THREE.RepeatWrapping;
-    aoTexture.repeat.set(FIELD_TEXTURE_REPEAT, FIELD_TEXTURE_REPEAT);
-
-    const roughnessTexture = loader.load(grassRoughnessUrl);
-    roughnessTexture.wrapS = THREE.RepeatWrapping;
-    roughnessTexture.wrapT = THREE.RepeatWrapping;
-    roughnessTexture.repeat.set(FIELD_TEXTURE_REPEAT, FIELD_TEXTURE_REPEAT);
-
     const groundGeometry = new THREE.PlaneGeometry(
       FIELD_DIMENSIONS.planeWidth,
       FIELD_DIMENSIONS.planeHeight
     );
-    groundGeometry.setAttribute('uv2', groundGeometry.attributes.uv.clone());
 
     this.groundMesh = new THREE.Mesh(
       groundGeometry,
       new THREE.MeshStandardMaterial({
         map: grassTexture,
-        normalMap: normalTexture,
-        aoMap: aoTexture,
-        roughnessMap: roughnessTexture,
         roughness: 1,
         metalness: 0
       })

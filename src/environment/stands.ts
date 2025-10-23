@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { STANDS_CONFIG } from '../config/stands';
-import crowdTextureUrl from '../assets/crowd/crowd.png?url';
+import crowdTextureUrl from '../assets/crowd/crowd.webp?url';
 
 export class Stands {
   private readonly mesh: THREE.Mesh;
