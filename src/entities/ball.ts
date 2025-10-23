@@ -1,12 +1,9 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import gltfModel from '../assets/gltf/soccer_ball.gltf?url';
-import gltfBinary from '../assets/gltf/soccer_ball.bin?url';
-import baseColorTexture from '../assets/gltf/soccer_ball_mat_bcolor.png?url';
-import normalTexture from '../assets/gltf/soccer_ball_Normal.png?url';
-import metallicRoughnessTexture from '../assets/gltf/soccer_ball_Metallic-soccer_ball_Roughness.png?url';
 import { BALL_CONFIG, BALL_RADIUS, BALL_START_POSITION } from '../config/ball';
+import type { BallTheme } from '../config/ball';
+
 const START_POSITION = new CANNON.Vec3(
   BALL_START_POSITION.x,
   BALL_START_POSITION.y,
@@ -15,11 +12,16 @@ const START_POSITION = new CANNON.Vec3(
 
 export class Ball {
   private readonly rotationHelper = new THREE.Quaternion();
+  private theme: BallTheme;
+  private scene: THREE.Scene | null = null;
+  private loadingManager: THREE.LoadingManager | null = null;
 
   public readonly body: CANNON.Body;
   public mesh: THREE.Object3D | null = null;
 
-  constructor(world: CANNON.World, material: CANNON.Material) {
+  constructor(world: CANNON.World, material: CANNON.Material, theme?: BallTheme) {
+    this.theme = theme ?? BALL_CONFIG.theme;
+
     this.body = new CANNON.Body({
       mass: BALL_CONFIG.mass,
       shape: new CANNON.Sphere(BALL_RADIUS),
@@ -32,28 +34,43 @@ export class Ball {
   }
 
   async load(scene: THREE.Scene, manager: THREE.LoadingManager = THREE.DefaultLoadingManager): Promise<void> {
-    const assetMap = new Map<string, string>([
-      ['soccer_ball.bin', gltfBinary],
-      ['soccer_ball_mat_bcolor.png', baseColorTexture],
-      ['soccer_ball_Normal.png', normalTexture],
-      ['soccer_ball_Metallic-soccer_ball_Roughness.png', metallicRoughnessTexture]
-    ]);
-
-    const urlModifier = (url: string) => {
-      const key = url.split('/').pop() ?? url;
-      return assetMap.get(key) ?? url;
-    };
-
-    manager.setURLModifier(urlModifier);
+    this.scene = scene;
+    this.loadingManager = manager;
 
     const loader = new GLTFLoader(manager);
-    const gltf = await loader.loadAsync(gltfModel).finally(() => {
-      manager.setURLModifier(undefined);
-    });
+    // 테마에서 직접 모델 URL 가져오기
+    const gltf = await loader.loadAsync(this.theme.modelUrl);
     const mesh = this.prepareVisual(gltf.scene);
     scene.add(mesh);
     this.mesh = mesh;
     this.syncVisuals();
+  }
+
+  async changeTheme(newTheme: BallTheme): Promise<void> {
+    if (!this.scene || !this.loadingManager) {
+      throw new Error('Ball must be loaded before changing theme. Call load() first.');
+    }
+
+    // 기존 메시 제거
+    if (this.mesh) {
+      this.scene.remove(this.mesh);
+      this.mesh = null;
+    }
+
+    // 새 테마 설정
+    this.theme = newTheme;
+
+    // 새 메시 로드
+    const loader = new GLTFLoader(this.loadingManager);
+    const gltf = await loader.loadAsync(this.theme.modelUrl);
+    const mesh = this.prepareVisual(gltf.scene);
+    this.scene.add(mesh);
+    this.mesh = mesh;
+    this.syncVisuals();
+  }
+
+  getTheme(): BallTheme {
+    return this.theme;
   }
 
   reset(): void {
@@ -94,7 +111,8 @@ export class Ball {
       }
     });
 
-    model.scale.setScalar(BALL_CONFIG.gltfScale);
+    // 테마별 스케일 적용
+    model.scale.setScalar(this.theme.gltfScale);
     model.position.set(START_POSITION.x, START_POSITION.y, START_POSITION.z);
 
     return model;
@@ -104,12 +122,11 @@ export class Ball {
     const materials = Array.isArray(material) ? material : [material];
     materials.forEach((mat) => {
       if (mat instanceof THREE.MeshStandardMaterial) {
-        mat.metalness = 0.0;
-        mat.roughness = 0.95;
+        // GLB 파일의 원본 머티리얼 색상과 속성을 그대로 사용
+        // 텍스처가 있는 경우에만 colorSpace 설정
         if (mat.map) {
           mat.map.colorSpace = THREE.SRGBColorSpace;
         }
-        mat.color.multiplyScalar(3.8);
         mat.needsUpdate = true;
       }
     });

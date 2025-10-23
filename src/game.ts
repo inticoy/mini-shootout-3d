@@ -9,7 +9,7 @@ import type { Field } from './environment/field';
 import { Ball } from './entities/ball';
 import { Goal } from './entities/goal';
 import { GoalKeeper } from './entities/goalkeeper';
-import { BALL_RADIUS, BALL_START_POSITION } from './config/ball';
+import { BALL_RADIUS, BALL_START_POSITION, BALL_THEMES } from './config/ball';
 import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
 import { GOAL_NET_CONFIG } from './config/net';
 import { AD_BOARD_CONFIG } from './config/adBoard';
@@ -206,7 +206,10 @@ export class MiniShootout3D {
     // 타겟 마커 초기화
     this.targetMarker = this.createTargetMarker();
 
-    this.debugButton = createDebugButton(this.handleDebugButtonClickBound);
+    this.debugButton = createDebugButton({
+      onToggleDebug: () => this.toggleDebugMode(),
+      onNextTheme: () => void this.switchToNextTheme()
+    });
     this.applyDebugVisibility();
     updateDebugButtonState(this.debugButton, this.debugMode);
 
@@ -1067,6 +1070,26 @@ export class MiniShootout3D {
       this.touchGuideTimer = window.setTimeout(() => {
         this.onShowTouchGuide(true);
       }, 1000);
+    }
+  }
+
+  /**
+   * 다음 테마로 전환
+   */
+  private async switchToNextTheme(): Promise<void> {
+    const currentTheme = this.ball.getTheme();
+    const themeKeys = Object.keys(BALL_THEMES) as Array<keyof typeof BALL_THEMES>;
+    const currentIndex = themeKeys.findIndex(key => BALL_THEMES[key].name === currentTheme.name);
+    const nextIndex = (currentIndex + 1) % themeKeys.length;
+    const nextTheme = BALL_THEMES[themeKeys[nextIndex]];
+
+    console.log(`🎨 Switching theme: ${currentTheme.name} -> ${nextTheme.name}`);
+
+    try {
+      await this.ball.changeTheme(nextTheme);
+      console.log(`✅ Theme switched to: ${nextTheme.name}`);
+    } catch (error) {
+      console.error('Failed to switch theme:', error);
     }
   }
 
