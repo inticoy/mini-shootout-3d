@@ -7,8 +7,6 @@ import resetUrl from '../assets/audio/reset.mp3?url';
 import netUrl from '../assets/audio/net.mp3?url';
 import chantUrl from '../assets/audio/chant.wav?url';
 import bg1Url from '../assets/audio/bg1.mp3?url';
-import bg2Url from '../assets/audio/bg2.mp3?url';
-import bg3Url from '../assets/audio/bg3.mp3?url';
 
 /**
  * 효과음 키 타입
@@ -71,10 +69,10 @@ export const AUDIO_CONFIG = {
       loop: true
     },
     /**
-     * 게임플레이 배경음악 (3곡 순환 재생)
+     * 게임플레이 배경음악 (n곡 순환 재생)
      */
     gameplay: {
-      urls: [bg1Url, bg2Url, bg3Url],
+      urls: [bg1Url], // 추후 곡 추가 가능
       volume: 0.05,
       loop: true,
       shuffle: true
