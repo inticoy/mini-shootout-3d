@@ -84,12 +84,6 @@ export class LoadingScreen {
     this.buildDOM();
   }
 
-  private clearContainer() {
-    while(this.container.firstChild) {
-      this.container.removeChild(this.container.firstChild);
-    }
-  }
-
   private buildDOM() {
       // 타이틀 섹션 생성
       this.titleSection = this.createTitleSection();
