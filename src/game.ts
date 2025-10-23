@@ -13,7 +13,7 @@ import { BALL_RADIUS, BALL_START_POSITION } from './config/ball';
 import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
 import { GOAL_NET_CONFIG } from './config/net';
 import { AD_BOARD_CONFIG } from './config/adBoard';
-import { getDifficultyForScore, type DifficultyLevelConfig, type KeeperBehaviorConfig } from './config/difficulty';
+import { getDifficultyForScore, type KeeperBehaviorConfig } from './config/difficulty';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
@@ -78,7 +78,8 @@ export class MiniShootout3D {
   private shotResetTimer: number | null = null;
   private hasScored = false;
   private readonly ballInitialMass: number;
-  private isBackgroundMusicStarted = false;
+  private isBallGravityEnabled = false;
+  private currentDifficulty: any = null;
 
   // 🔍 궤적 디버깅
   private isTrackingBall = false;
@@ -107,9 +108,15 @@ export class MiniShootout3D {
     this.onShowTouchGuide = onShowTouchGuide;
 
     // 로딩 화면 생성 및 표시
+    const bgVolume = 0.05;
+    const chantVolume = 0.1;
+    
     this.loadingScreen = new LoadingScreen(() => {
       // 로딩 화면 스와이프 시 배경음악 시작 (페이드인)
-      this.audio.playBackgroundMusic(0.2, true);
+      this.audio.playBackgroundMusic(chantVolume, true);
+    }, () => {
+      // 로딩 완료 시 BG 음악 시작
+      this.audio.playBGMusic(bgVolume);
     });
     this.loadingScreen.show();
     this.loadingScreen.setProgress(0);
@@ -287,7 +294,7 @@ export class MiniShootout3D {
       this.ball.body.position.z
     );
     this.goal.triggerNetPulse(this.tempBallPosition, 1);
-    this.audio.play('goal', { volume: 0.4 });
+    this.audio.play('goal', { volume: 0.2 });
   }
 
   private handleBallCollide(event: { body: CANNON.Body }) {
@@ -297,10 +304,9 @@ export class MiniShootout3D {
       const vy = Math.abs(this.ball.body.velocity.y);
       if (vy < MIN_VERTICAL_BOUNCE_SPEED) return;
       this.lastBounceSoundTime = now;
-      const volume = THREE.MathUtils.clamp(vy / 6 + 0.15, 0.1, 1);
-      this.audio.play('bounce', { volume : 0.5 });
+      this.audio.play('bounce', { volume : 0.3 });
     } else if (this.goalKeepers.some((keeper) => keeper.body === event.body)) {
-      this.audio.play('save', { volume: 0.4 });
+      this.audio.play('save', { volume: 0.3 });
     } else if (
       event.body === this.goal.bodies.leftPost ||
       event.body === this.goal.bodies.rightPost ||
@@ -313,7 +319,7 @@ export class MiniShootout3D {
       event.body === this.goal.bodies.floorBack ||
       event.body === this.goal.bodies.crossbar
     ) {
-      this.audio.play('post', { volume: 0.5 });
+      this.audio.play('post', { volume: 0.3 });
     } else if (this.goal.isNetCollider(event.body)) {
       this.goal.handleNetCollision(this.ball.body);
       this.audio.play('net', { volume: 0.3 });
@@ -411,6 +417,7 @@ export class MiniShootout3D {
 
     // 배경음악 중지
     this.audio.pauseBackgroundMusic();
+    this.audio.pauseBGMusic();
   }
 
   private createBallColliderMesh(): THREE.Mesh {

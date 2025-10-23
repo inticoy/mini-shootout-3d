@@ -30,6 +30,7 @@ export class LoadingScreen {
 
   // 콜백
   private onSwipe?: () => void;
+  private onLoadingComplete?: () => void;
 
   // 축구 테마 로딩 메시지
   private readonly footballMessages: string[] = [
@@ -68,8 +69,9 @@ export class LoadingScreen {
     swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[10000] touch-none pointer-events-auto'
   };
 
-  constructor(onSwipe?: () => void) {
+  constructor(onSwipe?: () => void, onLoadingComplete?: () => void) {
     this.onSwipe = onSwipe;
+    this.onLoadingComplete = onLoadingComplete;
     const bootstrap = document.querySelector<HTMLDivElement>('.loading-screen[data-preload="true"]');
 
     if (bootstrap) {
@@ -429,6 +431,9 @@ export class LoadingScreen {
    * 1단계 → 2단계 전환 (프로그레스 바 숨기고 축구공 표시)
    */
   private transitionToStage2() {
+    // BG 음악 시작
+    this.onLoadingComplete?.();
+
     // 스테이지 1 컨테이너를 페이드아웃
     if (this.stage1Container) {
         this.stage1Container.style.opacity = '0';

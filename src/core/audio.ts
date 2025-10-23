@@ -6,6 +6,9 @@ import postUrl from '../assets/audio/post.mp3?url';
 import resetUrl from '../assets/audio/reset.mp3?url';
 import netUrl from '../assets/audio/net.mp3?url';
 import chantUrl from '../assets/audio/chant.wav?url';
+import bg1Url from '../assets/audio/bg1.mp3?url';
+import bg2Url from '../assets/audio/bg2.mp3?url';
+import bg3Url from '../assets/audio/bg3.mp3?url';
 
 const SOUND_DEFINITIONS = [
   { key: 'kick', url: kickUrl },
@@ -24,10 +27,17 @@ export class AudioManager {
   private readonly buffers = new Map<SoundKey, AudioBuffer>();
   private loadingPromise: Promise<void> | null = null;
 
-  // 배경음악 관련
+  // 배경음악 관련 (chant.wav)
   private backgroundBuffer: AudioBuffer | null = null;
   private backgroundSource: AudioBufferSourceNode | null = null;
   private backgroundGain: GainNode | null = null;
+
+  // BG 음악 관련 (bg1.mp3 ~ bg3.mp3)
+  private bgBuffers: AudioBuffer[] = [];
+  private bgVolumes: number[] = [0.3, 0.1, 0.5]; // 각 음악별 볼륨 (bg1, bg2, bg3 순서)
+  private bgSource: AudioBufferSourceNode | null = null;
+  private bgGain: GainNode | null = null;
+  private currentBgIndex = 0;
 
   async loadAll(): Promise<void> {
     if (this.loadingPromise) return this.loadingPromise;
@@ -54,6 +64,8 @@ export class AudioManager {
 
       // 배경음악 로드
       await this.loadBackgroundMusic(chantUrl);
+      // BG 음악 로드
+      await this.loadBackgroundMusics();
     })();
     return this.loadingPromise;
   }
@@ -69,14 +81,31 @@ export class AudioManager {
     }
   }
 
+  private async loadBackgroundMusics(): Promise<void> {
+    const bgUrls = [bg1Url, bg2Url, bg3Url];
+    try {
+      const buffers = await Promise.all(
+        bgUrls.map(async (url) => {
+          const response = await fetch(url);
+          const arrayBuffer = await response.arrayBuffer();
+          return await this.getContext().decodeAudioData(arrayBuffer.slice(0));
+        })
+      );
+      this.bgBuffers = buffers;
+      console.log('BG musics loaded successfully');
+    } catch (error) {
+      console.warn('Failed to load BG musics', error);
+    }
+  }
+
   playBackgroundMusic(volume: number = 0.3, fadeIn: boolean = true): void {
-    console.log('Attempting to play background music, buffer exists:', !!this.backgroundBuffer);
+    console.log('🎵 [CHANT] Starting chant music, volume:', volume, 'fadeIn:', fadeIn);
     if (!this.backgroundBuffer) return;
 
     this.pauseBackgroundMusic(); // 기존 재생 중지
 
     const context = this.getContext();
-    console.log('AudioContext state:', context.state);
+    console.log('🎵 [CHANT] AudioContext state:', context.state);
     
     // AudioContext가 suspended이면 resume 시도
     if (context.state === 'suspended') {
@@ -126,6 +155,83 @@ export class AudioManager {
         // 이미 중지된 경우 무시
       }
       this.backgroundSource = null;
+    }
+  }
+
+  playBGMusic(volume?: number): void {
+    if (this.bgBuffers.length === 0) return;
+
+    console.log('🎵 [BG] Starting BG music, volume:', volume ?? this.bgVolumes[0]);
+    // 랜덤 시작 인덱스
+    this.currentBgIndex = Math.floor(Math.random() * this.bgBuffers.length);
+
+    this.playNextBGMusic(volume);
+  }
+
+  private playNextBGMusic(volume?: number): void {
+    if (this.bgBuffers.length === 0) return;
+
+    // 기존 재생 중지
+    this.pauseBGMusic();
+
+    const context = this.getContext();
+    if (context.state === 'suspended') {
+      void context.resume().then(() => {
+        this.startBGMusic(context, volume);
+      }).catch((error) => {
+        console.warn('Failed to resume AudioContext for BG music', error);
+      });
+    } else {
+      this.startBGMusic(context, volume);
+    }
+  }
+
+  private startBGMusic(context: AudioContext, volume?: number): void {
+    console.log('🎵 [BG] AudioContext state:', context.state);
+    this.bgSource = context.createBufferSource();
+    this.bgGain = context.createGain();
+
+    this.bgSource.buffer = this.bgBuffers[this.currentBgIndex];
+    // 개별 볼륨 사용, 기본값은 bgVolumes[currentBgIndex]
+    const currentVolume = volume ?? this.bgVolumes[this.currentBgIndex];
+    this.bgGain.gain.value = currentVolume;
+    console.log('🎵 [BG] Setting volume to:', currentVolume);
+
+    this.bgSource.connect(this.bgGain);
+    this.bgGain.connect(context.destination);
+
+    // 다음 곡으로 이동 (순차 반복)
+    this.bgSource.onended = () => {
+      this.currentBgIndex = (this.currentBgIndex + 1) % this.bgBuffers.length;
+      this.playNextBGMusic(volume);
+    };
+
+    try {
+      this.bgSource.start();
+      console.log('🎵 [BG] BG music started successfully');
+    } catch (error) {
+      console.warn('Failed to play BG music', error);
+    }
+  }
+
+  pauseBGMusic(): void {
+    if (this.bgSource) {
+      try {
+        this.bgSource.stop();
+      } catch (error) {
+        // 이미 중지된 경우 무시
+      }
+      this.bgSource = null;
+    }
+  }
+
+  setBGMusicVolume(index: number, volume: number): void {
+    if (index >= 0 && index < this.bgVolumes.length) {
+      this.bgVolumes[index] = Math.max(0, Math.min(1, volume));
+      // 현재 재생 중인 음악이면 즉시 적용
+      if (this.bgGain && this.currentBgIndex === index) {
+        this.bgGain.gain.value = this.bgVolumes[index];
+      }
     }
   }
 
