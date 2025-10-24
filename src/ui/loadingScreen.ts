@@ -1,5 +1,6 @@
 import soccerBallUrl from '../assets/soccer_ball.svg?url';
 import logoUrl from '../assets/Snapshoot!.png?url';
+import postUrl from '../assets/post.svg?url';
 import { SwipeTracker } from '../input/swipeTracker';
 
 export interface LoadingItem {
@@ -98,11 +99,15 @@ export class LoadingScreen {
       // 스와이프 캔버스 생성
       this.swipeCanvas = this.createSwipeCanvas();
 
+      // 골대 생성
+      const goalpost = this.createGoalpost();
+
       // DOM 조립
       this.container.appendChild(this.titleSection);
       this.container.appendChild(this.stage1Container);
       this.container.appendChild(this.soccerBallContainer);
       this.container.appendChild(this.swipeCanvas);
+      this.container.appendChild(goalpost);
 
       // 스와이프 이벤트 리스너 설정
       this.setupSwipeListener();
@@ -119,6 +124,14 @@ export class LoadingScreen {
       titleSection.appendChild(title);
 
       return titleSection;
+  }
+
+  private createGoalpost(): HTMLImageElement {
+    const goalpost = document.createElement('img');
+    goalpost.src = postUrl;
+    goalpost.className = 'loading-goalpost';
+    goalpost.alt = 'Goalpost';
+    return goalpost;
   }
 
   private createStage1Container(): HTMLDivElement {

@@ -238,6 +238,19 @@ body {
     position: relative;
     z-index: 2;
   }
+
+  /* Goalpost on the horizon */
+  .loading-goalpost {
+    position: absolute;
+    bottom: 36%;
+    left: 50%;
+    transform: translate(-50%, var(--hill-offset, 0px)); /* Use variable for vertical movement */
+    width: 30vh; /* Responsive width */
+    max-width: 150px;
+    opacity: 1.;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+    transition: transform 0.8s ease-out; /* Sync animation timing */
+  }
 }
 
 .touch-guide {
