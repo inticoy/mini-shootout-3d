@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import grassColorUrl from '../assets/grass/Grass005_1K-JPG_Color.jpg?url';
+import grassColorUrl from '../assets/grass/Grass005_1K-JPG_Color.jpeg?url';
 import { GOAL_DEPTH, GOAL_WIDTH } from '../config/goal';
 import { FIELD_DIMENSIONS, FIELD_OFFSETS, FIELD_STRIPES, FIELD_TEXTURE_REPEAT } from '../config/field';
 import { AD_BOARD_CONFIG } from '../config/adBoard';
