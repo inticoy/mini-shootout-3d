@@ -6,6 +6,13 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        russo: ['"Russo One"', 'sans-serif']
+      },
+      screens: {
+        'xs-height': { 'raw': '(max-height: 550px)' },
+        'landscape-xs': { 'raw': '(orientation: landscape) and (max-height: 550px)' }
+      },
       keyframes: {
         fadeInDown: {
           '0%': { opacity: '0', transform: 'translateY(-30px)' },

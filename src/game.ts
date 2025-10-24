@@ -17,7 +17,7 @@ import { getDifficultyForScore, type KeeperBehaviorConfig } from './config/diffi
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
-import { createDebugButton, updateDebugButtonState } from './ui/debugHud';
+// Debug button removed - now integrated into Settings modal
 import { ShotInfoHud } from './ui/shotInfoHud';
 import { AudioManager } from './core/audio';
 import { LoadingScreen } from './ui/loadingScreen';
@@ -74,7 +74,6 @@ export class MiniShootout3D {
   private readonly tempBallPosition = new THREE.Vector3();
   private lastBounceSoundTime = 0;
   private score = 0;
-  private readonly debugButton: HTMLButtonElement;
   private debugMode = false;
   private isShotInProgress = false;
   private shotResetTimer: number | null = null;
@@ -95,7 +94,7 @@ export class MiniShootout3D {
   private readonly handleResizeBound = () => this.handleResize();
   private readonly handleBallCollideBound = (event: { body: CANNON.Body }) => this.handleBallCollide(event);
   private readonly handleGoalCollisionBound = (event: { body: CANNON.Body }) => this.handleGoalCollision(event);
-  private readonly handleDebugButtonClickBound = () => this.toggleDebugMode();
+  // handleDebugButtonClickBound는 settings에서 직접 호출하므로 제거
   private readonly handleCanvasPointerUpBound = () => this.handleCanvasPointerUp();
   private touchGuideTimer: number | null = null;
   private loadingScreen: LoadingScreen | null = null;
@@ -206,12 +205,8 @@ export class MiniShootout3D {
     // 타겟 마커 초기화
     this.targetMarker = this.createTargetMarker();
 
-    this.debugButton = createDebugButton({
-      onToggleDebug: () => this.toggleDebugMode(),
-      onNextTheme: () => void this.switchToNextTheme()
-    });
+    // Debug visibility 적용
     this.applyDebugVisibility();
-    updateDebugButtonState(this.debugButton, this.debugMode);
 
     this.attachEventListeners();
     this.resetBall();
@@ -432,8 +427,6 @@ export class MiniShootout3D {
     this.swipePointMarkers.forEach((marker) => this.scene.remove(marker));
     this.swipePointLabels.forEach((label) => label.remove());
     this.axisArrows.forEach((arrow) => this.scene.remove(arrow));
-    this.debugButton.removeEventListener('click', this.handleDebugButtonClickBound);
-    this.debugButton.remove();
     this.shotInfoHud.destroy();
     this.goalKeepers.forEach((keeper) => keeper.dispose());
     this.goalKeepers = [];
@@ -614,7 +607,7 @@ export class MiniShootout3D {
     return arrows;
   }
 
-  private toggleDebugMode(enabled?: boolean): boolean {
+  public toggleDebugMode(enabled?: boolean): boolean {
     const next = enabled ?? !this.debugMode;
     if (this.debugMode === next) {
       return this.debugMode;
@@ -622,7 +615,6 @@ export class MiniShootout3D {
 
     this.debugMode = next;
     this.applyDebugVisibility();
-    updateDebugButtonState(this.debugButton, this.debugMode);
     if (this.debugMode) {
       this.updateColliderVisuals();
     }
@@ -1079,7 +1071,7 @@ export class MiniShootout3D {
   /**
    * 다음 테마로 전환
    */
-  private async switchToNextTheme(): Promise<void> {
+  public async switchToNextTheme(): Promise<void> {
     const currentTheme = this.ball.getTheme();
     const themeKeys = Object.keys(BALL_THEMES) as Array<keyof typeof BALL_THEMES>;
     const currentIndex = themeKeys.findIndex(key => BALL_THEMES[key].name === currentTheme.name);

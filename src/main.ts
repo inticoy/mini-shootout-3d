@@ -2,6 +2,7 @@ import './style.css';
 import { MiniShootout3D } from './game';
 import { ScoreDisplay } from './ui/scoreDisplay';
 import { TouchGuide } from './ui/touchGuide';
+import { Settings } from './ui/settings';
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
 const uiContainer = document.getElementById('ui') as HTMLDivElement | null;
@@ -15,9 +16,15 @@ const scoreDisplay = new ScoreDisplay(uiContainer);
 const touchGuide = new TouchGuide(uiContainer);
 
 // 게임 초기화
-new MiniShootout3D(
+const game = new MiniShootout3D(
   canvas,
   (score) => scoreDisplay.update(score),
   (show) => touchGuide.show(show),
   scoreDisplay
 );
+
+// Settings 생성 (게임 인스턴스 생성 후에 콜백 전달)
+new Settings(uiContainer, {
+  onToggleDebug: () => game.toggleDebugMode(),
+  onNextTheme: () => void game.switchToNextTheme()
+});
