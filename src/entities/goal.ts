@@ -54,10 +54,11 @@ export class Goal {
   constructor(scene: THREE.Scene, world: CANNON.World, ballMaterial: CANNON.Material) {
     const postMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
-      roughness: 0.1,
-      metalness: 0.1,
-      clearcoat: 0.25,
-      clearcoatRoughness: 0.15
+      roughness: 0.2,
+      metalness: 0.0,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.1,
+      reflectivity: 0.8
     });
 
     const postWidth = POST_RADIUS * 2;

@@ -40,5 +40,12 @@ export function configureSceneLighting(scene: THREE.Scene): SceneLighting {
   rim.position.set(-12, 15, -5);
   scene.add(rim);
 
+  // 골대 정면 조명 - 골대를 더 밝고 선명하게
+  const goalFrontLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  goalFrontLight.position.set(0, 3, 10);
+  goalFrontLight.target.position.set(0, 1, -6);
+  scene.add(goalFrontLight);
+  scene.add(goalFrontLight.target);
+
   return { ambient, hemisphere, directional, point };
 }
