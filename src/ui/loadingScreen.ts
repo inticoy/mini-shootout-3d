@@ -49,7 +49,7 @@ export class LoadingScreen {
   private currentMessageIndex = 0;
 
   private static readonly CLASS_NAMES = {
-    container: 'loading-screen fixed inset-0 z-[9999] flex h-full w-full flex-col items-center justify-start pt-[18vh] bg-[linear-gradient(180deg,#5BA3D8_0%,#87CEEB_30%,#B8E6F5_60%,#E0F6FF_85%,#FFFEF0_100%)] transition-opacity duration-500 ease-out text-white overflow-hidden',
+    container: 'loading-screen fixed inset-0 z-[9999] flex h-full w-full flex-col items-center justify-start pt-[18vh] bg-[linear-gradient(180deg,#5BA3E8_0%,#87CEEB_30%,#B8E6F5_55%,#B8E6F5_100%)] transition-opacity duration-500 ease-out text-white overflow-hidden',
     titleSection: 'loading-screen__title mb-20 text-center animate-fade-in-down-large',
     titleText: 'loading-screen__title-text mx-6 w-[80vw] max-w-[500px] h-auto whitespace-nowrap text-[56px] font-black tracking-[2px] text-white md:text-[56px] md:tracking-[2px] lg:text-[56px] lg:tracking-[2px] [text-shadow:0_2px_6px_rgba(0,0,0,0.1)]',
     subtitle: 'loading-screen__subtitle mt-[10px] text-[18px] font-bold tracking-[3px] text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]',
