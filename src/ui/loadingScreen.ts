@@ -67,7 +67,7 @@ export class LoadingScreen {
     tip: 'loading-screen__tip absolute left-1/2 bottom-[20px] max-w-[600px] -translate-x-1/2 px-[20px] text-center text-[14px] text-[rgba(255,255,255,0.7)] animate-fade-in-delayed lg:bottom-[30px] lg:text-[16px]',
     tipStrong: 'text-[#7dd3a0] font-bold',
     soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[10vh] -translate-x-1/2 flex flex-col items-center gap-8 opacity-0 transition-opacity duration-1000',
-    soccerBall: 'loading-screen__soccer-ball w-[96px] h-[96px] cursor-pointer animate-bounce-slow drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]',
+    soccerBall: 'loading-screen__soccer-ball w-[72px] h-[72px] cursor-pointer animate-bounce-slow drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]',
     swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[10000] touch-none pointer-events-auto'
   };
 

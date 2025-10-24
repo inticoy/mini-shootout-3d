@@ -192,10 +192,10 @@ body {
       /* Soccer field stripe pattern */
       repeating-linear-gradient(
 	  	160deg,
-	  #5e8e48 0px,
-  	  #5e8e48 72px,
-  	  #476f39 72px,
-  	  #476f39 144px
+	  #58823a 0px,
+  	  #58823a 72px,
+  	  #49752a 72px,
+  	  #49752a 144px
       );
 
     background-size: 100% 100%;
@@ -389,7 +389,7 @@ body {
 /* ========================================
    가로 모드 반응형 레이아웃
    ======================================== */
-@media (orientation: landscape) and (max-height: 550px), (max-width: 450px) {
+@media (orientation: landscape) and (max-height: 550px) {
   .loading-screen {
     /* 상단 여백을 줄여 세로 공간 확보 */
     padding-top: 5vh !important;

@@ -8,8 +8,6 @@ export interface SceneLighting {
 }
 
 export function configureSceneLighting(scene: THREE.Scene): SceneLighting {
-  scene.fog = new THREE.Fog(0x2a6f47, 50, 150);
-
   const ambient = new THREE.AmbientLight(0xffffff, 0.99);
   scene.add(ambient);
 
@@ -30,7 +28,7 @@ export function configureSceneLighting(scene: THREE.Scene): SceneLighting {
   directional.shadow.normalBias = 0.03;
   scene.add(directional);
 
-  const point = new THREE.PointLight(0xffffff, 10, 120);
+  const point = new THREE.PointLight(0xffffff, 1, 20);
   point.position.set(-6, 12, 18);
   point.castShadow = true;
   point.shadow.mapSize.width = 1024;
