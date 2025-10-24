@@ -242,11 +242,11 @@ body {
   /* Goalpost on the horizon */
   .loading-goalpost {
     position: absolute;
-    bottom: 36%;
+    bottom: 38%;
     left: 50%;
     transform: translate(-50%, var(--hill-offset, 0px)); /* Use variable for vertical movement */
-    width: 30vh; /* Responsive width */
-    max-width: 150px;
+    width: 20vh; /* Responsive width */
+    max-width: 120px;
     opacity: 1.;
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
     transition: transform 0.8s ease-out; /* Sync animation timing */
@@ -384,4 +384,43 @@ body {
 
 .animate-fade-in-down-large {
   animation: fade-in-down-large 0.8s ease-out;
+}
+
+/* ========================================
+   가로 모드 반응형 레이아웃
+   ======================================== */
+@media (orientation: landscape) and (max-height: 550px), (max-width: 450px) {
+  .loading-screen {
+    /* 상단 여백을 줄여 세로 공간 확보 */
+    padding-top: 5vh !important;
+  }
+
+  .loading-screen__title {
+    /* 타이틀과 프로그레스 바 사이 여백 감소 */
+    margin-bottom: 4vh !important;
+  }
+
+  .loading-screen__title-text {
+    /* 로고 이미지 크기 축소 */
+    max-width: 300px !important;
+  }
+
+  .loading-screen__stage1-container,
+  .loading-screen__soccer-ball-container {
+    /* 하단에서의 위치 및 내부 요소 간격 축소 */
+    bottom: 5vh !important;
+    gap: 1rem !important; /* 16px */
+  }
+
+  .loading-screen__soccer-ball {
+    /* 축구공 크기 축소 */
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .loading-screen__message,
+  .loading-screen__soccer-ball-container > div {
+    /* 메시지 폰트 크기 조정 */
+    font-size: 16px !important;
+  }
 }
