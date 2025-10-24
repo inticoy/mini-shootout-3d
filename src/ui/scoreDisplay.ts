@@ -27,104 +27,74 @@ export class ScoreDisplay {
   }
 
   /**
-   * BEST 스코어 컨테이너 생성 (Tailwind + Glass Morphism)
+   * BEST 스코어 컨테이너 생성 (전광판 스타일)
    */
   private createBestScore(): HTMLDivElement {
     const container = document.createElement('div');
 
-    // Tailwind classes (햄버거 버튼과 통일)
+    // 전광판 스타일 컨테이너
     container.className = `
-      absolute top-5 left-1/2 -translate-x-1/2
-      h-12 flex items-center gap-2
-      px-4
-      rounded-2xl
+      absolute top-10 left-1/2 -translate-x-1/2
+      flex flex-col items-center gap-2
+      px-12 py-4
+      rounded-lg
       backdrop-blur-[10px]
       transition-all duration-300
-      xs-height:h-8 xs-height:px-2.5 xs-height:top-2.5
-      landscape-xs:h-7 landscape-xs:px-2 landscape-xs:top-2 landscape-xs:gap-1.5
-      glass-best
+      landscape-xs:px-6 landscape-xs:py-2 landscape-xs:gap-0.5
+      scoreboard-display
     `.trim().replace(/\s+/g, ' ');
 
-    // Label (스코어 숫자와 같은 크기)
-    const label = document.createElement('span');
-    label.className = `
-      text-xl font-russo tracking-[0.15em] text-yellow-400 leading-5
-      xs-height:text-sm xs-height:leading-3 xs-height:tracking-wider
-      landscape-xs:text-xs landscape-xs:leading-3
+    // BEST: nnn 라인
+    const bestLine = document.createElement('div');
+    bestLine.className = `
+      font-orbitron text-sm font-bold tracking-[0.2em]
+      landscape-xs:text-[10px]
     `.trim().replace(/\s+/g, ' ');
-    label.textContent = 'BEST';
+    bestLine.style.color = '#aaaaaa';
+    bestLine.style.textShadow = '0 0 8px rgba(170, 170, 170, 0.6), 0 0 16px rgba(170, 170, 170, 0.3)';
 
-    // Number
+    const bestLabel = document.createElement('span');
+    bestLabel.textContent = 'BEST';
+    bestLabel.style.color = '#fbbf24'; // 노란색
+    bestLabel.style.textShadow = '0 0 8px rgba(251, 191, 36, 0.8), 0 0 16px rgba(251, 191, 36, 0.6)';
+
+    const bestColon = document.createTextNode(': ');
+
     const number = document.createElement('span');
     number.id = 'best-score-number';
-    number.className = `
-      text-xl font-russo text-white leading-5
-      xs-height:text-sm xs-height:leading-3
-      landscape-xs:text-xs landscape-xs:leading-3
-    `.trim().replace(/\s+/g, ' ');
+    number.style.color = '#ffffff';
+    number.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.8), 0 0 16px rgba(255, 255, 255, 0.6)';
     number.textContent = this.bestScore.toString();
 
-    container.appendChild(label);
-    container.appendChild(number);
+    bestLine.appendChild(bestLabel);
+    bestLine.appendChild(bestColon);
+    bestLine.appendChild(number);
+
+    // 현재 스코어 (큰 숫자)
+    const currentScore = document.createElement('div');
+    currentScore.id = 'scoreboard-current-score';
+    currentScore.className = `
+      font-orbitron text-[72px] font-black tracking-wide
+      landscape-xs:text-[32px]
+    `.trim().replace(/\s+/g, ' ');
+    currentScore.style.color = '#ffffff';
+    currentScore.style.textShadow = '0 0 15px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.6), 0 0 45px rgba(255, 255, 255, 0.4)';
+    currentScore.style.lineHeight = '1';
+    currentScore.textContent = '0';
+
+    container.appendChild(bestLine);
+    container.appendChild(currentScore);
 
     return container;
   }
 
   /**
-   * 메인 스코어 컨테이너 생성 (Tailwind + Glass Morphism)
+   * 메인 스코어 컨테이너 생성 (더미 - 전광판에 통합됨)
    */
   private createMainScore(): HTMLDivElement {
     const container = document.createElement('div');
-
-    // Outer container (positioning)
-    container.className = `
-      absolute left-1/2 -translate-x-1/2
-      transition-all duration-400
-    `.trim().replace(/\s+/g, ' ');
-    container.style.top = '13vh';
-
-    // 반응형: 작은 화면에서 top 값 조정
-    if (typeof window !== 'undefined') {
-      const updatePosition = () => {
-        if (window.innerHeight <= 550) {
-          container.style.top = '15vh';
-        } else {
-          container.style.top = '13vh';
-        }
-      };
-      updatePosition();
-      window.addEventListener('resize', updatePosition);
-    }
-
-    // Inner glass container (햄버거 버튼과 통일)
-    const glassBox = document.createElement('div');
-    glassBox.id = 'main-score-glass';
-    glassBox.className = `
-      relative
-      px-8 py-4
-      rounded-2xl
-      backdrop-blur-[12px]
-      transition-all duration-400
-      xs-height:px-4 xs-height:py-2 xs-height:rounded-xl
-      landscape-xs:px-3 landscape-xs:py-1.5 landscape-xs:rounded-lg
-      glass-main-score
-    `.trim().replace(/\s+/g, ' ');
-
-    // Number
-    const number = document.createElement('div');
-    number.id = 'score-number';
-    number.className = `
-      font-russo text-[60px] text-white
-      leading-none tracking-wide
-      transition-all duration-400
-      xs-height:text-[36px]
-      landscape-xs:text-[28px]
-    `.trim().replace(/\s+/g, ' ');
-    number.textContent = '0';
-
-    glassBox.appendChild(number);
-    container.appendChild(glassBox);
-
+    // 전광판에 통합되었으므로 빈 컨테이너 반환
+    container.className = 'hidden';
     return container;
   }
 
@@ -132,19 +102,20 @@ export class ScoreDisplay {
    * 점수 업데이트 (게임에서 호출)
    */
   update(score: number): void {
-    const oldScore = parseInt(
-      document.getElementById('score-number')?.textContent || '0'
-    );
+    const currentScoreEl = document.getElementById('scoreboard-current-score');
+    if (!currentScoreEl) return;
+
+    const oldScore = parseInt(currentScoreEl.textContent || '0');
 
     // 카운트업 애니메이션 (300ms)
-    this.animateCount(oldScore, score, 300);
+    this.animateScoreboardCount(oldScore, score, 300);
 
     // Bounce 애니메이션
-    const glassBox = document.getElementById('main-score-glass');
-    if (glassBox) {
-      glassBox.classList.add('score-animate');
+    const scoreboard = this.scoreBest;
+    if (scoreboard) {
+      scoreboard.classList.add('score-animate');
       setTimeout(() => {
-        glassBox.classList.remove('score-animate');
+        scoreboard.classList.remove('score-animate');
       }, 400);
     }
 
@@ -160,10 +131,10 @@ export class ScoreDisplay {
   /**
    * 숫자 카운트업 애니메이션 (부드러운 증가)
    */
-  private animateCount(from: number, to: number, duration: number): void {
+  private animateScoreboardCount(from: number, to: number, duration: number): void {
     const startTime = Date.now();
     const range = to - from;
-    const numberEl = document.getElementById('score-number');
+    const numberEl = document.getElementById('scoreboard-current-score');
     if (!numberEl) return;
 
     const step = () => {

@@ -7,7 +7,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        russo: ['"Russo One"', 'sans-serif']
+        russo: ['"Russo One"', 'sans-serif'],
+        orbitron: ['Orbitron', 'monospace']
       },
       screens: {
         'xs-height': { 'raw': '(max-height: 550px)' },

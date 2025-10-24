@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Complete In-Game UI Layout Sample</title>
+  <title>UI Color Design Samples</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Russo+One&display=swap');
 
@@ -15,628 +15,566 @@
 
     body {
       font-family: 'Russo One', sans-serif;
-      background: #3a8f5a;
+      background: #000;
       min-height: 100vh;
-      position: relative;
-      overflow: hidden;
+      overflow-x: hidden;
     }
 
-    /* Crowd background pattern */
-    body::before {
+    /* Crowd background pattern - 100px x 500px, 세로1 가로5 */
+    .sample-container::before {
       content: '';
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      bottom: 0;
-      background: url('src/assets/crowd/crowd2.png');
-      background-size: 200px;
-      opacity: 0.15;
+      height: 500px;
+      background: url('src/assets/crowd/crowd.png');
+      background-size: 100px 500px;
+      background-repeat: repeat-x;
+      background-position: top left;
+      opacity: 0.4;
       pointer-events: none;
       z-index: 0;
     }
 
-    /* Game container simulation */
-    #game-container {
-      position: relative;
-      width: 100%;
-      height: 100vh;
+    .samples-wrapper {
+      padding: 40px 20px;
     }
 
-    /* UI Overlay */
-    #ui-overlay {
+    .sample-container {
+      position: relative;
+      width: 100%;
+      max-width: 1200px;
+      height: 500px;
+      margin: 0 auto 40px;
+      background: linear-gradient(180deg, #c41e3a 0%, #8b1429 100%);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .sample-title {
       position: absolute;
-      top: 0;
-      left: 0;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 8px 24px;
+      border-radius: 20px;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      z-index: 100;
+    }
+
+    /* UI Elements Positioning */
+    .ui-elements {
+      position: relative;
       width: 100%;
       height: 100%;
-      pointer-events: none;
       z-index: 10;
     }
 
-    /* Allow pointer events only on interactive elements */
-    #ui-overlay button {
-      pointer-events: auto;
-    }
-
-    /* ============================================
-       TOP BAR - BEST SCORE
-       ============================================ */
-    .top-bar {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .best-score-container {
-      position: relative;
-      padding: 8px 24px;
-      background: linear-gradient(135deg,
-        rgba(0, 0, 0, 0.4) 0%,
-        rgba(0, 0, 0, 0.25) 100%
-      );
-      backdrop-filter: blur(10px) saturate(150%);
-      border-radius: 30px;
-      border: 1.5px solid transparent;
-
-      box-shadow:
-        0 0 0 1.5px rgba(255, 215, 0, 0.5),
-        0 0 15px rgba(255, 215, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    }
-
-    .best-score-container::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 50%;
-      background: linear-gradient(180deg,
-        rgba(255, 255, 255, 0.06) 0%,
-        transparent 100%
-      );
-      border-radius: 30px 30px 0 0;
-      pointer-events: none;
-    }
-
-    .best-score-label {
-      font-size: 12px;
-      color: rgba(255, 215, 0, 0.8);
-      letter-spacing: 0.15em;
-      display: inline-block;
-      margin-right: 8px;
-      vertical-align: middle;
-      line-height: 20px;
-    }
-
-    .best-score-number {
-      font-size: 20px;
-      color: #ffffff;
-      text-shadow:
-        0 1px 0 rgba(0,0,0,0.3),
-        0 0 15px rgba(255, 215, 0, 0.3);
-      letter-spacing: 0.05em;
-      vertical-align: middle;
-      line-height: 20px;
-    }
-
-    /* ============================================
-       MAIN SCORE - CENTER TOP
-       Glass Morphism Style (Style 1)
-       ============================================ */
-    .main-score-container {
-      position: absolute;
-      top: 13vh;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    .main-score {
-      position: relative;
-      padding: 20px 60px;
-      background: linear-gradient(135deg,
-        rgba(0, 0, 0, 0.5) 0%,
-        rgba(0, 0, 0, 0.3) 100%
-      );
-      backdrop-filter: blur(12px) saturate(180%);
-      border-radius: 20px;
-      border: 2px solid transparent;
-      background-clip: padding-box;
-
-      /* Neon border effect */
-      box-shadow:
-        0 0 0 2px rgba(255, 215, 0, 0.6),
-        0 0 20px rgba(255, 215, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.5);
-    }
-
-    .main-score .number {
-      font-size: 92px;
-      color: #ffffff;
-      text-shadow:
-        0 2px 0 rgba(0,0,0,0.3),
-        0 0 30px rgba(255, 215, 0, 0.5),
-        0 0 60px rgba(255, 215, 0, 0.2);
-      letter-spacing: 0.05em;
-      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
-      line-height: 1;
-    }
-
-    /* Inner gradient overlay */
-    .main-score::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 40%;
-      background: linear-gradient(180deg,
-        rgba(255, 255, 255, 0.08) 0%,
-        transparent 100%
-      );
-      border-radius: 20px 20px 0 0;
-      pointer-events: none;
-    }
-
-    /* Score change animation */
-    .main-score.score-animate {
-      animation: score-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    @keyframes score-bounce {
-      0% {
-        transform: scale(1);
-        filter: brightness(1);
-      }
-      50% {
-        transform: scale(1.12);
-        filter: brightness(1.3) drop-shadow(0 0 30px rgba(255,215,0,0.8));
-      }
-      100% {
-        transform: scale(1);
-        filter: brightness(1);
-      }
-    }
-
-    /* ============================================
-       TOP LEFT - SETTINGS BUTTONS
-       ============================================ */
-    .settings-buttons {
+    /* Common styles */
+    .hamburger-btn {
       position: absolute;
       top: 20px;
       left: 20px;
-      display: flex;
-      gap: 10px;
-    }
-
-    .icon-button {
       width: 48px;
       height: 48px;
-      background: linear-gradient(135deg,
-        rgba(0, 0, 0, 0.4) 0%,
-        rgba(0, 0, 0, 0.25) 100%
-      );
-      backdrop-filter: blur(10px) saturate(150%);
-      border: 1.5px solid rgba(255, 255, 255, 0.15);
       border-radius: 12px;
-      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      padding: 0;
     }
 
-    .icon-button svg {
+    .hamburger-icon {
       width: 24px;
-      height: 24px;
-      fill: rgba(255, 255, 255, 0.8);
-      transition: fill 0.2s ease;
+      height: 18px;
+      position: relative;
     }
 
-    .icon-button:hover {
-      transform: translateY(-2px);
-      background: linear-gradient(135deg,
-        rgba(0, 0, 0, 0.5) 0%,
-        rgba(0, 0, 0, 0.35) 100%
-      );
-      border-color: rgba(255, 215, 0, 0.4);
-      box-shadow:
-        0 6px 16px rgba(0, 0, 0, 0.3),
-        0 0 15px rgba(255, 215, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    .hamburger-icon span {
+      display: block;
+      height: 3px;
+      border-radius: 2px;
+      margin-bottom: 4px;
     }
 
-    .icon-button:hover svg {
-      fill: rgba(255, 215, 0, 0.9);
-    }
-
-    .icon-button:active {
-      transform: translateY(0);
-    }
-
-    /* ============================================
-       SETTINGS MODAL
-       ============================================ */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(8px);
+    .best-score {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 24px;
+      border-radius: 30px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
+      gap: 12px;
     }
 
-    .modal-overlay.show {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .modal-content {
-      background: linear-gradient(135deg,
-        rgba(20, 20, 30, 0.98) 0%,
-        rgba(10, 10, 20, 0.98) 100%
-      );
-      border-radius: 24px;
-      padding: 40px;
-      max-width: 500px;
-      width: 90%;
-      border: 2px solid rgba(255, 215, 0, 0.3);
-      box-shadow:
-        0 0 60px rgba(0, 0, 0, 0.5),
-        0 0 30px rgba(255, 215, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      transform: scale(0.8) translateY(30px);
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .modal-overlay.show .modal-content {
-      transform: scale(1) translateY(0);
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-    }
-
-    .modal-title {
-      font-size: 28px;
-      color: #ffffff;
-      letter-spacing: 0.08em;
-      text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-    }
-
-    .modal-close {
-      width: 36px;
-      height: 36px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      color: rgba(255, 255, 255, 0.6);
-      transition: all 0.2s ease;
-    }
-
-    .modal-close:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-    }
-
-    .settings-section {
-      margin-bottom: 24px;
-    }
-
-    .settings-label {
+    .best-label {
       font-size: 14px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 12px;
+      letter-spacing: 0.15em;
+    }
+
+    .best-number {
+      font-size: 20px;
       letter-spacing: 0.05em;
     }
 
-    .theme-options {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-
-    .theme-option {
-      padding: 16px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s ease;
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.6);
-    }
-
-    .theme-option:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 215, 0, 0.3);
-    }
-
-    .theme-option.active {
-      background: rgba(255, 215, 0, 0.1);
-      border-color: rgba(255, 215, 0, 0.6);
-      color: #ffd700;
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
-    }
-
-    .theme-icon {
-      font-size: 28px;
-      margin-bottom: 6px;
-    }
-
-    /* Demo controls */
-    .demo-controls {
+    .main-score {
       position: absolute;
-      bottom: 40px;
+      top: 100px;
       left: 50%;
       transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
-      pointer-events: auto;
+      padding: 20px 50px;
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
     }
 
-    .demo-button {
-      background: linear-gradient(135deg, #ffd700, #ffed4e);
-      color: #000;
-      border: none;
-      padding: 14px 28px;
-      font-family: 'Russo One', sans-serif;
-      font-size: 16px;
-      border-radius: 50px;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
-      transition: all 0.2s ease;
-      font-weight: 700;
+    .main-number {
+      font-size: 72px;
+      line-height: 1;
+      letter-spacing: 0.05em;
     }
 
-    .demo-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 30px rgba(255, 215, 0, 0.4);
+    /* ========== Design 1: Cyan/Teal (현재) ========== */
+    #design1 .hamburger-btn {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.5) 0%, rgba(8, 145, 178, 0.4) 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
     }
 
-    .demo-button:active {
-      transform: translateY(0);
+    #design1 .hamburger-icon span {
+      background: rgba(255, 255, 255, 0.9);
     }
 
-    .info-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      color: rgba(255, 255, 255, 0.4);
-      font-size: 18px;
-      font-family: system-ui, sans-serif;
-      pointer-events: none;
+    #design1 .best-score {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.5) 0%, rgba(8, 145, 178, 0.4) 100%);
+      backdrop-filter: blur(10px);
+    }
+
+    #design1 .best-label {
+      color: #ffd700;
+    }
+
+    #design1 .best-number {
+      color: #ffffff;
+    }
+
+    #design1 .main-score {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.6) 0%, rgba(8, 145, 178, 0.5) 100%);
+    }
+
+    #design1 .main-number {
+      color: #ffffff;
+      text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+    }
+
+    /* ========== Design 2: Purple/Magenta ========== */
+    #design2 .hamburger-btn {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.5) 0%, rgba(139, 92, 246, 0.4) 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    #design2 .hamburger-icon span {
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    #design2 .best-score {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.5) 0%, rgba(139, 92, 246, 0.4) 100%);
+      backdrop-filter: blur(10px);
+    }
+
+    #design2 .best-label {
+      color: #fbbf24;
+    }
+
+    #design2 .best-number {
+      color: #ffffff;
+    }
+
+    #design2 .main-score {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.6) 0%, rgba(139, 92, 246, 0.5) 100%);
+    }
+
+    #design2 .main-number {
+      color: #ffffff;
+      text-shadow: 0 0 30px rgba(168, 85, 247, 0.8);
+    }
+
+    /* ========== Design 3: Lime/Green ========== */
+    #design3 .hamburger-btn {
+      background: linear-gradient(135deg, rgba(132, 204, 22, 0.5) 0%, rgba(101, 163, 13, 0.4) 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    #design3 .hamburger-icon span {
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    #design3 .best-score {
+      background: linear-gradient(135deg, rgba(132, 204, 22, 0.5) 0%, rgba(101, 163, 13, 0.4) 100%);
+      backdrop-filter: blur(10px);
+    }
+
+    #design3 .best-label {
+      color: #fbbf24;
+    }
+
+    #design3 .best-number {
+      color: #ffffff;
+    }
+
+    #design3 .main-score {
+      background: linear-gradient(135deg, rgba(132, 204, 22, 0.6) 0%, rgba(101, 163, 13, 0.5) 100%);
+    }
+
+    #design3 .main-number {
+      color: #ffffff;
+      text-shadow: 0 0 30px rgba(132, 204, 22, 0.8);
+    }
+
+    /* ========== Design 4: Blue ========== */
+    #design4 .hamburger-btn {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(37, 99, 235, 0.4) 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    #design4 .hamburger-icon span {
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    #design4 .best-score {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(37, 99, 235, 0.4) 100%);
+      backdrop-filter: blur(10px);
+    }
+
+    #design4 .best-label {
+      color: #fbbf24;
+    }
+
+    #design4 .best-number {
+      color: #ffffff;
+    }
+
+    #design4 .main-score {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.6) 0%, rgba(37, 99, 235, 0.5) 100%);
+    }
+
+    #design4 .main-number {
+      color: #ffffff;
+      text-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+    }
+
+    /* ========== Design 5: Orange/Amber ========== */
+    #design5 .hamburger-btn {
+      background: linear-gradient(135deg, rgba(251, 146, 60, 0.5) 0%, rgba(249, 115, 22, 0.4) 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    #design5 .hamburger-icon span {
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    #design5 .best-score {
+      background: linear-gradient(135deg, rgba(251, 146, 60, 0.5) 0%, rgba(249, 115, 22, 0.4) 100%);
+      backdrop-filter: blur(10px);
+    }
+
+    #design5 .best-label {
+      color: #fef08a;
+    }
+
+    #design5 .best-number {
+      color: #ffffff;
+    }
+
+    #design5 .main-score {
+      background: linear-gradient(135deg, rgba(251, 146, 60, 0.6) 0%, rgba(249, 115, 22, 0.5) 100%);
+    }
+
+    #design5 .main-number {
+      color: #ffffff;
+      text-shadow: 0 0 30px rgba(251, 146, 60, 0.8);
+    }
+
+    /* ========== Design 6: White (더 불투명) ========== */
+    #design6 .hamburger-btn {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.25) 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(10px);
+    }
+
+    #design6 .hamburger-icon span {
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    #design6 .best-score {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.25) 100%);
+      backdrop-filter: blur(10px);
+    }
+
+    #design6 .best-label {
+      color: #f59e0b;
+    }
+
+    #design6 .best-number {
+      color: #1f2937;
+    }
+
+    #design6 .main-score {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.3) 100%);
+    }
+
+    #design6 .main-number {
+      color: #1f2937;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+    }
+
+    /* ========== Design 7: Pink/Rose ========== */
+    #design7 .hamburger-btn {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.5) 0%, rgba(219, 39, 119, 0.4) 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    #design7 .hamburger-icon span {
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    #design7 .best-score {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.5) 0%, rgba(219, 39, 119, 0.4) 100%);
+      backdrop-filter: blur(10px);
+    }
+
+    #design7 .best-label {
+      color: #fef08a;
+    }
+
+    #design7 .best-number {
+      color: #ffffff;
+    }
+
+    #design7 .main-score {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.6) 0%, rgba(219, 39, 119, 0.5) 100%);
+    }
+
+    #design7 .main-number {
+      color: #ffffff;
+      text-shadow: 0 0 30px rgba(236, 72, 153, 0.8);
+    }
+
+    /* ========== Design 8: Emerald ========== */
+    #design8 .hamburger-btn {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.5) 0%, rgba(5, 150, 105, 0.4) 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    #design8 .hamburger-icon span {
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    #design8 .best-score {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.5) 0%, rgba(5, 150, 105, 0.4) 100%);
+      backdrop-filter: blur(10px);
+    }
+
+    #design8 .best-label {
+      color: #fbbf24;
+    }
+
+    #design8 .best-number {
+      color: #ffffff;
+    }
+
+    #design8 .main-score {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.6) 0%, rgba(5, 150, 105, 0.5) 100%);
+    }
+
+    #design8 .main-number {
+      color: #ffffff;
+      text-shadow: 0 0 30px rgba(16, 185, 129, 0.8);
     }
   </style>
 </head>
 <body>
-  <div id="game-container">
-    <!-- Simulated game canvas background -->
-    <div class="info-text">
-      ⚽ 실제 게임 화면 위치 ⚽<br>
-      <span style="font-size: 14px; opacity: 0.6;">UI는 게임 위에 오버레이됩니다</span>
+  <div class="samples-wrapper">
+    <!-- Design 1: Cyan/Teal (현재) -->
+    <div class="sample-container" id="design1">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="best-score">
+          <span class="best-label">BEST</span>
+          <span class="best-number">42</span>
+        </div>
+        <div class="main-score">
+          <div class="main-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 1: Cyan/Teal (현재 적용중)</div>
     </div>
 
-    <!-- UI Overlay -->
-    <div id="ui-overlay">
-      <!-- Top Bar - Best Score -->
-      <div class="top-bar">
-        <div class="best-score-container">
-          <span class="best-score-label">BEST</span>
-          <span class="best-score-number" id="best-score">42</span>
+    <!-- Design 2: Purple/Magenta -->
+    <div class="sample-container" id="design2">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="best-score">
+          <span class="best-label">BEST</span>
+          <span class="best-number">42</span>
+        </div>
+        <div class="main-score">
+          <div class="main-number">12</div>
         </div>
       </div>
-
-      <!-- Main Score - Center -->
-      <div class="main-score-container">
-        <div class="main-score" id="main-score">
-          <div class="number" id="score-number">12</div>
-        </div>
-      </div>
-
-      <!-- Top Left - Settings Buttons -->
-      <div class="settings-buttons">
-        <button class="icon-button" id="theme-button" title="테마 변경">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M12 22C6.49 22 2 17.51 2 12S6.49 2 12 2s10 4.04 10 9c0 3.31-2.69 6-6 6h-1.77c-.28 0-.5.22-.5.5 0 .12.05.23.13.33.41.47.64 1.06.64 1.67 0 1.38-1.12 2.5-2.5 2.5zm0-18c-4.41 0-8 3.59-8 8s3.59 8 8 8c.28 0 .5-.22.5-.5 0-.16-.08-.28-.14-.35-.41-.46-.63-1.05-.63-1.65 0-1.38 1.12-2.5 2.5-2.5H16c2.21 0 4-1.79 4-4 0-3.86-3.59-7-8-7z"/>
-            <circle cx="6.5" cy="11.5" r="1.5"/>
-            <circle cx="9.5" cy="7.5" r="1.5"/>
-            <circle cx="14.5" cy="7.5" r="1.5"/>
-            <circle cx="17.5" cy="11.5" r="1.5"/>
-          </svg>
-        </button>
-        <button class="icon-button" id="settings-button" title="설정">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Demo Controls -->
-      <div class="demo-controls">
-        <button class="demo-button" id="goal-button">
-          ⚽ GOAL! (+1점)
-        </button>
-        <button class="demo-button" id="reset-button" style="background: linear-gradient(135deg, #ff6b6b, #ff8e8e);">
-          🔄 리셋
-        </button>
-      </div>
+      <div class="sample-title">Design 2: Purple/Magenta - 현대적이고 눈에 띔</div>
     </div>
 
-    <!-- Settings Modal -->
-    <div class="modal-overlay" id="settings-modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <div class="modal-title">⚙️ SETTINGS</div>
-          <button class="modal-close" id="close-modal">✕</button>
-        </div>
-
-        <div class="settings-section">
-          <div class="settings-label">🎨 THEME / 테마</div>
-          <div class="theme-options">
-            <div class="theme-option active" data-theme="default">
-              <div class="theme-icon">⚽</div>
-              <div>Classic</div>
-            </div>
-            <div class="theme-option" data-theme="dark">
-              <div class="theme-icon">🌙</div>
-              <div>Night</div>
-            </div>
-            <div class="theme-option" data-theme="neon">
-              <div class="theme-icon">✨</div>
-              <div>Neon</div>
-            </div>
+    <!-- Design 3: Lime/Green -->
+    <div class="sample-container" id="design3">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
           </div>
         </div>
-
-        <div class="settings-section">
-          <div class="settings-label">🔊 SOUND / 사운드</div>
-          <div class="theme-options" style="grid-template-columns: 1fr 1fr;">
-            <div class="theme-option active" data-sound="on">
-              <div class="theme-icon">🔊</div>
-              <div>ON</div>
-            </div>
-            <div class="theme-option" data-sound="off">
-              <div class="theme-icon">🔇</div>
-              <div>OFF</div>
-            </div>
-          </div>
+        <div class="best-score">
+          <span class="best-label">BEST</span>
+          <span class="best-number">42</span>
         </div>
-
-        <div class="settings-section">
-          <div class="settings-label">🎮 DIFFICULTY / 난이도</div>
-          <div class="theme-options">
-            <div class="theme-option" data-difficulty="easy">
-              <div class="theme-icon">😊</div>
-              <div>Easy</div>
-            </div>
-            <div class="theme-option active" data-difficulty="normal">
-              <div class="theme-icon">😐</div>
-              <div>Normal</div>
-            </div>
-            <div class="theme-option" data-difficulty="hard">
-              <div class="theme-icon">😤</div>
-              <div>Hard</div>
-            </div>
-          </div>
+        <div class="main-score">
+          <div class="main-number">12</div>
         </div>
       </div>
+      <div class="sample-title">Design 3: Lime/Green - 상쾌하고 활기찬 느낌</div>
+    </div>
+
+    <!-- Design 4: Blue -->
+    <div class="sample-container" id="design4">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="best-score">
+          <span class="best-label">BEST</span>
+          <span class="best-number">42</span>
+        </div>
+        <div class="main-score">
+          <div class="main-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 4: Blue - 차분하고 클래식한 느낌</div>
+    </div>
+
+    <!-- Design 5: Orange/Amber -->
+    <div class="sample-container" id="design5">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="best-score">
+          <span class="best-label">BEST</span>
+          <span class="best-number">42</span>
+        </div>
+        <div class="main-score">
+          <div class="main-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 5: Orange/Amber - 따뜻하고 에너지 넘침</div>
+    </div>
+
+    <!-- Design 6: White -->
+    <div class="sample-container" id="design6">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="best-score">
+          <span class="best-label">BEST</span>
+          <span class="best-number">42</span>
+        </div>
+        <div class="main-score">
+          <div class="main-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 6: White - 깔끔하고 미니멀</div>
+    </div>
+
+    <!-- Design 7: Pink/Rose -->
+    <div class="sample-container" id="design7">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="best-score">
+          <span class="best-label">BEST</span>
+          <span class="best-number">42</span>
+        </div>
+        <div class="main-score">
+          <div class="main-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 7: Pink/Rose - 밝고 경쾌한 느낌</div>
+    </div>
+
+    <!-- Design 8: Emerald -->
+    <div class="sample-container" id="design8">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="best-score">
+          <span class="best-label">BEST</span>
+          <span class="best-number">42</span>
+        </div>
+        <div class="main-score">
+          <div class="main-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 8: Emerald - 신선하고 자연스러운 느낌</div>
     </div>
   </div>
-
-  <script>
-    let currentScore = 12;
-    let bestScore = 42;
-
-    // DOM Elements
-    const mainScoreEl = document.getElementById('main-score');
-    const scoreNumberEl = document.getElementById('score-number');
-    const bestScoreEl = document.getElementById('best-score');
-    const settingsModal = document.getElementById('settings-modal');
-    const settingsButton = document.getElementById('settings-button');
-    const themeButton = document.getElementById('theme-button');
-    const closeModalButton = document.getElementById('close-modal');
-    const goalButton = document.getElementById('goal-button');
-    const resetButton = document.getElementById('reset-button');
-
-    // Goal button - Increment score
-    goalButton.addEventListener('click', () => {
-      currentScore++;
-      scoreNumberEl.textContent = currentScore;
-
-      // Animate
-      mainScoreEl.classList.add('score-animate');
-      setTimeout(() => {
-        mainScoreEl.classList.remove('score-animate');
-      }, 400);
-
-      // Update best score if needed
-      if (currentScore > bestScore) {
-        bestScore = currentScore;
-        bestScoreEl.textContent = bestScore;
-      }
-    });
-
-    // Reset button
-    resetButton.addEventListener('click', () => {
-      currentScore = 0;
-      scoreNumberEl.textContent = currentScore;
-    });
-
-    // Settings button - Open modal
-    settingsButton.addEventListener('click', () => {
-      settingsModal.classList.add('show');
-    });
-
-    // Theme button - Quick theme change (same as opening settings)
-    themeButton.addEventListener('click', () => {
-      settingsModal.classList.add('show');
-    });
-
-    // Close modal
-    closeModalButton.addEventListener('click', () => {
-      settingsModal.classList.remove('show');
-    });
-
-    // Close modal on overlay click
-    settingsModal.addEventListener('click', (e) => {
-      if (e.target === settingsModal) {
-        settingsModal.classList.remove('show');
-      }
-    });
-
-    // Theme options
-    document.querySelectorAll('.theme-option').forEach(option => {
-      option.addEventListener('click', function() {
-        // Remove active from siblings
-        const siblings = this.parentElement.querySelectorAll('.theme-option');
-        siblings.forEach(sib => sib.classList.remove('active'));
-
-        // Add active to clicked
-        this.classList.add('active');
-      });
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        settingsModal.classList.remove('show');
-      }
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        goalButton.click();
-      }
-    });
-  </script>
 </body>
 </html>

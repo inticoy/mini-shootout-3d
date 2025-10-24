@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stadium Scoreboard UI Design</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Orbitron', monospace;
+      background: #000;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Crowd background pattern - 100px x 500px */
+    .sample-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 500px;
+      background: url('src/assets/crowd/crowd.png');
+      background-size: 100px 500px;
+      background-repeat: repeat-x;
+      background-position: top left;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .samples-wrapper {
+      padding: 40px 20px;
+    }
+
+    .sample-container {
+      position: relative;
+      width: 100%;
+      max-width: 1200px;
+      height: 500px;
+      margin: 0 auto 40px;
+      background: linear-gradient(180deg, #c41e3a 0%, #8b1429 100%);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .sample-title {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 8px 24px;
+      border-radius: 20px;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      z-index: 100;
+    }
+
+    .ui-elements {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+    }
+
+    /* Hamburger button */
+    .hamburger-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 48px;
+      height: 48px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .hamburger-icon {
+      width: 24px;
+      height: 18px;
+      position: relative;
+    }
+
+    .hamburger-icon span {
+      display: block;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 2px;
+      margin-bottom: 4px;
+    }
+
+    /* ========== Design 1: Classic Scoreboard (검정 + 노란 LED) ========== */
+    #design1 .scoreboard {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+      border: 3px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 16px 48px 20px;
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.8),
+        inset 0 2px 4px rgba(255, 255, 255, 0.05),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 200px;
+    }
+
+    #design1 .best-line {
+      font-size: 14px;
+      color: #ff6b00;
+      letter-spacing: 0.2em;
+      font-weight: 700;
+      text-shadow:
+        0 0 8px rgba(255, 107, 0, 0.8),
+        0 0 16px rgba(255, 107, 0, 0.4);
+    }
+
+    #design1 .best-number {
+      color: #ffed00;
+      text-shadow:
+        0 0 8px rgba(255, 237, 0, 0.8),
+        0 0 16px rgba(255, 237, 0, 0.6);
+    }
+
+    #design1 .score-number {
+      font-size: 72px;
+      color: #ffed00;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      text-shadow:
+        0 0 15px rgba(255, 237, 0, 0.8),
+        0 0 30px rgba(255, 237, 0, 0.6),
+        0 0 45px rgba(255, 237, 0, 0.4);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ========== Design 2: Green LED Scoreboard ========== */
+    #design2 .scoreboard {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+      border: 3px solid #1a1a1a;
+      border-radius: 8px;
+      padding: 16px 48px 20px;
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.8),
+        inset 0 2px 4px rgba(0, 255, 0, 0.03),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 200px;
+    }
+
+    #design2 .best-line {
+      font-size: 14px;
+      color: #00ff00;
+      letter-spacing: 0.2em;
+      font-weight: 700;
+      text-shadow:
+        0 0 8px rgba(0, 255, 0, 0.8),
+        0 0 16px rgba(0, 255, 0, 0.4);
+    }
+
+    #design2 .best-number {
+      color: #00ff00;
+      text-shadow:
+        0 0 8px rgba(0, 255, 0, 0.8),
+        0 0 16px rgba(0, 255, 0, 0.6);
+    }
+
+    #design2 .score-number {
+      font-size: 72px;
+      color: #00ff00;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      text-shadow:
+        0 0 15px rgba(0, 255, 0, 0.8),
+        0 0 30px rgba(0, 255, 0, 0.6),
+        0 0 45px rgba(0, 255, 0, 0.4);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ========== Design 3: Cyan LED Scoreboard ========== */
+    #design3 .scoreboard {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #0f0f0f 0%, #050505 100%);
+      border: 3px solid #1f1f1f;
+      border-radius: 8px;
+      padding: 16px 48px 20px;
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.8),
+        inset 0 2px 4px rgba(0, 255, 255, 0.03),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 200px;
+    }
+
+    #design3 .best-line {
+      font-size: 14px;
+      color: #00ffff;
+      letter-spacing: 0.2em;
+      font-weight: 700;
+      text-shadow:
+        0 0 8px rgba(0, 255, 255, 0.8),
+        0 0 16px rgba(0, 255, 255, 0.4);
+    }
+
+    #design3 .best-number {
+      color: #00ffff;
+      text-shadow:
+        0 0 8px rgba(0, 255, 255, 0.8),
+        0 0 16px rgba(0, 255, 255, 0.6);
+    }
+
+    #design3 .score-number {
+      font-size: 72px;
+      color: #00ffff;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      text-shadow:
+        0 0 15px rgba(0, 255, 255, 0.8),
+        0 0 30px rgba(0, 255, 255, 0.6),
+        0 0 45px rgba(0, 255, 255, 0.4);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ========== Design 4: Red LED Scoreboard ========== */
+    #design4 .scoreboard {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #0d0d0d 0%, #000000 100%);
+      border: 3px solid #1a0a0a;
+      border-radius: 8px;
+      padding: 16px 48px 20px;
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.8),
+        inset 0 2px 4px rgba(255, 0, 0, 0.03),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 200px;
+    }
+
+    #design4 .best-line {
+      font-size: 14px;
+      color: #ff3333;
+      letter-spacing: 0.2em;
+      font-weight: 700;
+      text-shadow:
+        0 0 8px rgba(255, 51, 51, 0.8),
+        0 0 16px rgba(255, 51, 51, 0.4);
+    }
+
+    #design4 .best-number {
+      color: #ff3333;
+      text-shadow:
+        0 0 8px rgba(255, 51, 51, 0.8),
+        0 0 16px rgba(255, 51, 51, 0.6);
+    }
+
+    #design4 .score-number {
+      font-size: 72px;
+      color: #ff3333;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      text-shadow:
+        0 0 15px rgba(255, 51, 51, 0.8),
+        0 0 30px rgba(255, 51, 51, 0.6),
+        0 0 45px rgba(255, 51, 51, 0.4);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ========== Design 5: White LED Scoreboard ========== */
+    #design5 .scoreboard {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+      border: 3px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 16px 48px 20px;
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.8),
+        inset 0 2px 4px rgba(255, 255, 255, 0.03),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 200px;
+    }
+
+    #design5 .best-line {
+      font-size: 14px;
+      color: #aaaaaa;
+      letter-spacing: 0.2em;
+      font-weight: 700;
+      text-shadow:
+        0 0 8px rgba(170, 170, 170, 0.6),
+        0 0 16px rgba(170, 170, 170, 0.3);
+    }
+
+    #design5 .best-number {
+      color: #ffffff;
+      text-shadow:
+        0 0 8px rgba(255, 255, 255, 0.8),
+        0 0 16px rgba(255, 255, 255, 0.6);
+    }
+
+    #design5 .score-number {
+      font-size: 72px;
+      color: #ffffff;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      text-shadow:
+        0 0 15px rgba(255, 255, 255, 0.8),
+        0 0 30px rgba(255, 255, 255, 0.6),
+        0 0 45px rgba(255, 255, 255, 0.4);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ========== Design 6: Orange LED Scoreboard ========== */
+    #design6 .scoreboard {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #0d0d0d 0%, #000000 100%);
+      border: 3px solid #1a1410;
+      border-radius: 8px;
+      padding: 16px 48px 20px;
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.8),
+        inset 0 2px 4px rgba(255, 140, 0, 0.03),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 200px;
+    }
+
+    #design6 .best-line {
+      font-size: 14px;
+      color: #ff8c00;
+      letter-spacing: 0.2em;
+      font-weight: 700;
+      text-shadow:
+        0 0 8px rgba(255, 140, 0, 0.8),
+        0 0 16px rgba(255, 140, 0, 0.4);
+    }
+
+    #design6 .best-number {
+      color: #ff8c00;
+      text-shadow:
+        0 0 8px rgba(255, 140, 0, 0.8),
+        0 0 16px rgba(255, 140, 0, 0.6);
+    }
+
+    #design6 .score-number {
+      font-size: 72px;
+      color: #ff8c00;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      text-shadow:
+        0 0 15px rgba(255, 140, 0, 0.8),
+        0 0 30px rgba(255, 140, 0, 0.6),
+        0 0 45px rgba(255, 140, 0, 0.4);
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <div class="samples-wrapper">
+    <!-- Design 1: Yellow LED (Classic) -->
+    <div class="sample-container" id="design1">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="scoreboard">
+          <div class="score-item">
+            <div class="score-label">BEST</div>
+            <div class="score-number">42</div>
+          </div>
+          <div class="divider"></div>
+          <div class="score-item">
+            <div class="score-label">SCORE</div>
+            <div class="score-number">12</div>
+          </div>
+        </div>
+        <div class="main-score">
+          <div class="main-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 1: Yellow LED (클래식 야구장)</div>
+    </div>
+
+    <!-- Design 2: Green LED -->
+    <div class="sample-container" id="design2">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="scoreboard">
+          <div class="best-line">BEST: <span class="best-number">42</span></div>
+          <div class="score-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 2: Green LED (매트릭스 느낌)</div>
+    </div>
+
+    <!-- Design 3: Cyan LED -->
+    <div class="sample-container" id="design3">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="scoreboard">
+          <div class="best-line">BEST: <span class="best-number">42</span></div>
+          <div class="score-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 3: Cyan LED (미래적)</div>
+    </div>
+
+    <!-- Design 4: Red LED -->
+    <div class="sample-container" id="design4">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="scoreboard">
+          <div class="best-line">BEST: <span class="best-number">42</span></div>
+          <div class="score-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 4: Red LED (강렬함)</div>
+    </div>
+
+    <!-- Design 5: White LED -->
+    <div class="sample-container" id="design5">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="scoreboard">
+          <div class="best-line">BEST: <span class="best-number">42</span></div>
+          <div class="score-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 5: White LED (깔끔함)</div>
+    </div>
+
+    <!-- Design 6: Orange LED -->
+    <div class="sample-container" id="design6">
+      <div class="ui-elements">
+        <div class="hamburger-btn">
+          <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="scoreboard">
+          <div class="best-line">BEST: <span class="best-number">42</span></div>
+          <div class="score-number">12</div>
+        </div>
+      </div>
+      <div class="sample-title">Design 6: Orange LED (따뜻함)</div>
+    </div>
+  </div>
+</body>
+</html>
