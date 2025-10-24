@@ -18,8 +18,8 @@ export interface FieldDimensionsConfig {
 }
 
 export const FIELD_DIMENSIONS: FieldDimensionsConfig = {
-  planeWidth: 30,
-  planeHeight: 30,
+  planeWidth: 60,
+  planeHeight: 25,
   defaultStripeWidth: 3,
   lineMeshHeight: 0.01,
   goalLineLength: 100,

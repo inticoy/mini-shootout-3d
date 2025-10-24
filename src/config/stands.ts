@@ -32,7 +32,7 @@ export interface StandsConfig {
 
 export const STANDS_CONFIG: StandsConfig = {
   geometry: {
-    width: 50,           // 광고판과 비슷한 너비
+    width: 100,           // 광고판과 비슷한 너비
     height: 20,          // 화면 꽉 찰 정도로 높게
     depth: 15            // 경사 깊이
   },

@@ -67,7 +67,7 @@ export class LoadingScreen {
     tip: 'loading-screen__tip absolute left-1/2 bottom-[20px] max-w-[600px] -translate-x-1/2 px-[20px] text-center text-[14px] text-[rgba(255,255,255,0.7)] animate-fade-in-delayed lg:bottom-[30px] lg:text-[16px]',
     tipStrong: 'text-[#7dd3a0] font-bold',
     soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[10vh] -translate-x-1/2 flex flex-col items-center gap-8 opacity-0 transition-opacity duration-1000',
-    soccerBall: 'loading-screen__soccer-ball w-[72px] h-[72px] cursor-pointer animate-bounce-slow drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]',
+    soccerBall: 'loading-screen__soccer-ball w-[72px] h-[72px] cursor-pointer animate-bounce drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]',
     swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[10000] touch-none pointer-events-auto'
   };
 
@@ -189,7 +189,7 @@ export class LoadingScreen {
 
       // 안내 메시지
       const shootMessage = document.createElement('div');
-      shootMessage.className = 'text-center text-[20px] font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]';
+      shootMessage.className = 'animate-pulse text-center text-[20px] font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]';
       shootMessage.textContent = '위로 스와이프해 스냅슛!';
       shootMessage.style.fontFamily = "'Chiron GoRound TC', sans-serif";
 
@@ -205,6 +205,9 @@ export class LoadingScreen {
       swipeCanvas.className = LoadingScreen.CLASS_NAMES.swipeCanvas;
       swipeCanvas.width = window.innerWidth;
       swipeCanvas.height = window.innerHeight;
+
+      // 초기에는 스와이프 비활성화 (축구공 페이드인 완료 후 활성화)
+      swipeCanvas.style.pointerEvents = 'none';
 
       return swipeCanvas;
   }
@@ -258,7 +261,8 @@ export class LoadingScreen {
     if (!this.soccerBall) return;
 
     // Stop the bounce animation and reset transform
-    this.soccerBall.classList.remove('animate-bounce-slow');
+    this.soccerBall.classList.remove('animate-bounce');
+    this.soccerBall.style.animation = 'none'; // 애니메이션 완전히 중지
     this.soccerBall.style.transform = ''; // 초기화
 
     // 스와이프 캔버스 숨기기 (더 이상 스와이프 불가)
@@ -390,9 +394,14 @@ export class LoadingScreen {
         this.soccerBallContainer.style.opacity = '1';
       }
 
+      // 축구공 페이드인 완료 후 스와이프 허용
+      if (this.swipeCanvas) {
+        this.swipeCanvas.style.pointerEvents = 'auto';
+      }
+
       // 게임 진입 체크
       this.checkAndEnterGame();
-    }, 800);
+    }, 200);
   }
 
   /**

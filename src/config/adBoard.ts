@@ -45,7 +45,7 @@ export interface AdBoardConfig {
 
 export const AD_BOARD_CONFIG: AdBoardConfig = {
   size: {
-    width: 40,
+    width: 60,
     height: 1.2,
     depth: 0.5
   },
@@ -66,7 +66,7 @@ export const AD_BOARD_CONFIG: AdBoardConfig = {
     height: 192
   },
   display: {
-    repeatX: 2,
+    repeatX: 3,
     repeatY: 1
   },
   adSets: {
