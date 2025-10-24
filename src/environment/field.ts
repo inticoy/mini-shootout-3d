@@ -73,7 +73,6 @@ export class Field {
     // 샘플 관중석 추가
     this.stands = new Stands(
       scene,
-      world,
       this.goalDepth + AD_BOARD_CONFIG.position.depthOffset
     );
   }

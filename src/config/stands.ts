@@ -32,27 +32,27 @@ export interface StandsConfig {
 
 export const STANDS_CONFIG: StandsConfig = {
   geometry: {
-    width: 100,           // 광고판과 비슷한 너비
-    height: 20,          // 화면 꽉 찰 정도로 높게
+    width: 60,           // 광고판과 비슷한 너비
+    height: 10,          // 화면 꽉 찰 정도로 높게
     depth: 15            // 경사 깊이
   },
   position: {
-    x: 1,              // x축 위치 (기본 0)
-    y: 0,
-    zOffset: -2          // 광고판 뒤 2m
+    x: -0.6,              // x축 위치 (기본 0)
+    y: 3,
+    zOffset: -1        // 광고판 뒤 2m
   },
   angle: {
-    degrees: 35          // 더 완만한 관중석 각도
+    degrees: -25          // 더 완만한 관중석 각도
   },
   material: {
-    color: 0x2a4858,     // 진한 청록색 (스타디움 좌석 느낌)
-    roughness: 0.8,      // 조명 반사 잘 보이도록
-    metalness: 0.05      // 약간의 금속성
+    color: 0xffffff,     // 진한 청록색 (스타디움 좌석 느낌)
+    roughness: 1.,      // 조명 반사 잘 보이도록
+    metalness: 0.      // 약간의 금속성
   },
   crowdTexture: {
     repeat: {
-      x: 0.1,
-      y: 0.3
+      x: 5,
+      y: 10
     }
   }
 };
