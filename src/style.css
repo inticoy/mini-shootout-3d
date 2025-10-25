@@ -4,6 +4,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    /* 배경은 JavaScript에서 동적으로 설정 (로딩: 하늘-연두, 인게임: 빨강-녹색) */
+    @apply h-[100dvh] min-h-[100dvh];
+  }
+
+  body {
+    /* 배경 투명 - html 배경이 비치게 */
+    @apply bg-transparent h-[100dvh] min-h-[100dvh];
+  }
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -12,32 +24,35 @@
 
 body {
   width: 100vw;
-  height: 100vh;
+  height: 100svh;
   overflow: hidden;
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  background: #3a8f5a;
   touch-action: none;
   user-select: none;
 }
 
 #game-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100svh;
+  background: transparent;
 }
 
 #game-canvas {
   display: block;
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100svh;
 }
 
 #ui {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: env(safe-area-inset-top, 0);
+  left: env(safe-area-inset-left, 0);
+  right: env(safe-area-inset-right, 0);
+  bottom: env(safe-area-inset-bottom, 0);
   pointer-events: none;
   display: flex;
   flex-direction: column;

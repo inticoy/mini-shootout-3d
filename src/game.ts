@@ -125,7 +125,7 @@ export class MiniShootout3D {
     this.setupAssetLoadingTracker();
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x87CEEB); // 실제 하늘색 (Sky Blue)
+    this.scene.background = null; // HTML 배경(빨강-녹색 그라디언트)이 보이도록 투명
     this.renderer = createRenderer(canvas);
     this.camera = createPerspectiveCamera();
     configureSceneLighting(this.scene);
@@ -352,6 +352,7 @@ export class MiniShootout3D {
   }
 
   private handleResize() {
+    // 전체 화면 크기로 리사이즈
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
