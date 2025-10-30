@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'node:path';
 
 function resolveRepoBase(): string | undefined {
   const repo = process.env.GITHUB_REPOSITORY;
@@ -13,6 +14,14 @@ export default defineConfig(() => {
   const repoBase = resolveRepoBase();
 
   return {
-    base: envBase ?? (isGithubActions ? repoBase ?? '/' : '/')
+    base: envBase ?? (isGithubActions ? repoBase ?? '/' : '/'),
+    build: {
+      rollupOptions: {
+        input: {
+          main: resolve(__dirname, 'index.html'),
+          admin: resolve(__dirname, 'admin/index.html')
+        }
+      }
+    }
   };
 });
