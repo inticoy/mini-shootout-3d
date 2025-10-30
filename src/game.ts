@@ -8,12 +8,14 @@ import { createField } from './environment/field';
 import type { Field } from './environment/field';
 import { Ball } from './entities/ball';
 import { Goal } from './entities/goal';
-import { GoalKeeper } from './entities/goalkeeper';
+import { Obstacle } from './entities/obstacle';
 import { BALL_RADIUS, BALL_START_POSITION, BALL_THEMES } from './config/ball';
 import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
 import { GOAL_NET_CONFIG } from './config/net';
 import { AD_BOARD_CONFIG } from './config/adBoard';
-import { getDifficultyForScore, type KeeperBehaviorConfig } from './config/difficulty';
+import { getDifficultyForScore, type DifficultyLevelConfig } from './config/difficulty';
+import { getObstacleBlueprint } from './config/obstacles';
+import type { ObstacleBlueprint, ObstacleInstanceConfig } from './config/obstacles';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
@@ -45,7 +47,7 @@ export class MiniShootout3D {
 
   private readonly ball: Ball;
   private readonly goal: Goal;
-  private goalKeepers: GoalKeeper[] = [];
+  private obstacles: Obstacle[] = [];
   private readonly field: Field;
   private readonly audio = new AudioManager();
   private readonly ballColliderMesh: THREE.Mesh;
@@ -80,7 +82,7 @@ export class MiniShootout3D {
   private hasScored = false;
   private readonly ballInitialMass: number;
   private isBallGravityEnabled = false;
-  private currentDifficulty: any = null;
+  private currentDifficulty: DifficultyLevelConfig | null = null;
 
   // 🔍 궤적 디버깅
   private isTrackingBall = false;
@@ -279,7 +281,6 @@ export class MiniShootout3D {
 
     this.score += 1;
     this.onScoreChange(this.score);
-    this.updateDifficulty();
 
     // 점수가 올라갔으므로 터치 가이드 숨김
     if (this.touchGuideTimer !== null) {
@@ -288,7 +289,7 @@ export class MiniShootout3D {
     }
     this.onShowTouchGuide(false);
     this.hasScored = true;
-    this.goalKeepers.forEach((keeper) => keeper.stopTracking());
+    this.obstacles.forEach((obstacle) => obstacle.stopTracking());
     this.tempBallPosition.set(
       this.ball.body.position.x,
       this.ball.body.position.y,
@@ -324,7 +325,7 @@ export class MiniShootout3D {
       // 테마별 바운스 사운드 사용 (지정되지 않으면 기본 'bounce' 사용)
       const bounceSound = this.ball.getTheme().sounds?.bounce ?? 'bounce';
       this.audio.playSound(bounceSound, 0.3);
-    } else if (this.goalKeepers.some((keeper) => keeper.body === event.body)) {
+    } else if (this.obstacles.some((obstacle) => obstacle.body === event.body)) {
       this.audio.playSound('save', 0.3);
     } else if (
       event.body === this.goal.bodies.leftPost ||
@@ -368,7 +369,7 @@ export class MiniShootout3D {
     // 빠른 슛(40 m/s)도 얇은 골대(0.1m)와 정확히 충돌
     this.world.step(1 / 120, deltaTime, 5);
     this.curveForceSystem.update(deltaTime, this.ball.body);
-    this.goalKeepers.forEach((keeper) => keeper.update(deltaTime));
+    this.obstacles.forEach((obstacle) => obstacle.update(deltaTime));
     this.goal.update(deltaTime);
     this.field.update(deltaTime);
 
@@ -429,8 +430,8 @@ export class MiniShootout3D {
     this.swipePointLabels.forEach((label) => label.remove());
     this.axisArrows.forEach((arrow) => this.scene.remove(arrow));
     this.shotInfoHud.destroy();
-    this.goalKeepers.forEach((keeper) => keeper.dispose());
-    this.goalKeepers = [];
+    this.obstacles.forEach((obstacle) => obstacle.dispose());
+    this.obstacles = [];
     this.swipeTracker.destroy();
 
     // 배경음악 중지
@@ -624,7 +625,7 @@ export class MiniShootout3D {
 
   private applyDebugVisibility() {
     const visible = this.debugMode;
-    this.goalKeepers.forEach((keeper) => keeper.setColliderDebugVisible(visible));
+    this.obstacles.forEach((obstacle) => obstacle.setColliderDebugVisible(visible));
     this.ballColliderMesh.visible = visible;
     this.goalColliderGroup.visible = visible;
     this.adBoardColliderGroup.visible = visible;
@@ -908,7 +909,7 @@ export class MiniShootout3D {
     this.curveForceSystem.startCurveShot(analysis);
 
     // 골키퍼 추적 시작
-    this.goalKeepers.forEach((keeper) => keeper.startTracking());
+    this.obstacles.forEach((obstacle) => obstacle.startTracking());
 
     // 터치 가이드 타이머 취소 및 숨김
     if (this.touchGuideTimer !== null) {
@@ -967,11 +968,10 @@ export class MiniShootout3D {
 
   private updateDifficulty(forceRefresh = false) {
     const nextDifficulty = getDifficultyForScore(this.score);
-    const levelChanged = !this.currentDifficulty || this.currentDifficulty.threshold !== nextDifficulty.threshold;
+    const levelChanged = this.currentDifficulty !== nextDifficulty;
 
-    if (forceRefresh) {
-      this.syncGoalKeepers(nextDifficulty.keepers);
-
+    if (forceRefresh || levelChanged) {
+      this.syncObstacles(nextDifficulty.obstacles);
       if (levelChanged) {
         console.log(`🎯 난이도 변경: ${nextDifficulty.name} (score=${this.score})`);
       }
@@ -980,23 +980,40 @@ export class MiniShootout3D {
     this.currentDifficulty = nextDifficulty;
   }
 
-  private syncGoalKeepers(behaviors: KeeperBehaviorConfig[]) {
-    if (this.goalKeepers.length > behaviors.length) {
-      for (let i = behaviors.length; i < this.goalKeepers.length; i++) {
-        this.goalKeepers[i].dispose();
+  private syncObstacles(configs: ObstacleInstanceConfig[]) {
+    if (this.obstacles.length > configs.length) {
+      for (let i = configs.length; i < this.obstacles.length; i++) {
+        this.obstacles[i].dispose();
       }
-      this.goalKeepers.length = behaviors.length;
+      this.obstacles.length = configs.length;
     }
 
-    behaviors.forEach((behavior, index) => {
-      let keeper = this.goalKeepers[index];
-      if (!keeper) {
-        keeper = new GoalKeeper(this.scene, this.world, behavior.z, this.ball.body);
-        this.goalKeepers[index] = keeper;
+    configs.forEach((config, index) => {
+      let obstacle = this.obstacles[index];
+      if (!obstacle || obstacle.blueprintId !== config.blueprintId) {
+        if (obstacle) {
+          obstacle.dispose();
+        }
+        const blueprintId = config.blueprintId;
+        const blueprint = this.resolveBlueprint(blueprintId);
+        obstacle = new Obstacle(this.scene, this.world, blueprint, config);
+        this.obstacles[index] = obstacle;
+      } else {
+        obstacle.configure(config);
       }
-      keeper.setColliderDebugVisible(this.debugMode);
-      keeper.applyBehavior(behavior);
+      obstacle.setColliderDebugVisible(this.debugMode);
+      obstacle.startTracking();
     });
+
+    this.obstacles.length = configs.length;
+  }
+
+  private resolveBlueprint(id: string): ObstacleBlueprint {
+    const blueprint = getObstacleBlueprint(id);
+    if (!blueprint) {
+      throw new Error(`Unknown obstacle blueprint: ${id}`);
+    }
+    return blueprint;
   }
 
   /**
@@ -1054,7 +1071,7 @@ export class MiniShootout3D {
     this.ball.syncVisuals();
     console.log('Ball reset complete. Position:', this.ball.body.position);
 
-    this.goalKeepers.forEach((keeper) => keeper.resetTracking());
+    this.obstacles.forEach((obstacle) => obstacle.resetTracking());
     this.updateDifficulty(true);
 
     // 광고판 효과: 깜빡임 중지 + 기본 광고로 복원

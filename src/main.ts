@@ -1,30 +1,18 @@
-import './style.css';
-import { MiniShootout3D } from './game';
-import { ScoreDisplay } from './ui/scoreDisplay';
-import { TouchGuide } from './ui/touchGuide';
-import { Settings } from './ui/settings';
+const pathname = window.location.pathname;
+const normalized = pathname.replace(/\/+$/, '');
+const isAdmin =
+  normalized.endsWith('/admin') ||
+  normalized.includes('/admin.html') ||
+  normalized.endsWith('/admin/index');
 
-const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
-const uiContainer = document.getElementById('ui') as HTMLDivElement | null;
-
-if (!canvas || !uiContainer) {
-  throw new Error('필수 DOM 요소를 찾을 수 없습니다.');
+if (isAdmin) {
+  const gameContainer = document.getElementById('game-container');
+  if (gameContainer) {
+    gameContainer.style.display = 'none';
+  }
+  void import('./admin/main');
+} else {
+  void import('./game-entry').then(({ bootstrapGame }) => {
+    bootstrapGame();
+  });
 }
-
-// UI 컴포넌트 생성
-const scoreDisplay = new ScoreDisplay(uiContainer);
-const touchGuide = new TouchGuide(uiContainer);
-
-// 게임 초기화
-const game = new MiniShootout3D(
-  canvas,
-  (score) => scoreDisplay.update(score),
-  (show) => touchGuide.show(show),
-  scoreDisplay
-);
-
-// Settings 생성 (게임 인스턴스 생성 후에 콜백 전달)
-new Settings(uiContainer, {
-  onToggleDebug: () => game.toggleDebugMode(),
-  onNextTheme: () => void game.switchToNextTheme()
-});
