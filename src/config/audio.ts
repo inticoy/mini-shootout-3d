@@ -50,14 +50,14 @@ export const AUDIO_CONFIG = {
    */
   sounds: {
     kick: { url: kickUrl, volume: 1.0 },
-    bounce: { url: bounceUrl, volume: 0.3 },
-    goal: { url: goalUrl, volume: 0.2 },
-    save: { url: saveUrl, volume: 0.3 },
-    post: { url: postUrl, volume: 0.3 },
-    reset: { url: resetUrl, volume: 0.3 },
-    net: { url: netUrl, volume: 0.3 },
-    cheer: { url: cheerUrl, volume: 0.4 },
-    record: { url: recordUrl, volume: 0.2 }
+    bounce: { url: bounceUrl, volume: 1.0 },
+    goal: { url: goalUrl, volume: 1.0 },
+    save: { url: saveUrl, volume: 1.0 },
+    post: { url: postUrl, volume: 1.0 },
+    reset: { url: resetUrl, volume: 1.0 },
+    net: { url: netUrl, volume: 1.0 },
+    cheer: { url: cheerUrl, volume: 1.0 },
+    record: { url: recordUrl, volume: 1.0 }
   } as const satisfies Record<SoundKey, SoundConfig>,
 
   /**
@@ -69,7 +69,7 @@ export const AUDIO_CONFIG = {
      */
     chant: {
       urls: [chantUrl],
-      volume: 0.1,
+      volume: 1.0,
       loop: true
     },
     /**
@@ -77,7 +77,7 @@ export const AUDIO_CONFIG = {
      */
     gameplay: {
       urls: [bg1Url], // 추후 곡 추가 가능
-      volume: 0.05,
+      volume: 1.0,
       loop: true,
       shuffle: true
     }

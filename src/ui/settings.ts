@@ -6,8 +6,17 @@
  */
 export interface SettingsCallbacks {
   onToggleDebug?: () => void;
+  onSetMusicEnabled?: (enabled: boolean) => void;
+  onSetSfxEnabled?: (enabled: boolean) => void;
+  onSetMasterVolume?: (volume: number) => void;
   onNextTheme?: () => void;
 }
+
+const LS_KEYS = {
+  musicEnabled: 'snapshoot.audio.musicEnabled',
+  sfxEnabled: 'snapshoot.audio.sfxEnabled',
+  masterVolume: 'snapshoot.audio.masterVolume'
+} as const;
 
 export class Settings {
   private hamburgerButton: HTMLButtonElement;
@@ -49,6 +58,14 @@ export class Settings {
       pointer-events-auto
     `.trim().replace(/\s+/g, ' ');
 
+    // iOS 노치/안전 영역을 고려한 위치 보정
+    try {
+      const safeTop = (Number(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-top')) || 0);
+      // CSS var가 없으면 env() 사용 - 직접 style에 설정
+      (button.style as CSSStyleDeclaration).top = `max(1.25rem, calc(env(safe-area-inset-top, 0px) + 0.75rem))`;
+      (button.style as CSSStyleDeclaration).left = `max(1.25rem, calc(env(safe-area-inset-left, 0px) + 0.75rem))`;
+    } catch {}
+
     // Hamburger icon (3 lines)
     button.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-6 h-6 fill-white/80 transition-all">
@@ -63,6 +80,21 @@ export class Settings {
    * 설정 모달 생성
    */
   private createModal(): HTMLDivElement {
+    // 저장된 설정 불러오기 (기본값: music/sfx ON, master 1.0)
+    const savedMusicEnabled = (() => {
+      const v = localStorage.getItem(LS_KEYS.musicEnabled);
+      return v === null ? true : v === 'true';
+    })();
+    const savedSfxEnabled = (() => {
+      const v = localStorage.getItem(LS_KEYS.sfxEnabled);
+      return v === null ? true : v === 'true';
+    })();
+    const savedMasterVolume = (() => {
+      const v = localStorage.getItem(LS_KEYS.masterVolume);
+      const num = v === null ? 0.5 : Number(v);
+      return Number.isFinite(num) ? Math.max(0, Math.min(1, num)) : 1;
+    })();
+
     const overlay = document.createElement('div');
     overlay.id = 'settings-modal';
     overlay.className = `
@@ -75,6 +107,12 @@ export class Settings {
       p-8
       landscape-xs:p-4
     `.trim().replace(/\s+/g, ' ');
+
+    // 안전 영역 패딩 적용 (iOS)
+    overlay.style.paddingTop = 'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))';
+    overlay.style.paddingBottom = 'max(1rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem))';
+    overlay.style.paddingLeft = 'max(1rem, calc(env(safe-area-inset-left, 0px) + 0.5rem))';
+    overlay.style.paddingRight = 'max(1rem, calc(env(safe-area-inset-right, 0px) + 0.5rem))';
 
     // 모달 콘텐츠 (고정)
     const content = document.createElement('div');
@@ -92,6 +130,23 @@ export class Settings {
       glass-modal
     `.trim().replace(/\s+/g, ' ');
 
+    // 동적 높이 보정: 100dvh 사용 가능 시 우선 적용, 아니면 innerHeight 기반
+    const applyContentSizing = () => {
+      try {
+        const dvhSupported = CSS && (CSS as any).supports && (CSS as any).supports('height: 100dvh');
+        if (dvhSupported) {
+          content.style.maxHeight = 'min(calc(100dvh - 2rem), 700px)';
+        } else {
+          const maxPx = Math.max(320, Math.min(window.innerHeight - 32, 700));
+          content.style.maxHeight = `${maxPx}px`;
+        }
+      } catch {
+        const maxPx = Math.max(320, Math.min(window.innerHeight - 32, 700));
+        content.style.maxHeight = `${maxPx}px`;
+      }
+    };
+    applyContentSizing();
+
     // 헤더 (고정 - 스크롤 안됨)
     const header = document.createElement('div');
     header.className = `
@@ -103,9 +158,10 @@ export class Settings {
 
     const title = document.createElement('div');
     title.className = `
-      text-3xl font-russo text-white tracking-wider
-      landscape-xs:text-xl
+      font-russo text-white tracking-wider
     `.trim().replace(/\s+/g, ' ');
+    // 가변 폰트 크기 (작은 화면에서 축소)
+    title.style.fontSize = 'clamp(18px, 3.2vw, 28px)';
     title.innerHTML = '⚙️ SETTINGS';
 
     const closeButton = document.createElement('button');
@@ -135,50 +191,60 @@ export class Settings {
       landscape-xs:px-5 landscape-xs:pb-5
     `.trim().replace(/\s+/g, ' ');
 
-    // 테마 섹션
-    const themeSection = this.createSettingsSection(
-      '🎨 THEME / 테마',
-      [
-        { id: 'classic', icon: '⚽', label: 'Classic', active: true },
-        { id: 'night', icon: '🌙', label: 'Night', active: false },
-        { id: 'neon', icon: '✨', label: 'Neon', active: false }
-      ],
-      3
-    );
+    // 스크롤 컨테이너 높이 보정 (콘텐츠 내에서 스크롤)
+    const applyScrollSizing = () => {
+      try {
+        const headerRect = header.getBoundingClientRect();
+        const contentRect = content.getBoundingClientRect();
+        const available = Math.max(120, contentRect.height - headerRect.height);
+        scrollContainer.style.maxHeight = `${available}px`;
+      } catch {}
+    };
 
-    // 사운드 섹션
-    const soundSection = this.createSettingsSection(
-      '🔊 SOUND / 사운드',
+    // 사운드 섹션 - 배경음악
+    const musicSection = this.createSettingsSection(
+      '🎵 MUSIC / 배경음악',
       [
-        { id: 'sound-on', icon: '🔊', label: 'ON', active: true },
-        { id: 'sound-off', icon: '🔇', label: 'OFF', active: false }
+        { id: 'music-on', icon: '🎵', label: 'ON', active: savedMusicEnabled },
+        { id: 'music-off', icon: '🚫', label: 'OFF', active: !savedMusicEnabled }
       ],
       2
     );
 
-    // 난이도 섹션
-    const difficultySection = this.createSettingsSection(
-      '🎮 DIFFICULTY / 난이도',
+    // 사운드 섹션 - 효과음
+    const sfxSection = this.createSettingsSection(
+      '🔔 SFX / 효과음',
       [
-        { id: 'easy', icon: '😊', label: 'Easy', active: false },
-        { id: 'normal', icon: '😐', label: 'Normal', active: true },
-        { id: 'hard', icon: '😤', label: 'Hard', active: false }
+        { id: 'sfx-on', icon: '🔔', label: 'ON', active: savedSfxEnabled },
+        { id: 'sfx-off', icon: '🔕', label: 'OFF', active: !savedSfxEnabled }
       ],
-      3
+      2
     );
+
+    // 마스터 볼륨 섹션
+    const masterVolumeSection = this.createMasterVolumeSection(savedMasterVolume);
 
     // 디버그 섹션 (개발자 전용)
     const debugSection = this.createDebugSection();
 
-    scrollContainer.appendChild(themeSection);
-    scrollContainer.appendChild(soundSection);
-    scrollContainer.appendChild(difficultySection);
+    scrollContainer.appendChild(musicSection);
+    scrollContainer.appendChild(sfxSection);
+    scrollContainer.appendChild(masterVolumeSection);
     scrollContainer.appendChild(debugSection);
 
     content.appendChild(header);
     content.appendChild(scrollContainer);
 
     overlay.appendChild(content);
+
+    // 리사이즈 대응
+    const handleResize = () => {
+      applyContentSizing();
+      applyScrollSizing();
+    };
+    window.addEventListener('resize', handleResize);
+    // destroy 시 정리되도록 참조 저장
+    (overlay as any).__onResize = handleResize;
 
     return overlay;
   }
@@ -219,13 +285,13 @@ export class Settings {
     `.trim().replace(/\s+/g, ' ');
     debugToggleBtn.textContent = '🔧 Toggle Debug Mode';
 
-    // Next Theme 버튼
+    buttonsContainer.appendChild(debugToggleBtn);
+
+    // Next Theme 버튼 (개발자 전용)
     const nextThemeBtn = document.createElement('button');
     nextThemeBtn.id = 'next-theme-btn';
     nextThemeBtn.className = debugToggleBtn.className;
-    nextThemeBtn.textContent = '🎨 Next Theme';
-
-    buttonsContainer.appendChild(debugToggleBtn);
+    nextThemeBtn.textContent = '🎨 Next Ball Theme';
     buttonsContainer.appendChild(nextThemeBtn);
 
     section.appendChild(labelEl);
@@ -300,6 +366,51 @@ export class Settings {
   }
 
   /**
+   * 마스터 볼륨 섹션 (range input)
+   */
+  private createMasterVolumeSection(initialVolume: number): HTMLDivElement {
+    const section = document.createElement('div');
+    section.className = `
+      mb-6
+      landscape-xs:mb-3
+    `.trim().replace(/\s+/g, ' ');
+
+    const labelEl = document.createElement('div');
+    labelEl.className = `
+      text-sm text-white/70 mb-3 tracking-wider
+      landscape-xs:text-xs landscape-xs:mb-2
+    `.trim().replace(/\s+/g, ' ');
+    labelEl.textContent = '🔊 MASTER VOLUME / 전체 볼륨';
+
+    const container = document.createElement('div');
+    container.className = 'flex items-center gap-3';
+
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.id = 'master-volume-range';
+    input.min = '0';
+    input.max = '100';
+    input.value = String(Math.round(initialVolume * 100));
+    input.className = `
+      w-full h-2 rounded-lg appearance-none cursor-pointer
+      bg-white/10
+    `.trim().replace(/\s+/g, ' ');
+
+    const valueLabel = document.createElement('div');
+    valueLabel.id = 'master-volume-label';
+    valueLabel.className = 'text-white/80 text-sm w-12 text-right';
+    valueLabel.textContent = `${Math.round(initialVolume * 100)}%`;
+
+    container.appendChild(input);
+    container.appendChild(valueLabel);
+
+    section.appendChild(labelEl);
+    section.appendChild(container);
+
+    return section;
+  }
+
+  /**
    * 이벤트 리스너 설정
    */
   private setupEventListeners(): void {
@@ -343,8 +454,19 @@ export class Settings {
         target.classList.add('bg-yellow-500/10', 'border-yellow-500/60', 'text-yellow-500');
         target.classList.remove('border-white/10', 'text-white/60');
 
-        // TODO: 실제 설정 적용 로직
-        console.log('Selected option:', target.dataset.option);
+        // 실제 설정 적용 로직
+        const id = target.dataset.option;
+        if (!id) return;
+        if (id === 'music-on') this.callbacks.onSetMusicEnabled?.(true);
+        if (id === 'music-off') this.callbacks.onSetMusicEnabled?.(false);
+        if (id === 'sfx-on') this.callbacks.onSetSfxEnabled?.(true);
+        if (id === 'sfx-off') this.callbacks.onSetSfxEnabled?.(false);
+
+        // 저장
+        if (id === 'music-on') localStorage.setItem(LS_KEYS.musicEnabled, 'true');
+        if (id === 'music-off') localStorage.setItem(LS_KEYS.musicEnabled, 'false');
+        if (id === 'sfx-on') localStorage.setItem(LS_KEYS.sfxEnabled, 'true');
+        if (id === 'sfx-off') localStorage.setItem(LS_KEYS.sfxEnabled, 'false');
       });
     });
 
@@ -356,8 +478,19 @@ export class Settings {
       this.callbacks.onToggleDebug?.();
     });
 
+    // 공 테마 전환 버튼
     nextThemeBtn?.addEventListener('click', () => {
       this.callbacks.onNextTheme?.();
+    });
+
+    // 마스터 볼륨 슬라이더 이벤트
+    const masterRange = document.getElementById('master-volume-range') as HTMLInputElement | null;
+    const masterLabel = document.getElementById('master-volume-label');
+    masterRange?.addEventListener('input', () => {
+      const val = Math.max(0, Math.min(100, Number(masterRange.value)));
+      if (masterLabel) masterLabel.textContent = `${val}%`;
+      this.callbacks.onSetMasterVolume?.(val / 100);
+      localStorage.setItem(LS_KEYS.masterVolume, String(val / 100));
     });
   }
 
@@ -374,6 +507,10 @@ export class Settings {
       content.classList.remove('scale-90', 'translate-y-8');
       content.classList.add('scale-100', 'translate-y-0');
     }
+
+    // 배경 스크롤 잠금 (iOS 포함)
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
   }
 
   /**
@@ -389,6 +526,10 @@ export class Settings {
       content.classList.add('scale-90', 'translate-y-8');
       content.classList.remove('scale-100', 'translate-y-0');
     }
+
+    // 배경 스크롤 잠금 해제
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
   }
 
   /**
@@ -396,6 +537,11 @@ export class Settings {
    */
   destroy(): void {
     this.hamburgerButton.remove();
+    // 리스너 정리
+    const onResize = (this.modalOverlay as any).__onResize as (() => void) | undefined;
+    if (onResize) {
+      window.removeEventListener('resize', onResize);
+    }
     this.modalOverlay.remove();
   }
 }

@@ -300,9 +300,9 @@ export class MiniShootout3D {
     // 골 사운드: 최고 기록 경신 중이면 record, 아니면 goal
     const isNewRecord = this.scoreDisplay.isNewRecordAchieved();
     if (isNewRecord) {
-      this.audio.playSound('record', 0.2);
+      this.audio.playSound('record');
     } else {
-      this.audio.playSound('goal', 0.2);
+      this.audio.playSound('goal');
     }
 
     // 광고판 효과: 최고 기록이면 record, 아니면 goal
@@ -324,9 +324,9 @@ export class MiniShootout3D {
 
       // 테마별 바운스 사운드 사용 (지정되지 않으면 기본 'bounce' 사용)
       const bounceSound = this.ball.getTheme().sounds?.bounce ?? 'bounce';
-      this.audio.playSound(bounceSound, 0.3);
+      this.audio.playSound(bounceSound);
     } else if (this.obstacles.some((obstacle) => obstacle.body === event.body)) {
-      this.audio.playSound('save', 0.3);
+      this.audio.playSound('save');
     } else if (
       event.body === this.goal.bodies.leftPost ||
       event.body === this.goal.bodies.rightPost ||
@@ -339,10 +339,10 @@ export class MiniShootout3D {
       event.body === this.goal.bodies.floorBack ||
       event.body === this.goal.bodies.crossbar
     ) {
-      this.audio.playSound('post', 0.3);
+      this.audio.playSound('post');
     } else if (this.goal.isNetCollider(event.body)) {
       this.goal.handleNetCollision(this.ball.body);
-      this.audio.playSound('net', 0.3);
+      this.audio.playSound('net');
     }
   }
 
@@ -436,6 +436,27 @@ export class MiniShootout3D {
 
     // 배경음악 중지
     this.audio.stopMusic();
+  }
+
+  /**
+   * 설정: 배경음악 on/off
+   */
+  public setMusicEnabled(enabled: boolean): void {
+    this.audio.setMusicEnabled(enabled);
+  }
+
+  /**
+   * 설정: 효과음 on/off
+   */
+  public setSfxEnabled(enabled: boolean): void {
+    this.audio.setSfxEnabled(enabled);
+  }
+
+  /**
+   * 설정: 마스터 볼륨 (0.0~1.0)
+   */
+  public setMasterVolume(volume: number): void {
+    this.audio.setMasterVolume(volume);
   }
 
   private createBallColliderMesh(): THREE.Mesh {
@@ -1025,7 +1046,7 @@ export class MiniShootout3D {
     // 골을 넣지 못했으면
     if (!this.hasScored) {
       // 실패시 항상 리셋 사운드
-      this.audio.playSound('reset', 0.3);
+      this.audio.playSound('reset');
 
       // 점수 초기화
       this.score = 0;

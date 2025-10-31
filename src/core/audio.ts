@@ -17,6 +17,20 @@ export class AudioManager {
     currentIndex: number;
   }>();
 
+  // 전역 토글 상태
+  private musicEnabled = true;
+  private sfxEnabled = true;
+
+  // 마지막으로 요청된 음악(재활성화 시 재개 용도)
+  private lastRequestedTrack: MusicTrack | null = null;
+  private lastRequestedOptions: { fadeIn?: boolean; volumeOverride?: number } | undefined;
+
+  // 마스터 볼륨 (0.0 ~ 1.0)
+  private masterVolume = 1.0;
+
+  // 음악 트랙별 기본 볼륨(마스터 볼륨 적용 전 값) 저장
+  private readonly musicBaseVolume = new Map<MusicTrack, number>();
+
   async loadAll(): Promise<void> {
     if (this.loadingPromise) return this.loadingPromise;
     this.loadingPromise = (async () => {
@@ -79,11 +93,12 @@ export class AudioManager {
    * 효과음 재생
    */
   playSound(key: SoundKey, volumeOverride?: number): void {
+    if (!this.sfxEnabled) return;
     const buffer = this.soundBuffers.get(key);
     if (!buffer) return;
 
     const config = AUDIO_CONFIG.sounds[key];
-    const volume = volumeOverride ?? config.volume;
+    const volume = (volumeOverride ?? config.volume) * this.masterVolume;
 
     const context = this.getContext();
     const source = context.createBufferSource();
@@ -105,6 +120,15 @@ export class AudioManager {
    * 배경 음악 재생 (멀티 트랙 지원)
    */
   async playMusic(track: MusicTrack, options?: { fadeIn?: boolean; volumeOverride?: number }): Promise<void> {
+    // 마지막 요청 기억 (활성화되면 재개할 수 있도록)
+    this.lastRequestedTrack = track;
+    this.lastRequestedOptions = options;
+
+    if (!this.musicEnabled) {
+      // 음악이 비활성화된 경우 즉시 재생하지 않고 요청만 기록, 현재 트랙은 정지
+      this.stopMusic(track);
+      return;
+    }
     // 동일 트랙이 이미 재생 중이면 중지
     if (this.currentMusic.has(track)) {
       this.stopMusic(track);
@@ -126,7 +150,7 @@ export class AudioManager {
       : 0;
 
     const buffer = buffers[index];
-    const volume = options?.volumeOverride ?? config.volume;
+    const volume = (options?.volumeOverride ?? config.volume);
 
     // Source 생성
     const context = this.getContext();
@@ -139,9 +163,9 @@ export class AudioManager {
     // Fade in 처리
     if (options?.fadeIn) {
       gain.gain.setValueAtTime(0, context.currentTime);
-      gain.gain.linearRampToValueAtTime(volume, context.currentTime + 1.5);
+      gain.gain.linearRampToValueAtTime(volume * this.masterVolume, context.currentTime + 1.5);
     } else {
-      gain.gain.value = volume;
+      gain.gain.value = volume * this.masterVolume;
     }
 
     source.connect(gain);
@@ -163,7 +187,8 @@ export class AudioManager {
       return;
     }
 
-    // 상태 저장 (Map에 추가)
+    // 상태 저장
+    this.musicBaseVolume.set(track, volume);
     this.currentMusic.set(track, { source, gain, currentIndex: index });
   }
 
@@ -183,7 +208,7 @@ export class AudioManager {
 
     source.buffer = buffer;
     source.loop = config.loop;
-    gain.gain.value = volume;
+    gain.gain.value = volume * this.masterVolume;
 
     source.connect(gain);
     gain.connect(context.destination);
@@ -196,7 +221,8 @@ export class AudioManager {
 
     source.start();
 
-    // 상태 업데이트 (Map에 저장)
+    // 상태 업데이트
+    this.musicBaseVolume.set(track, volume);
     this.currentMusic.set(track, { source, gain, currentIndex: index });
   }
 
@@ -214,6 +240,7 @@ export class AudioManager {
           // 이미 중지된 경우 무시
         }
         this.currentMusic.delete(track);
+        this.musicBaseVolume.delete(track);
       }
     } else {
       // 모든 음악 중지
@@ -233,15 +260,18 @@ export class AudioManager {
       }
     });
     this.currentMusic.clear();
+    this.musicBaseVolume.clear();
   }
 
   /**
    * 특정 트랙 볼륨 설정
    */
   setMusicVolume(track: MusicTrack, volume: number): void {
+    const clamped = Math.max(0, Math.min(1, volume));
+    this.musicBaseVolume.set(track, clamped);
     const music = this.currentMusic.get(track);
     if (music) {
-      music.gain.gain.value = Math.max(0, Math.min(1, volume));
+      music.gain.gain.value = clamped * this.masterVolume;
     }
   }
 
@@ -257,5 +287,55 @@ export class AudioManager {
     }
 
     return this.context;
+  }
+
+  /**
+   * 배경음악 사용 여부 설정 (false면 즉시 모든 음악 정지)
+   */
+  setMusicEnabled(enabled: boolean): void {
+    if (this.musicEnabled === enabled) return;
+    this.musicEnabled = enabled;
+    if (!enabled) {
+      this.stopAllMusic();
+    } else {
+      // 다시 활성화되면 기본 두 트랙을 모두 재개
+      void this.playMusic('chant', { fadeIn: true });
+      void this.playMusic('gameplay');
+    }
+  }
+
+  isMusicEnabled(): boolean {
+    return this.musicEnabled;
+  }
+
+  /**
+   * 효과음 사용 여부 설정
+   */
+  setSfxEnabled(enabled: boolean): void {
+    this.sfxEnabled = enabled;
+  }
+
+  isSfxEnabled(): boolean {
+    return this.sfxEnabled;
+  }
+
+  /**
+   * 마스터 볼륨 설정 (0.0 ~ 1.0). 음악은 즉시 반영, 효과음은 다음 재생부터 반영
+   */
+  setMasterVolume(volume: number): void {
+    const clamped = Math.max(0, Math.min(1, volume));
+    if (this.masterVolume === clamped) return;
+    this.masterVolume = clamped;
+    // 현재 재생 중인 음악의 게인 재적용
+    this.currentMusic.forEach((music, track) => {
+      const base = this.musicBaseVolume.get(track);
+      if (typeof base === 'number') {
+        music.gain.gain.value = base * this.masterVolume;
+      }
+    });
+  }
+
+  getMasterVolume(): number {
+    return this.masterVolume;
   }
 }
