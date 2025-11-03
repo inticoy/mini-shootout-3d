@@ -19,57 +19,115 @@ const LS_KEYS = {
 } as const;
 
 export class Settings {
-  private hamburgerButton: HTMLButtonElement;
+  private pauseButton: HTMLButtonElement;
+  private settingsButton: HTMLButtonElement;
+  private buttonsContainer: HTMLDivElement;
   private modalOverlay: HTMLDivElement;
+  private pauseModalOverlay: HTMLDivElement;
   private callbacks: SettingsCallbacks;
 
   constructor(container: HTMLElement, callbacks: SettingsCallbacks = {}) {
     this.callbacks = callbacks;
 
-    // 햄버거 버튼 생성
-    this.hamburgerButton = this.createHamburgerButton();
+    // 버튼 컨테이너 생성
+    this.buttonsContainer = this.createButtonsContainer();
 
-    // 모달 생성
+    // 일시정지 버튼 생성
+    this.pauseButton = this.createPauseButton();
+
+    // 설정 버튼 생성
+    this.settingsButton = this.createSettingsButton();
+
+    // 설정 모달 생성
     this.modalOverlay = this.createModal();
 
-    container.appendChild(this.hamburgerButton);
+    // 일시정지 모달 생성
+    this.pauseModalOverlay = this.createPauseModal();
+
+    this.buttonsContainer.appendChild(this.pauseButton);
+    this.buttonsContainer.appendChild(this.settingsButton);
+    container.appendChild(this.buttonsContainer);
     container.appendChild(this.modalOverlay);
+    container.appendChild(this.pauseModalOverlay);
 
     // 이벤트 리스너 설정
     this.setupEventListeners();
   }
 
   /**
-   * 햄버거 버튼 생성 (왼쪽 상단)
+   * 버튼 컨테이너 생성 (왼쪽 하단)
    */
-  private createHamburgerButton(): HTMLButtonElement {
-    const button = document.createElement('button');
-    button.id = 'hamburger-button';
-    button.title = '메뉴';
-    button.className = `
-      absolute top-5 left-5
-      w-12 h-12
-      flex items-center justify-center
-      rounded-xl
-      border-[1.5px] border-white/30
-      transition-all duration-200
-      glass-button
-      hover:border-yellow-500/60
+  private createButtonsContainer(): HTMLDivElement {
+    const container = document.createElement('div');
+    container.className = `
+      absolute bottom-4 left-4
+      flex flex-row gap-2
       pointer-events-auto
     `.trim().replace(/\s+/g, ' ');
 
-    // iOS 노치/안전 영역을 고려한 위치 보정
-    try {
-      const safeTop = (Number(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-top')) || 0);
-      // CSS var가 없으면 env() 사용 - 직접 style에 설정
-      (button.style as CSSStyleDeclaration).top = `max(1.25rem, calc(env(safe-area-inset-top, 0px) + 0.75rem))`;
-      (button.style as CSSStyleDeclaration).left = `max(1.25rem, calc(env(safe-area-inset-left, 0px) + 0.75rem))`;
-    } catch {}
+    // iOS safe area 대응
+    container.style.bottom = `max(1rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))`;
+    container.style.left = `max(1rem, calc(env(safe-area-inset-left, 0px) + 1rem))`;
 
-    // Hamburger icon (3 lines)
+    return container;
+  }
+
+  /**
+   * 일시정지 버튼 생성 (Phosphor Icons - Pause filled)
+   */
+  private createPauseButton(): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.id = 'pause-button';
+    button.title = '일시정지';
+    button.className = `
+      w-12 h-12
+      flex items-center justify-center
+      rounded-xl
+      border border-[#3C4C55]
+      bg-[#3C4C55]/90
+      shadow-sm
+      transition-all duration-200
+      hover:bg-[#4a5c66]/90
+      hover:shadow-md
+      active:bg-[#344250]/90
+      active:shadow-sm
+    `.trim().replace(/\s+/g, ' ');
+
+    // Phosphor Icons - Pause filled
     button.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-6 h-6 fill-white/80 transition-all">
-        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white transition-all">
+        <path d="M200,32H160a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Z"/>
+      </svg>
+    `;
+
+    return button;
+  }
+
+  /**
+   * 설정 버튼 생성 (Phosphor Icons - GearSix filled)
+   */
+  private createSettingsButton(): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.id = 'settings-button';
+    button.title = '설정';
+    button.className = `
+      w-12 h-12
+      flex items-center justify-center
+      rounded-xl
+      border border-[#3C4C55]
+      bg-[#3C4C55]/90
+      shadow-sm
+      transition-all duration-200
+      hover:bg-[#4a5c66]/90
+      hover:shadow-md
+      active:bg-[#344250]/90
+      active:shadow-sm
+    `.trim().replace(/\s+/g, ' ');
+
+    // Phosphor Icons - GearSix filled
+    button.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white transition-all">
+        <path d="M237.94,107.21a8,8,0,0,0-3.89-5.4l-29.83-17-.12-33.62a8,8,0,0,0-2.83-6.08,111.91,111.91,0,0,0-36.72-20.67,8,8,0,0,0-6.46.59L128,41.85,97.88,25a8,8,0,0,0-6.47-.6A111.92,111.92,0,0,0,54.73,45.15a8,8,0,0,0-2.83,6.07l-.15,33.65-29.83,17a8,8,0,0,0-3.89,5.4,106.47,106.47,0,0,0,0,41.56,8,8,0,0,0,3.89,5.4l29.83,17,.12,33.63a8,8,0,0,0,2.83,6.08,111.91,111.91,0,0,0,36.72,20.67,8,8,0,0,0,6.46-.59L128,214.15,158.12,231a7.91,7.91,0,0,0,3.9,1,8.09,8.09,0,0,0,2.57-.42,112.1,112.1,0,0,0,36.68-20.73,8,8,0,0,0,2.83-6.07l.15-33.65,29.83-17a8,8,0,0,0,3.89-5.4A106.47,106.47,0,0,0,237.94,107.21ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"/>
       </svg>
     `;
 
@@ -120,7 +178,7 @@ export class Settings {
       w-[90%] max-w-[500px]
       max-h-[calc(100vh-4rem)]
       rounded-3xl
-      border-2 border-yellow-500/30
+      border-2 border-[#3C4C55]/50
       backdrop-blur-sm
       transition-all duration-300
       scale-90 translate-y-8
@@ -162,7 +220,7 @@ export class Settings {
     `.trim().replace(/\s+/g, ' ');
     // 가변 폰트 크기 (작은 화면에서 축소)
     title.style.fontSize = 'clamp(18px, 3.2vw, 28px)';
-    title.innerHTML = '⚙️ SETTINGS';
+    title.textContent = 'SETTINGS';
 
     const closeButton = document.createElement('button');
     closeButton.id = 'close-modal';
@@ -201,25 +259,11 @@ export class Settings {
       } catch {}
     };
 
-    // 사운드 섹션 - 배경음악
-    const musicSection = this.createSettingsSection(
-      '🎵 MUSIC / 배경음악',
-      [
-        { id: 'music-on', icon: '🎵', label: 'ON', active: savedMusicEnabled },
-        { id: 'music-off', icon: '🚫', label: 'OFF', active: !savedMusicEnabled }
-      ],
-      2
-    );
+    // 사운드 섹션 - 배경음악 (Toggle)
+    const musicSection = this.createToggleSection('MUSIC', 'music-toggle', savedMusicEnabled);
 
-    // 사운드 섹션 - 효과음
-    const sfxSection = this.createSettingsSection(
-      '🔔 SFX / 효과음',
-      [
-        { id: 'sfx-on', icon: '🔔', label: 'ON', active: savedSfxEnabled },
-        { id: 'sfx-off', icon: '🔕', label: 'OFF', active: !savedSfxEnabled }
-      ],
-      2
-    );
+    // 사운드 섹션 - 효과음 (Toggle)
+    const sfxSection = this.createToggleSection('SFX', 'sfx-toggle', savedSfxEnabled);
 
     // 마스터 볼륨 섹션
     const masterVolumeSection = this.createMasterVolumeSection(savedMasterVolume);
@@ -250,6 +294,130 @@ export class Settings {
   }
 
   /**
+   * 일시정지 모달 생성
+   */
+  private createPauseModal(): HTMLDivElement {
+    const overlay = document.createElement('div');
+    overlay.id = 'pause-modal';
+    overlay.className = `
+      fixed inset-0
+      flex items-center justify-center
+      bg-black/70 backdrop-blur-sm
+      opacity-0 pointer-events-none
+      transition-opacity duration-300
+      z-[1000]
+      p-8
+      landscape-xs:p-4
+    `.trim().replace(/\s+/g, ' ');
+
+    // 안전 영역 패딩 적용 (iOS)
+    overlay.style.paddingTop = 'max(1rem, calc(env(safe-area-inset-top, 0px) + 0.5rem))';
+    overlay.style.paddingBottom = 'max(1rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem))';
+    overlay.style.paddingLeft = 'max(1rem, calc(env(safe-area-inset-left, 0px) + 0.5rem))';
+    overlay.style.paddingRight = 'max(1rem, calc(env(safe-area-inset-right, 0px) + 0.5rem))';
+
+    // 모달 콘텐츠
+    const content = document.createElement('div');
+    content.className = `
+      w-[90%] max-w-[400px]
+      rounded-3xl
+      border-2 border-[#3C4C55]/50
+      backdrop-blur-sm
+      transition-all duration-300
+      scale-90 translate-y-8
+      flex flex-col
+      p-8
+      gap-4
+      landscape-xs:p-6 landscape-xs:gap-3
+      glass-modal
+    `.trim().replace(/\s+/g, ' ');
+
+    // 헤더
+    const header = document.createElement('div');
+    header.className = 'flex justify-between items-center mb-2';
+
+    const title = document.createElement('div');
+    title.className = 'font-russo text-white tracking-wider';
+    title.style.fontSize = 'clamp(18px, 3.2vw, 24px)';
+    title.textContent = 'PAUSED';
+
+    const closeButton = document.createElement('button');
+    closeButton.id = 'close-pause-modal';
+    closeButton.className = `
+      w-9 h-9
+      flex items-center justify-center
+      rounded-lg
+      bg-white/5 border border-white/10
+      text-white/60 text-xl
+      transition-all duration-200
+      hover:bg-white/10 hover:text-white hover:border-white/20
+      active:scale-95
+    `.trim().replace(/\s+/g, ' ');
+    closeButton.textContent = '✕';
+
+    header.appendChild(title);
+    header.appendChild(closeButton);
+
+    // 버튼들
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.className = 'flex flex-col gap-3 landscape-xs:gap-2';
+
+    // 재시작 버튼 (ArrowClockwise filled)
+    const restartButton = document.createElement('button');
+    restartButton.id = 'pause-restart-btn';
+    restartButton.className = `
+      flex items-center gap-3
+      p-4 rounded-xl
+      bg-[#3C4C55]/90 border border-[#3C4C55]
+      shadow-sm
+      text-white font-medium
+      transition-all duration-200
+      hover:bg-[#4a5c66]/90 hover:shadow-md
+      active:bg-[#344250]/90
+      landscape-xs:p-3 landscape-xs:gap-2
+    `.trim().replace(/\s+/g, ' ');
+    restartButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white flex-shrink-0">
+        <path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z"/>
+      </svg>
+      <span>재시작</span>
+    `;
+
+    // 랭킹보기 버튼 (Trophy filled)
+    const rankingButton = document.createElement('button');
+    rankingButton.id = 'pause-ranking-btn';
+    rankingButton.className = restartButton.className;
+    rankingButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white flex-shrink-0">
+        <path d="M232,64H208V56a16,16,0,0,0-16-16H64A16,16,0,0,0,48,56v8H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120a24,24,0,0,1-24-24V80H48v32q0,4,.39,8Zm144-8a64,64,0,0,1-128,0V56H192Zm40-16a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/>
+      </svg>
+      <span>랭킹보기</span>
+    `;
+
+    // 공유하기 버튼 (ShareNetwork filled)
+    const shareButton = document.createElement('button');
+    shareButton.id = 'pause-share-btn';
+    shareButton.className = restartButton.className;
+    shareButton.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white flex-shrink-0">
+        <path d="M176,160a39.89,39.89,0,0,0-28.62,12.09l-46.1-29.63a39.8,39.8,0,0,0,0-28.92l46.1-29.63a40,40,0,1,0-8.66-13.45l-46.1,29.63a40,40,0,1,0,0,55.82l46.1,29.63A40,40,0,1,0,176,160Zm0-128a24,24,0,1,1-24,24A24,24,0,0,1,176,32ZM64,152a24,24,0,1,1,24-24A24,24,0,0,1,64,152Zm112,72a24,24,0,1,1,24-24A24,24,0,0,1,176,224Z"/>
+      </svg>
+      <span>공유하기</span>
+    `;
+
+    buttonsContainer.appendChild(restartButton);
+    buttonsContainer.appendChild(rankingButton);
+    buttonsContainer.appendChild(shareButton);
+
+    content.appendChild(header);
+    content.appendChild(buttonsContainer);
+
+    overlay.appendChild(content);
+
+    return overlay;
+  }
+
+  /**
    * 디버그 섹션 생성 (버튼 형태)
    */
   private createDebugSection(): HTMLDivElement {
@@ -264,7 +432,7 @@ export class Settings {
       text-sm text-white/70 mb-3 tracking-wider
       landscape-xs:text-xs landscape-xs:mb-2
     `.trim().replace(/\s+/g, ' ');
-    labelEl.textContent = '🐛 DEBUG / 디버그 (개발자 전용)';
+    labelEl.textContent = 'DEBUG';
 
     const buttonsContainer = document.createElement('div');
     buttonsContainer.className = 'flex flex-col gap-2';
@@ -275,15 +443,17 @@ export class Settings {
     debugToggleBtn.className = `
       p-3
       rounded-lg
-      border border-white/10
-      bg-white/[0.03]
+      border border-[#3C4C55]
+      bg-[#3C4C55]/90
+      shadow-sm
       text-left text-sm text-white/80
       cursor-pointer
       transition-all duration-200
-      hover:bg-white/[0.06] hover:border-cyan-500/30
+      hover:bg-[#4a5c66]/90 hover:shadow-md
+      active:bg-[#344250]/90
       landscape-xs:p-2 landscape-xs:text-xs
     `.trim().replace(/\s+/g, ' ');
-    debugToggleBtn.textContent = '🔧 Toggle Debug Mode';
+    debugToggleBtn.textContent = 'Toggle Debug Mode';
 
     buttonsContainer.appendChild(debugToggleBtn);
 
@@ -291,7 +461,7 @@ export class Settings {
     const nextThemeBtn = document.createElement('button');
     nextThemeBtn.id = 'next-theme-btn';
     nextThemeBtn.className = debugToggleBtn.className;
-    nextThemeBtn.textContent = '🎨 Next Ball Theme';
+    nextThemeBtn.textContent = 'Next Ball Theme';
     buttonsContainer.appendChild(nextThemeBtn);
 
     section.appendChild(labelEl);
@@ -301,66 +471,61 @@ export class Settings {
   }
 
   /**
-   * 설정 섹션 생성 헬퍼
+   * Toggle 스위치 섹션 생성
    */
-  private createSettingsSection(
-    label: string,
-    options: Array<{ id: string; icon: string; label: string; active: boolean }>,
-    columns: number
-  ): HTMLDivElement {
+  private createToggleSection(label: string, id: string, initialValue: boolean): HTMLDivElement {
     const section = document.createElement('div');
     section.className = `
       mb-6
       landscape-xs:mb-3
     `.trim().replace(/\s+/g, ' ');
 
+    const container = document.createElement('div');
+    container.className = 'flex items-center justify-between';
+
     const labelEl = document.createElement('div');
     labelEl.className = `
-      text-sm text-white/70 mb-3 tracking-wider
-      landscape-xs:text-xs landscape-xs:mb-2
+      text-sm text-white/80 tracking-wider
+      landscape-xs:text-xs
     `.trim().replace(/\s+/g, ' ');
     labelEl.textContent = label;
 
-    const optionsGrid = document.createElement('div');
-    optionsGrid.className = `
-      grid gap-3
-      ${columns === 3 ? 'grid-cols-3' : 'grid-cols-2'}
+    // Toggle 스위치
+    const toggleWrapper = document.createElement('label');
+    toggleWrapper.className = 'relative inline-block w-12 h-6 cursor-pointer';
+
+    const toggleInput = document.createElement('input');
+    toggleInput.type = 'checkbox';
+    toggleInput.id = id;
+    toggleInput.checked = initialValue;
+    toggleInput.className = 'sr-only peer';
+
+    const toggleBg = document.createElement('span');
+    toggleBg.className = `
+      absolute inset-0 rounded-full
+      bg-white/20
+      transition-all duration-200
+      peer-checked:bg-[#3C4C55]
+      peer-focus:ring-2 peer-focus:ring-[#3C4C55]/50
     `.trim().replace(/\s+/g, ' ');
 
-    options.forEach((option) => {
-      const optionEl = document.createElement('div');
-      optionEl.dataset.option = option.id;
-      optionEl.className = `
-        p-4
-        rounded-xl
-        border border-white/10
-        bg-white/[0.03]
-        text-center text-sm text-white/60
-        cursor-pointer
-        transition-all duration-200
-        ${option.active ? 'bg-yellow-500/10 border-yellow-500/60 text-yellow-500' : ''}
-        hover:bg-white/[0.06] hover:border-yellow-500/30
-        landscape-xs:p-2 landscape-xs:text-xs landscape-xs:rounded-lg
-      `.trim().replace(/\s+/g, ' ');
+    const toggleKnob = document.createElement('span');
+    toggleKnob.className = `
+      absolute left-1 top-1 w-4 h-4 rounded-full
+      bg-white
+      transition-transform duration-200
+      peer-checked:translate-x-6
+      pointer-events-none
+    `.trim().replace(/\s+/g, ' ');
 
-      const iconEl = document.createElement('div');
-      iconEl.className = `
-        text-3xl mb-1.5
-        landscape-xs:text-xl landscape-xs:mb-0.5
-      `.trim().replace(/\s+/g, ' ');
-      iconEl.textContent = option.icon;
+    toggleWrapper.appendChild(toggleInput);
+    toggleWrapper.appendChild(toggleBg);
+    toggleWrapper.appendChild(toggleKnob);
 
-      const labelEl = document.createElement('div');
-      labelEl.textContent = option.label;
+    container.appendChild(labelEl);
+    container.appendChild(toggleWrapper);
 
-      optionEl.appendChild(iconEl);
-      optionEl.appendChild(labelEl);
-
-      optionsGrid.appendChild(optionEl);
-    });
-
-    section.appendChild(labelEl);
-    section.appendChild(optionsGrid);
+    section.appendChild(container);
 
     return section;
   }
@@ -375,16 +540,26 @@ export class Settings {
       landscape-xs:mb-3
     `.trim().replace(/\s+/g, ' ');
 
+    // 라벨과 값을 같은 줄에 표시
+    const header = document.createElement('div');
+    header.className = 'flex items-center justify-between mb-3';
+
     const labelEl = document.createElement('div');
     labelEl.className = `
-      text-sm text-white/70 mb-3 tracking-wider
-      landscape-xs:text-xs landscape-xs:mb-2
+      text-sm text-white/80 tracking-wider
+      landscape-xs:text-xs
     `.trim().replace(/\s+/g, ' ');
-    labelEl.textContent = '🔊 MASTER VOLUME / 전체 볼륨';
+    labelEl.textContent = 'MASTER VOLUME';
 
-    const container = document.createElement('div');
-    container.className = 'flex items-center gap-3';
+    const valueLabel = document.createElement('div');
+    valueLabel.id = 'master-volume-label';
+    valueLabel.className = 'text-white/80 text-sm font-medium';
+    valueLabel.textContent = `${Math.round(initialVolume * 100)}%`;
 
+    header.appendChild(labelEl);
+    header.appendChild(valueLabel);
+
+    // 슬라이더
     const input = document.createElement('input');
     input.type = 'range';
     input.id = 'master-volume-range';
@@ -392,20 +567,13 @@ export class Settings {
     input.max = '100';
     input.value = String(Math.round(initialVolume * 100));
     input.className = `
-      w-full h-2 rounded-lg appearance-none cursor-pointer
+      w-full h-2 rounded-full appearance-none cursor-pointer
       bg-white/10
+      volume-slider
     `.trim().replace(/\s+/g, ' ');
 
-    const valueLabel = document.createElement('div');
-    valueLabel.id = 'master-volume-label';
-    valueLabel.className = 'text-white/80 text-sm w-12 text-right';
-    valueLabel.textContent = `${Math.round(initialVolume * 100)}%`;
-
-    container.appendChild(input);
-    container.appendChild(valueLabel);
-
-    section.appendChild(labelEl);
-    section.appendChild(container);
+    section.appendChild(header);
+    section.appendChild(input);
 
     return section;
   }
@@ -415,59 +583,83 @@ export class Settings {
    */
   private setupEventListeners(): void {
     const closeButton = document.getElementById('close-modal');
+    const closePauseButton = document.getElementById('close-pause-modal');
 
-    // 햄버거 버튼으로 모달 열기
-    this.hamburgerButton.addEventListener('click', () => this.openModal());
+    // 일시정지 버튼으로 일시정지 모달 열기
+    this.pauseButton.addEventListener('click', () => this.openPauseModal());
 
-    // 모달 닫기
+    // 설정 버튼으로 설정 모달 열기
+    this.settingsButton.addEventListener('click', () => this.openModal());
+
+    // 설정 모달 닫기
     closeButton?.addEventListener('click', () => this.closeModal());
 
-    // 오버레이 클릭으로 닫기
+    // 일시정지 모달 닫기
+    closePauseButton?.addEventListener('click', () => this.closePauseModal());
+
+    // 설정 모달 - 오버레이 클릭으로 닫기
     this.modalOverlay.addEventListener('click', (e) => {
       if (e.target === this.modalOverlay) {
         this.closeModal();
       }
     });
 
-    // ESC 키로 닫기
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        this.closeModal();
+    // 일시정지 모달 - 오버레이 클릭으로 닫기
+    this.pauseModalOverlay.addEventListener('click', (e) => {
+      if (e.target === this.pauseModalOverlay) {
+        this.closePauseModal();
       }
     });
 
-    // 옵션 선택
-    this.modalOverlay.querySelectorAll('[data-option]').forEach((option) => {
-      option.addEventListener('click', (e) => {
-        const target = e.currentTarget as HTMLElement;
-        const parent = target.parentElement;
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        // 일시정지 모달이 열려있으면 닫기
+        if (!this.pauseModalOverlay.classList.contains('pointer-events-none')) {
+          this.closePauseModal();
+        }
+        // 설정 모달이 열려있으면 닫기
+        else if (!this.modalOverlay.classList.contains('pointer-events-none')) {
+          this.closeModal();
+        }
+      }
+    });
 
-        if (!parent) return;
+    // 일시정지 모달 버튼 이벤트
+    const restartBtn = document.getElementById('pause-restart-btn');
+    const rankingBtn = document.getElementById('pause-ranking-btn');
+    const shareBtn = document.getElementById('pause-share-btn');
 
-        // 같은 그룹 내 모든 옵션의 active 클래스 제거
-        parent.querySelectorAll('[data-option]').forEach((opt) => {
-          opt.classList.remove('bg-yellow-500/10', 'border-yellow-500/60', 'text-yellow-500');
-          opt.classList.add('border-white/10', 'text-white/60');
-        });
+    restartBtn?.addEventListener('click', () => {
+      console.log('재시작 버튼 클릭');
+      this.closePauseModal();
+      // TODO: 게임 재시작 로직 구현
+    });
 
-        // 클릭된 옵션에 active 클래스 추가
-        target.classList.add('bg-yellow-500/10', 'border-yellow-500/60', 'text-yellow-500');
-        target.classList.remove('border-white/10', 'text-white/60');
+    rankingBtn?.addEventListener('click', () => {
+      console.log('랭킹보기 버튼 클릭');
+      // TODO: 랭킹 화면 표시 로직 구현
+    });
 
-        // 실제 설정 적용 로직
-        const id = target.dataset.option;
-        if (!id) return;
-        if (id === 'music-on') this.callbacks.onSetMusicEnabled?.(true);
-        if (id === 'music-off') this.callbacks.onSetMusicEnabled?.(false);
-        if (id === 'sfx-on') this.callbacks.onSetSfxEnabled?.(true);
-        if (id === 'sfx-off') this.callbacks.onSetSfxEnabled?.(false);
+    shareBtn?.addEventListener('click', () => {
+      console.log('공유하기 버튼 클릭');
+      // TODO: 공유 기능 구현
+    });
 
-        // 저장
-        if (id === 'music-on') localStorage.setItem(LS_KEYS.musicEnabled, 'true');
-        if (id === 'music-off') localStorage.setItem(LS_KEYS.musicEnabled, 'false');
-        if (id === 'sfx-on') localStorage.setItem(LS_KEYS.sfxEnabled, 'true');
-        if (id === 'sfx-off') localStorage.setItem(LS_KEYS.sfxEnabled, 'false');
-      });
+    // Toggle 스위치 이벤트
+    const musicToggle = document.getElementById('music-toggle') as HTMLInputElement | null;
+    const sfxToggle = document.getElementById('sfx-toggle') as HTMLInputElement | null;
+
+    musicToggle?.addEventListener('change', () => {
+      const enabled = musicToggle.checked;
+      this.callbacks.onSetMusicEnabled?.(enabled);
+      localStorage.setItem(LS_KEYS.musicEnabled, String(enabled));
+    });
+
+    sfxToggle?.addEventListener('change', () => {
+      const enabled = sfxToggle.checked;
+      this.callbacks.onSetSfxEnabled?.(enabled);
+      localStorage.setItem(LS_KEYS.sfxEnabled, String(enabled));
     });
 
     // 디버그 버튼 이벤트
@@ -533,10 +725,48 @@ export class Settings {
   }
 
   /**
+   * 일시정지 모달 열기
+   */
+  private openPauseModal(): void {
+    this.pauseModalOverlay.classList.remove('opacity-0', 'pointer-events-none');
+    this.pauseModalOverlay.classList.add('opacity-100', 'pointer-events-auto');
+
+    // 모달 콘텐츠 애니메이션
+    const content = this.pauseModalOverlay.querySelector('.glass-modal');
+    if (content) {
+      content.classList.remove('scale-90', 'translate-y-8');
+      content.classList.add('scale-100', 'translate-y-0');
+    }
+
+    // 배경 스크롤 잠금 (iOS 포함)
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+  }
+
+  /**
+   * 일시정지 모달 닫기
+   */
+  private closePauseModal(): void {
+    this.pauseModalOverlay.classList.add('opacity-0', 'pointer-events-none');
+    this.pauseModalOverlay.classList.remove('opacity-100', 'pointer-events-auto');
+
+    // 모달 콘텐츠 애니메이션
+    const content = this.pauseModalOverlay.querySelector('.glass-modal');
+    if (content) {
+      content.classList.add('scale-90', 'translate-y-8');
+      content.classList.remove('scale-100', 'translate-y-0');
+    }
+
+    // 배경 스크롤 잠금 해제
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+  }
+
+  /**
    * 정리
    */
   destroy(): void {
-    this.hamburgerButton.remove();
+    this.buttonsContainer.remove();
     // 리스너 정리
     const onResize = (this.modalOverlay as any).__onResize as (() => void) | undefined;
     if (onResize) {

@@ -7,8 +7,8 @@
  * - Tailwind CSS 기반 스타일링
  */
 export class ScoreDisplay {
-  private scoreValue: HTMLDivElement;
-  private scoreBest: HTMLDivElement;
+  private scoreContainer: HTMLDivElement;
+  private bestContainer: HTMLDivElement;
   private bestScore: number;
   private isNewRecord = false;
 
@@ -17,13 +17,13 @@ export class ScoreDisplay {
     this.bestScore = this.loadBestScore();
 
     // BEST 표시 (최상단)
-    this.scoreBest = this.createBestScore();
+    this.bestContainer = this.createBestScore();
 
     // 현재 점수 (중앙)
-    this.scoreValue = this.createMainScore();
+    this.scoreContainer = this.createMainScore();
 
-    container.appendChild(this.scoreBest);
-    container.appendChild(this.scoreValue);
+    container.appendChild(this.bestContainer);
+    container.appendChild(this.scoreContainer);
   }
 
   /**
@@ -32,58 +32,30 @@ export class ScoreDisplay {
   private createBestScore(): HTMLDivElement {
     const container = document.createElement('div');
 
-    // 전광판 스타일 컨테이너
     container.className = `
-      absolute top-10 left-1/2 -translate-x-1/2
-      flex flex-col items-center gap-2
-      px-12 py-4
-      rounded-lg
-      backdrop-blur-[10px]
-      transition-all duration-300
-      landscape-xs:px-6 landscape-xs:py-2 landscape-xs:gap-0.5
-      scoreboard-display
+      best-score-banner pointer-events-none
+      absolute top-4 left-0 translate-x-0 z-20
+      inline-flex items-center gap-2
+      pl-4 pr-4 py-2
+      bg-[#2F3A44E6]
+      rounded-tr-[12px] rounded-br-[12px]
+      shadow-[0_6px_18px_rgba(0,0,0,0.35)]
+      font-orbitron text-base font-semibold text-white
+      landscape-xs:top-3 landscape-xs:px-3 landscape-xs:py-1.5
+      landscape-xs:text-sm
     `.trim().replace(/\s+/g, ' ');
 
-    // BEST: nnn 라인
-    const bestLine = document.createElement('div');
-    bestLine.className = `
-      font-orbitron text-sm font-bold tracking-[0.2em]
-      landscape-xs:text-[10px]
-    `.trim().replace(/\s+/g, ' ');
-    bestLine.style.color = '#aaaaaa';
-    bestLine.style.textShadow = '0 0 8px rgba(170, 170, 170, 0.6), 0 0 16px rgba(170, 170, 170, 0.3)';
-
-    const bestLabel = document.createElement('span');
-    bestLabel.textContent = 'BEST';
-    bestLabel.style.color = '#fbbf24'; // 노란색
-    bestLabel.style.textShadow = '0 0 8px rgba(251, 191, 36, 0.8), 0 0 16px rgba(251, 191, 36, 0.6)';
-
-    const bestColon = document.createTextNode(': ');
+    const label = document.createElement('span');
+    label.textContent = 'Best:';
+    label.className = 'text-[#FFEE00] drop-shadow-[0_0_6px_rgba(255,238,0,0.45)]';
 
     const number = document.createElement('span');
     number.id = 'best-score-number';
-    number.style.color = '#ffffff';
-    number.style.textShadow = '0 0 8px rgba(255, 255, 255, 0.8), 0 0 16px rgba(255, 255, 255, 0.6)';
+    number.className = 'text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.45)]';
     number.textContent = this.bestScore.toString();
 
-    bestLine.appendChild(bestLabel);
-    bestLine.appendChild(bestColon);
-    bestLine.appendChild(number);
-
-    // 현재 스코어 (큰 숫자)
-    const currentScore = document.createElement('div');
-    currentScore.id = 'scoreboard-current-score';
-    currentScore.className = `
-      font-orbitron text-[72px] font-black tracking-wide
-      landscape-xs:text-[32px]
-    `.trim().replace(/\s+/g, ' ');
-    currentScore.style.color = '#ffffff';
-    currentScore.style.textShadow = '0 0 15px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.6), 0 0 45px rgba(255, 255, 255, 0.4)';
-    currentScore.style.lineHeight = '1';
-    currentScore.textContent = '0';
-
-    container.appendChild(bestLine);
-    container.appendChild(currentScore);
+    container.appendChild(label);
+    container.appendChild(number);
 
     return container;
   }
@@ -93,8 +65,30 @@ export class ScoreDisplay {
    */
   private createMainScore(): HTMLDivElement {
     const container = document.createElement('div');
-    // 전광판에 통합되었으므로 빈 컨테이너 반환
-    container.className = 'hidden';
+
+    container.className = `
+      pointer-events-none absolute top-[12%] left-1/2 -translate-x-1/2
+      flex flex-col items-center justify-center
+      w-[176px] px-6 py-4
+      rounded-[20px]
+      bg-[#2F3A44E6]
+      shadow-[0_12px_28px_rgba(0,0,0,0.45)]
+      transition-all duration-300
+      landscape-xs:w-[140px] landscape-xs:px-5 landscape-xs:py-3
+      scoreboard-display
+    `.trim().replace(/\s+/g, ' ');
+
+    const currentScore = document.createElement('div');
+    currentScore.id = 'scoreboard-current-score';
+    currentScore.className = `
+      font-orbitron text-[72px] font-black tracking-wide leading-none
+      text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.7)]
+      landscape-xs:text-[32px]
+    `.trim().replace(/\s+/g, ' ');
+    currentScore.textContent = '0';
+
+    container.appendChild(currentScore);
+
     return container;
   }
 
@@ -111,7 +105,7 @@ export class ScoreDisplay {
     this.animateScoreboardCount(oldScore, score, 300);
 
     // Bounce 애니메이션
-    const scoreboard = this.scoreBest;
+    const scoreboard = this.scoreContainer;
     if (scoreboard) {
       scoreboard.classList.add('score-animate');
       setTimeout(() => {
@@ -165,9 +159,9 @@ export class ScoreDisplay {
     numberEl.textContent = this.bestScore.toString();
 
     // 펄스 애니메이션
-    this.scoreBest.classList.add('best-animate');
+    this.bestContainer.classList.add('best-animate');
     setTimeout(() => {
-      this.scoreBest.classList.remove('best-animate');
+      this.bestContainer.classList.remove('best-animate');
     }, 800);
   }
 
@@ -198,7 +192,7 @@ export class ScoreDisplay {
    * 정리
    */
   destroy(): void {
-    this.scoreValue.remove();
-    this.scoreBest.remove();
+    this.scoreContainer.remove();
+    this.bestContainer.remove();
   }
 }

@@ -21,10 +21,6 @@ export class AudioManager {
   private musicEnabled = true;
   private sfxEnabled = true;
 
-  // 마지막으로 요청된 음악(재활성화 시 재개 용도)
-  private lastRequestedTrack: MusicTrack | null = null;
-  private lastRequestedOptions: { fadeIn?: boolean; volumeOverride?: number } | undefined;
-
   // 마스터 볼륨 (0.0 ~ 1.0)
   private masterVolume = 1.0;
 
@@ -120,10 +116,6 @@ export class AudioManager {
    * 배경 음악 재생 (멀티 트랙 지원)
    */
   async playMusic(track: MusicTrack, options?: { fadeIn?: boolean; volumeOverride?: number }): Promise<void> {
-    // 마지막 요청 기억 (활성화되면 재개할 수 있도록)
-    this.lastRequestedTrack = track;
-    this.lastRequestedOptions = options;
-
     if (!this.musicEnabled) {
       // 음악이 비활성화된 경우 즉시 재생하지 않고 요청만 기록, 현재 트랙은 정지
       this.stopMusic(track);
