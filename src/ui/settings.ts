@@ -180,13 +180,15 @@ export class Settings {
       rounded-3xl
       border-2 border-[#3C4C55]/50
       backdrop-blur-sm
+      bg-gradient-to-br from-[#14141ef9] via-[#0f0f18f4] to-[#080811f2]
+      shadow-[0_0_60px_rgba(0,0,0,0.5),0_0_30px_rgba(255,215,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1)]
       transition-all duration-300
       scale-90 translate-y-8
       flex flex-col
       overflow-hidden
       landscape-xs:max-h-[calc(100vh-2rem)]
-      glass-modal
     `.trim().replace(/\s+/g, ' ');
+    content.dataset.modal = 'settings';
 
     // 동적 높이 보정: 100dvh 사용 가능 시 우선 적용, 아니면 innerHeight 기반
     const applyContentSizing = () => {
@@ -323,14 +325,16 @@ export class Settings {
       rounded-3xl
       border-2 border-[#3C4C55]/50
       backdrop-blur-sm
+      bg-gradient-to-br from-[#14141ef9] via-[#0f0f18f4] to-[#080811f2]
+      shadow-[0_0_40px_rgba(0,0,0,0.45),0_0_20px_rgba(255,215,0,0.15),inset_0_1px_0_rgba(255,255,255,0.08)]
       transition-all duration-300
       scale-90 translate-y-8
       flex flex-col
       p-8
       gap-4
       landscape-xs:p-6 landscape-xs:gap-3
-      glass-modal
     `.trim().replace(/\s+/g, ' ');
+    content.dataset.modal = 'pause';
 
     // 헤더
     const header = document.createElement('div');
@@ -694,7 +698,7 @@ export class Settings {
     this.modalOverlay.classList.add('opacity-100', 'pointer-events-auto');
 
     // 모달 콘텐츠 애니메이션
-    const content = this.modalOverlay.querySelector('.glass-modal');
+    const content = this.modalOverlay.querySelector('[data-modal=\"settings\"]');
     if (content) {
       content.classList.remove('scale-90', 'translate-y-8');
       content.classList.add('scale-100', 'translate-y-0');
@@ -713,7 +717,7 @@ export class Settings {
     this.modalOverlay.classList.remove('opacity-100', 'pointer-events-auto');
 
     // 모달 콘텐츠 애니메이션
-    const content = this.modalOverlay.querySelector('.glass-modal');
+    const content = this.modalOverlay.querySelector('[data-modal=\"settings\"]');
     if (content) {
       content.classList.add('scale-90', 'translate-y-8');
       content.classList.remove('scale-100', 'translate-y-0');
@@ -732,7 +736,7 @@ export class Settings {
     this.pauseModalOverlay.classList.add('opacity-100', 'pointer-events-auto');
 
     // 모달 콘텐츠 애니메이션
-    const content = this.pauseModalOverlay.querySelector('.glass-modal');
+    const content = this.pauseModalOverlay.querySelector('[data-modal=\"pause\"]');
     if (content) {
       content.classList.remove('scale-90', 'translate-y-8');
       content.classList.add('scale-100', 'translate-y-0');
@@ -751,7 +755,7 @@ export class Settings {
     this.pauseModalOverlay.classList.remove('opacity-100', 'pointer-events-auto');
 
     // 모달 콘텐츠 애니메이션
-    const content = this.pauseModalOverlay.querySelector('.glass-modal');
+    const content = this.pauseModalOverlay.querySelector('[data-modal=\"pause\"]');
     if (content) {
       content.classList.add('scale-90', 'translate-y-8');
       content.classList.remove('scale-100', 'translate-y-0');

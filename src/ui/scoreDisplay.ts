@@ -33,12 +33,12 @@ export class ScoreDisplay {
     const container = document.createElement('div');
 
     container.className = `
-      best-score-banner pointer-events-none
-      absolute top-4 left-0 translate-x-0 z-20
+      pointer-events-none absolute top-4 left-0 z-20
       inline-flex items-center gap-2
-      pl-4 pr-4 py-2
-      bg-[#2F3A44E6]
+      px-4 py-2
       rounded-tr-[12px] rounded-br-[12px]
+      border border-[rgba(64,76,86,0.65)]
+      bg-[#2F3A44E6]
       shadow-[0_6px_18px_rgba(0,0,0,0.35)]
       font-orbitron text-base font-semibold text-white
       landscape-xs:top-3 landscape-xs:px-3 landscape-xs:py-1.5
@@ -71,11 +71,11 @@ export class ScoreDisplay {
       flex flex-col items-center justify-center
       w-[176px] px-6 py-4
       rounded-[20px]
+      border border-[rgba(64,76,86,0.65)]
       bg-[#2F3A44E6]
-      shadow-[0_12px_28px_rgba(0,0,0,0.45)]
+      shadow-[0_12px_28px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.3)]
       transition-all duration-300
       landscape-xs:w-[140px] landscape-xs:px-5 landscape-xs:py-3
-      scoreboard-display
     `.trim().replace(/\s+/g, ' ');
 
     const currentScore = document.createElement('div');
@@ -107,9 +107,10 @@ export class ScoreDisplay {
     // Bounce 애니메이션
     const scoreboard = this.scoreContainer;
     if (scoreboard) {
-      scoreboard.classList.add('score-animate');
+      const animationClass = 'animate-scoreboard-pulse';
+      scoreboard.classList.add(animationClass);
       setTimeout(() => {
-        scoreboard.classList.remove('score-animate');
+        scoreboard.classList.remove(animationClass);
       }, 400);
     }
 
@@ -159,9 +160,10 @@ export class ScoreDisplay {
     numberEl.textContent = this.bestScore.toString();
 
     // 펄스 애니메이션
-    this.bestContainer.classList.add('best-animate');
+    const animationClass = 'animate-best-score-pop';
+    this.bestContainer.classList.add(animationClass);
     setTimeout(() => {
-      this.bestContainer.classList.remove('best-animate');
+      this.bestContainer.classList.remove(animationClass);
     }, 800);
   }
 
