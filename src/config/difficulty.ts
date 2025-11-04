@@ -55,20 +55,16 @@ export const DIFFICULTY_LEVELS: DifficultyLevelConfig[] = [
     name: 'Level 5',
     obstacles: [
       {
-        blueprintId: 'capsuleGuard',
-        transform: { position: { x: -1.35, z: -5.0 } },
-        behavior: { type: 'static' }
+        blueprintId: 'whiteDrone',
+        transform: { position: {y: 1.5, z: -5.0 } },
+        behavior: { 
+		  type: 'patrol',
+		  axis: 'x',
+		  range: [-1.0, 1.0],
+		  speed: 2.0,
+		  waveform: 'sine'
+		}
       },
-      {
-        blueprintId: 'capsuleGuard',
-        transform: { position: { x: 1.35, z: -5.0 } },
-        behavior: { type: 'static' }
-      },
-      {
-        blueprintId: 'panelBlue',
-        transform: { position: { z: -5.15 }, rotation: { y: 0.12 } },
-        behavior: { type: 'static' }
-      }
     ]
   },
   {

@@ -1,7 +1,7 @@
 import keeperTextureUrl from '../assets/keeper/wall.png?url';
 import woodTextureUrl from '../assets/models/obstacle/wood.jpg?url';
+import whiteDroneTextureUrl from '../assets/models/obstacle/whiteDrone.png?url';
 import cokeModelUrl from '../assets/models/bottle/coke.glb?url';
-
 export type Axis = 'x' | 'y' | 'z';
 
 export type RangeValue = [number, number];
@@ -221,6 +221,28 @@ export const OBSTACLE_BLUEPRINTS: Record<string, ObstacleBlueprint> = {
     },
     defaultTransform: {
       position: { y: 0.3 }
+    }
+  },
+    whiteDrone: {
+    id: 'whiteDrone',
+    render: {
+      kind: 'primitive',
+      shape: 'plane',
+      size: { x: 1.0, y: 1.0 },
+      material: {
+        textureUrl: whiteDroneTextureUrl,
+        doubleSided: true,
+        transparent: true,
+        opacity: 1,
+        alphaTest: 0.01
+      }
+    },
+    collider: {
+      shape: 'box',
+      size: { x: 0.6, y: 0.5, z: 0.6 }
+    },
+    defaultTransform: {
+      position: { y: 0.8 }
     }
   },
   cubeColor: {
