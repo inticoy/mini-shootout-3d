@@ -65,6 +65,11 @@ export class Settings {
   private callbacks: SettingsCallbacks;
 
   constructor(container: HTMLElement, callbacks: SettingsCallbacks = {}) {
+    console.log('🔧 Settings 생성자 시작', {
+      containerExists: !!container,
+      timeStamp: performance.now()
+    });
+    
     this.callbacks = callbacks;
     this.audioState = this.loadAudioSettingsState();
 
@@ -77,6 +82,28 @@ export class Settings {
     container.appendChild(this.pauseModalOverlay);
 
     this.setupEventListeners();
+    
+    console.log('🔧 Settings 생성 완료', {
+      buttonId: this.pauseButton.id,
+      buttonInDom: document.contains(this.pauseButton),
+      timeStamp: performance.now()
+    });
+    
+    // 2초 후 DOM 상태 체크
+    setTimeout(() => {
+      const button = document.getElementById('pause-button');
+      if (button) {
+        const rect = button.getBoundingClientRect();
+        const elementsAtPoint = document.elementsFromPoint(rect.left + rect.width/2, rect.top + rect.height/2);
+        console.log('🔍 Pause 버튼 위치의 요소들 (위에서부터):', elementsAtPoint.map(el => ({
+          tag: el.tagName,
+          id: el.id,
+          classes: el.className,
+          zIndex: window.getComputedStyle(el).zIndex,
+          pointerEvents: window.getComputedStyle(el).pointerEvents
+        })));
+      }
+    }, 2000);
   }
 
   /**
@@ -85,11 +112,12 @@ export class Settings {
   private createButtonsContainer(): HTMLDivElement {
     const container = document.createElement('div');
     container.className = `
-      absolute bottom-4 left-4 z-50
+      absolute bottom-4 left-4
       flex flex-row gap-2
       pointer-events-auto
+      z-[10]
     `.trim().replace(/\s+/g, ' ');
-
+    
     container.style.bottom = `max(1rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))`;
     container.style.left = `max(1rem, calc(env(safe-area-inset-left, 0px) + 1rem))`;
 
@@ -115,11 +143,19 @@ export class Settings {
       hover:shadow-[0_10px_24px_rgba(0,0,0,0.45)]
       active:bg-[#0000008c]
       active:shadow-[0_4px_12px_rgba(0,0,0,0.35)]
+      pointer-events-auto
+      cursor-pointer
+      z-[10]
     `.trim().replace(/\s+/g, ' ');
+    
+    // touch-action: manipulation을 통해 body의 touch-action: none을 오버라이드
+    button.style.touchAction = 'manipulation';
 
     button.innerHTML = `
       <i class="ph-fill ph-pause text-2xl text-white"></i>
     `;
+    
+    console.log('🔧 Pause 버튼 생성됨', button);
 
     return button;
   }
@@ -139,8 +175,11 @@ export class Settings {
       bg-black/40 backdrop-blur-[2px] ios-backdrop
       opacity-0 pointer-events-none
       transition-opacity duration-300
-      z-[1000]
+      z-[30]
     `.trim().replace(/\s+/g, ' ');
+    
+    // 초기에는 display none으로 완전히 숨김
+    overlay.style.display = 'none';
 
     const content = document.createElement('div');
     content.className = `
@@ -175,7 +214,7 @@ export class Settings {
     const backButton = document.createElement('button');
     backButton.className = `
       hidden
-      absolute z-[1001] pointer-events-auto
+      absolute z-[40] pointer-events-auto
       flex items-center justify-center
       text-white/90
       transition-all duration-200
@@ -253,7 +292,7 @@ export class Settings {
       active:bg-[#0000008c]
       active:shadow-[0_4px_12px_rgba(0,0,0,0.35)]
       pointer-events-auto
-      z-10
+      z-[40]
     `.trim().replace(/\s+/g, ' ');
     settingsButton.style.bottom = 'calc(env(safe-area-inset-bottom, 0px) + 24px)';
     settingsButton.style.left = 'calc(env(safe-area-inset-left, 0px) + 24px)';
@@ -443,23 +482,42 @@ export class Settings {
   }
 
   private openPauseModal(initialView: 'pause' | 'settings' = 'pause'): void {
+    console.log('🟢 openPauseModal 호출됨', {
+      initialView,
+      currentOpacity: this.pauseModalOverlay.classList.contains('opacity-0') ? '0' : '100',
+      pointerEvents: this.pauseModalOverlay.classList.contains('pointer-events-none') ? 'none' : 'auto'
+    });
+    
     this.switchToView(initialView);
 
-    this.pauseModalOverlay.classList.remove('opacity-0', 'pointer-events-none');
-    this.pauseModalOverlay.classList.add('opacity-100', 'pointer-events-auto');
+    // display를 먼저 flex로 변경 (애니메이션을 위해)
+    this.pauseModalOverlay.style.display = 'flex';
+    
+    // 다음 프레임에서 opacity 변경 (transition이 작동하도록)
+    requestAnimationFrame(() => {
+      this.pauseModalOverlay.classList.remove('opacity-0', 'pointer-events-none');
+      this.pauseModalOverlay.classList.add('opacity-100', 'pointer-events-auto');
+    });
 
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
+    
+    console.log('🟢 openPauseModal 완료', {
+      opacity: this.pauseModalOverlay.classList.contains('opacity-100') ? '100' : '0',
+      pointerEvents: this.pauseModalOverlay.classList.contains('pointer-events-auto') ? 'auto' : 'none'
+    });
   }
 
   private closePauseModal(): void {
+    console.log('🔴 closePauseModal 호출됨');
     this.pauseModalOverlay.classList.add('opacity-0');
     this.pauseModalOverlay.classList.remove('opacity-100');
 
-    // 애니메이션 완료 후 pointer-events 제거 및 오버플로우 복원
+    // 애니메이션 완료 후 pointer-events 제거, display none 및 오버플로우 복원
     setTimeout(() => {
       this.pauseModalOverlay.classList.add('pointer-events-none');
       this.pauseModalOverlay.classList.remove('pointer-events-auto');
+      this.pauseModalOverlay.style.display = 'none'; // 완전히 숨김
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
       
@@ -476,13 +534,68 @@ export class Settings {
    * 이벤트 리스너 설정
    */
   private setupEventListeners(): void {
-    this.pauseButton.addEventListener('click', () => this.openPauseModal('pause'));
+    // click 이벤트 대신 pointerup으로 직접 처리 (더 확실함)
+    let pointerDownTime = 0;
+    let pointerDownTarget: EventTarget | null = null;
+    
+    this.pauseButton.addEventListener('pointerdown', (e) => {
+      console.log('🟣 Pause 버튼 pointerdown', {
+        target: e.target,
+        currentTarget: e.currentTarget,
+        timeStamp: e.timeStamp,
+        pointerType: e.pointerType
+      });
+      pointerDownTime = e.timeStamp;
+      pointerDownTarget = e.target;
+      e.stopPropagation(); // 다른 핸들러로 전파 방지
+    });
+    
+    this.pauseButton.addEventListener('pointerup', (e) => {
+      console.log('🟣 Pause 버튼 pointerup', {
+        target: e.target,
+        currentTarget: e.currentTarget,
+        timeStamp: e.timeStamp,
+        pointerType: e.pointerType,
+        timeDiff: e.timeStamp - pointerDownTime
+      });
+      
+      // pointerdown과 pointerup이 같은 버튼에서 발생했고, 시간차가 500ms 이하면 클릭으로 간주
+      if (pointerDownTarget === e.target && (e.timeStamp - pointerDownTime) < 500) {
+        console.log('🔵 Pause 버튼 클릭 처리!');
+        e.stopPropagation(); // 다른 핸들러로 전파 방지
+        e.preventDefault(); // 기본 동작 방지
+        this.openPauseModal('pause');
+      }
+      
+      pointerDownTime = 0;
+      pointerDownTarget = null;
+    });
+    
+    // 만약을 위해 click 이벤트도 유지 (fallback)
+    this.pauseButton.addEventListener('click', (e) => {
+      console.log('🔵 Pause 버튼 click 이벤트 (fallback)', {
+        target: e.target,
+        currentTarget: e.currentTarget,
+        timeStamp: e.timeStamp,
+        isTrusted: e.isTrusted
+      });
+      // pointerup에서 이미 처리했을 수 있으므로 중복 실행 방지 필요
+      // 하지만 일단은 그냥 실행하도록 둠 (혹시 몰라서)
+    });
+    
     this.pauseSettingsButton.addEventListener('click', () => this.switchToView('settings'));
     this.backButton.addEventListener('click', () => this.switchToView('pause'));
     this.backButton.addEventListener('touchstart', () => this.switchToView('pause'));
 
     // pauseView 클릭 시 이어하기 (버튼 외 빈 공간)
     this.pauseView.addEventListener('click', (e) => {
+      console.log('🟡 pauseView 클릭됨', {
+        target: e.target,
+        targetId: (e.target as HTMLElement).id,
+        targetClasses: (e.target as HTMLElement).className,
+        timeStamp: e.timeStamp
+      });
+      
       // pauseView 자체나 centerButtons를 클릭했을 때 (버튼은 제외)
       const target = e.target as HTMLElement;
       if (
@@ -490,6 +603,7 @@ export class Settings {
         target.classList.contains('flex-col') ||
         target.id === 'pause-view-background'
       ) {
+        console.log('🟡 pauseView 빈 공간 클릭 - 모달 닫기');
         this.closePauseModal();
       }
     });

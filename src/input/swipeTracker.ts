@@ -43,6 +43,14 @@ export class SwipeTracker {
   }
 
   private handlePointerDown(e: PointerEvent) {
+	console.log('📍 SwipeTracker pointerdown', {
+      target: e.target,
+      targetTag: (e.target as HTMLElement).tagName,
+      targetId: (e.target as HTMLElement).id,
+      canvasId: this.canvas.id,
+      timeStamp: e.timeStamp
+    });
+	
     e.preventDefault();
     this.isTracking = true;
     this.currentSwipe = [];

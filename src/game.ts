@@ -97,7 +97,7 @@ export class MiniShootout3D {
   private readonly handleBallCollideBound = (event: { body: CANNON.Body }) => this.handleBallCollide(event);
   private readonly handleGoalCollisionBound = (event: { body: CANNON.Body }) => this.handleGoalCollision(event);
   // handleDebugButtonClickBound는 settings에서 직접 호출하므로 제거
-  private readonly handleCanvasPointerUpBound = () => this.handleCanvasPointerUp();
+  private readonly handleCanvasPointerUpBound = (e: PointerEvent) => this.handleCanvasPointerUp(e);
   private touchGuideTimer: number | null = null;
   private loadingScreen: LoadingScreen | null = null;
   private threeAssetsProgress = 0;
@@ -349,6 +349,7 @@ export class MiniShootout3D {
   private attachEventListeners() {
     window.addEventListener('resize', this.handleResizeBound);
     // 캔버스에서 pointerup 이벤트 감지 (스와이프 완료 시 정규화 테스트)
+    // capture phase에서 실행하여 버튼보다 먼저 받지 않도록 함
     this.renderer.domElement.addEventListener('pointerup', this.handleCanvasPointerUpBound);
   }
 
@@ -784,7 +785,7 @@ export class MiniShootout3D {
       label.style.textShadow = '0 0 3px #ffff00, 0 0 6px #ffff00';
       label.style.pointerEvents = 'none';
       label.style.display = 'none';
-      label.style.zIndex = '1000';
+      label.style.zIndex = '5';
       label.style.transform = 'translate(-50%, -50%)';
       document.body.appendChild(label);
       this.swipePointLabels.push(label);
@@ -858,10 +859,27 @@ export class MiniShootout3D {
     });
   }
 
-  private handleCanvasPointerUp() {
+  private handleCanvasPointerUp(e: PointerEvent) {
+    console.log('⚽ Game handleCanvasPointerUp 호출됨', {
+      target: e.target,
+      targetTag: (e.target as HTMLElement).tagName,
+      targetId: (e.target as HTMLElement).id
+    });
+    
+    // UI 버튼 클릭인 경우 무시
+    const target = e.target as HTMLElement;
+    if (target !== this.renderer.domElement) {
+      console.log('⚽ canvas가 아닌 요소 클릭 - 무시');
+      return;
+    }
+    
     const swipeData = this.swipeTracker.getLastSwipe();
-    if (!swipeData) return;
+    if (!swipeData) {
+      console.log('⚽ swipeData 없음 - 리턴');
+      return;
+    }
 
+    console.log('⚽ swipeData 있음 - 슛 처리 시작');
     // Step 1: 정규화
     const normalized = normalizeSwipeData(swipeData);
     console.log(debugNormalizedSwipe(normalized));

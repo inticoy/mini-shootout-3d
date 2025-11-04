@@ -31,7 +31,7 @@ export class ShotInfoHud {
     this.container.style.fontFamily = 'monospace';
     this.container.style.fontSize = '11px';
     this.container.style.color = '#e0f7ff';
-    this.container.style.zIndex = '998';
+    this.container.style.zIndex = '5';
     this.container.style.backdropFilter = 'blur(4px)';
     this.container.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
     this.container.style.maxWidth = '95vw';

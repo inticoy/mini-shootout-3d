@@ -49,7 +49,7 @@ export class LoadingScreen {
   private currentMessageIndex = 0;
 
   private static readonly CLASS_NAMES = {
-    container: 'loading-screen fixed inset-0 z-[9999] flex w-screen h-[100dvh] flex-col items-center justify-start pt-[18vh] bg-[linear-gradient(180deg,#5BA3E8_0%,#87CEEB_30%,#B8E6F5_55%,#B8E6F5_100%)] transition-opacity duration-500 ease-out text-white overflow-hidden',
+    container: 'loading-screen fixed inset-0 z-[20] flex w-screen h-[100dvh] flex-col items-center justify-start pt-[18vh] bg-[linear-gradient(180deg,#5BA3E8_0%,#87CEEB_30%,#B8E6F5_55%,#B8E6F5_100%)] transition-opacity duration-500 ease-out text-white overflow-hidden',
     titleSection: 'loading-screen__title mb-20 text-center animate-fade-in-down-large',
     titleText: 'loading-screen__title-text mx-6 w-[80vw] max-w-[500px] h-auto whitespace-nowrap text-[56px] font-black tracking-[2px] text-white md:text-[56px] md:tracking-[2px] lg:text-[56px] lg:tracking-[2px] [text-shadow:0_2px_6px_rgba(0,0,0,0.1)]',
     subtitle: 'loading-screen__subtitle mt-[10px] text-[18px] font-bold tracking-[3px] text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]',
@@ -68,7 +68,7 @@ export class LoadingScreen {
     tipStrong: 'text-[#7dd3a0] font-bold',
     soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[10vh] -translate-x-1/2 flex w-[min(90vw,360px)] flex-col items-center gap-8 px-4 opacity-0 transition-opacity duration-1000',
     soccerBall: 'loading-screen__soccer-ball w-[72px] h-[72px] cursor-pointer animate-bounce drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]',
-    swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[10000] touch-none pointer-events-auto'
+    swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[25] touch-none pointer-events-auto'
   };
 
   constructor(onSwipe?: () => void, onLoadingComplete?: () => void) {
@@ -181,7 +181,6 @@ export class LoadingScreen {
       const soccerBallContainer = document.createElement('div');
       soccerBallContainer.className = LoadingScreen.CLASS_NAMES.soccerBallContainer;
       soccerBallContainer.style.position = 'absolute';
-      soccerBallContainer.style.zIndex = '50';
 
       // 축구공 이미지 생성
       this.soccerBall = document.createElement('img');
@@ -189,7 +188,6 @@ export class LoadingScreen {
       this.soccerBall.className = LoadingScreen.CLASS_NAMES.soccerBall;
       this.soccerBall.alt = 'Soccer Ball';
       this.soccerBall.style.position = 'relative';
-      this.soccerBall.style.zIndex = '60';
 
       // 안내 메시지
       const shootMessage = document.createElement('div');
@@ -422,18 +420,48 @@ export class LoadingScreen {
    * 로딩 화면 숨기기
    */
   public hide() {
+    console.log('🎬 LoadingScreen hide() 호출됨', {
+      timeStamp: performance.now()
+    });
+    
     // SwipeTracker 정리
     if (this.swipeTracker) {
+      console.log('🎬 LoadingScreen SwipeTracker 파괴');
       this.swipeTracker.destroy();
       this.swipeTracker = null;
+    }
+
+    // 스와이프 캔버스 즉시 제거 (인게임 UI와 충돌 방지)
+    if (this.swipeCanvas && this.swipeCanvas.parentElement) {
+      console.log('🎬 LoadingScreen swipeCanvas 제거');
+      this.swipeCanvas.remove();
+      this.swipeCanvas = null;
     }
 
     // 인게임 진입 시 HTML 배경을 빨강-녹색 그라디언트로 변경
     document.documentElement.style.background = 'linear-gradient(180deg, #ef4444 0%, #22c55e 100%)';
 
+    console.log('🎬 LoadingScreen container 페이드아웃 시작', {
+      containerExists: !!this.container,
+      containerInDom: document.contains(this.container),
+      timeStamp: performance.now()
+    });
+    
+    // 즉시 pointer-events 제거 (다른 UI 요소와 충돌 방지)
+    this.container.style.pointerEvents = 'none';
     this.container.classList.add('loading-screen--hidden');
+    
+    console.log('🎬 LoadingScreen loading-screen--hidden 클래스 추가됨', {
+      hasClass: this.container.classList.contains('loading-screen--hidden'),
+      computedPointerEvents: window.getComputedStyle(this.container).pointerEvents,
+      timeStamp: performance.now()
+    });
+    
     setTimeout(() => {
       if (this.container.parentElement) {
+        console.log('🎬 LoadingScreen container DOM 제거', {
+          timeStamp: performance.now()
+        });
         this.container.remove();
       }
     }, 500);

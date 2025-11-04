@@ -17,7 +17,7 @@ export function createDebugButton(callbacks: DebugPanelCallbacks): HTMLButtonEle
   button.style.fontFamily = 'monospace';
   button.style.fontSize = '12px';
   button.style.cursor = 'pointer';
-  button.style.zIndex = '999';
+  button.style.zIndex = '50';
   button.style.transition = 'background 0.16s ease';
   button.addEventListener('mouseenter', () => {
     if (button.dataset.active !== 'true') {
@@ -55,7 +55,7 @@ function createDebugPanel(callbacks: DebugPanelCallbacks): void {
   panel.style.fontFamily = 'monospace';
   panel.style.fontSize = '12px';
   panel.style.color = '#d9faff';
-  panel.style.zIndex = '998';
+  panel.style.zIndex = '50';
   panel.style.display = 'none';
   panel.style.minWidth = '180px';
 

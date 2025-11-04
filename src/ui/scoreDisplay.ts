@@ -33,7 +33,7 @@ export class ScoreDisplay {
     const container = document.createElement('div');
 
     container.className = `
-      pointer-events-none absolute top-0 left-3 z-20
+      pointer-events-none absolute top-0 left-3 z-[5]
       inline-flex items-center gap-2
       px-3.5 py-1.5
       rounded-[36px]
