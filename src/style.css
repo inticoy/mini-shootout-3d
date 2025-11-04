@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@200..900&family=Outfit:wght@400;700&family=Russo+One&family=Orbitron:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@200..900&family=Outfit:wght@400;700&family=Russo+One&family=Orbitron:wght@400;700;900&family=Montserrat:wght@400;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -13,6 +13,21 @@
   body {
     /* 배경 투명 - html 배경이 비치게 */
     @apply bg-transparent h-[100dvh] min-h-[100dvh];
+  }
+}
+
+@layer utilities {
+  .ios-backdrop {
+    -webkit-backdrop-filter:
+      var(--tw-backdrop-blur)
+      var(--tw-backdrop-brightness)
+      var(--tw-backdrop-contrast)
+      var(--tw-backdrop-grayscale)
+      var(--tw-backdrop-hue-rotate)
+      var(--tw-backdrop-invert)
+      var(--tw-backdrop-opacity)
+      var(--tw-backdrop-saturate)
+      var(--tw-backdrop-sepia);
   }
 }
 

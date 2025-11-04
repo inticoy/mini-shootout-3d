@@ -33,17 +33,25 @@ export class ScoreDisplay {
     const container = document.createElement('div');
 
     container.className = `
-      pointer-events-none absolute top-4 left-0 z-20
+      pointer-events-none absolute top-0 left-3 z-20
       inline-flex items-center gap-2
-      px-4 py-2
-      rounded-tr-[12px] rounded-br-[12px]
-      border border-[rgba(64,76,86,0.65)]
-      bg-[#2F3A44E6]
-      shadow-[0_6px_18px_rgba(0,0,0,0.35)]
-      font-orbitron text-base font-semibold text-white
-      landscape-xs:top-3 landscape-xs:px-3 landscape-xs:py-1.5
+      px-3.5 py-1.5
+      rounded-[36px]
+      border border-white/10
+      bg-[#0000009A]
+      shadow-[0_6px_18px_rgba(0,0,0,0.45)]
+      font-montserrat text-base font-semibold text-white
+      landscape-xs:top-0 landscape-xs:px-3 landscape-xs:py-1.5
       landscape-xs:text-sm
     `.trim().replace(/\s+/g, ' ');
+
+    const isAppInToss =
+      typeof navigator !== 'undefined' ? /TossApp/i.test(navigator.userAgent) : false;
+
+    if (!isAppInToss) {
+      container.style.top = 'calc(env(safe-area-inset-top, 0px) + 1rem)';
+      container.style.left = 'calc(env(safe-area-inset-left, 0px) + 1rem)';
+    }
 
     const label = document.createElement('span');
     label.textContent = 'Best:';
@@ -69,11 +77,11 @@ export class ScoreDisplay {
     container.className = `
       pointer-events-none absolute top-[12%] left-1/2 -translate-x-1/2
       flex flex-col items-center justify-center
-      w-[176px] px-6 py-4
-      rounded-[20px]
-      border border-[rgba(64,76,86,0.65)]
-      bg-[#2F3A44E6]
-      shadow-[0_12px_28px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.3)]
+      w-[148px] px-6 py-4
+      rounded-[24px]
+      border border-white/10
+      bg-[#00000099]
+      shadow-[0_12px_28px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.35)]
       transition-all duration-300
       landscape-xs:w-[140px] landscape-xs:px-5 landscape-xs:py-3
     `.trim().replace(/\s+/g, ' ');
@@ -81,7 +89,7 @@ export class ScoreDisplay {
     const currentScore = document.createElement('div');
     currentScore.id = 'scoreboard-current-score';
     currentScore.className = `
-      font-orbitron text-[72px] font-black tracking-wide leading-none
+      font-montserrat text-[72px] font-black tracking-wide leading-none
       text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.7)]
       landscape-xs:text-[32px]
     `.trim().replace(/\s+/g, ' ');

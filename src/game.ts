@@ -1108,6 +1108,41 @@ export class MiniShootout3D {
   }
 
   /**
+   * 게임을 처음부터 재시작 (점수 초기화 포함)
+   */
+  public restartGame(): void {
+    console.log('🔄 게임 재시작');
+    
+    // 진행 중인 샷 타이머 정리
+    if (this.shotResetTimer !== null) {
+      clearTimeout(this.shotResetTimer);
+      this.shotResetTimer = null;
+    }
+    
+    // 점수 초기화
+    this.score = 0;
+    this.onScoreChange(this.score);
+    
+    // 최고 기록 플래그 리셋
+    this.scoreDisplay.resetNewRecordFlag();
+    
+    // 상태 초기화
+    this.isShotInProgress = false;
+    this.hasScored = false;
+    
+    // 커브 힘 시스템 중지
+    this.curveForceSystem.stopCurveShot();
+    
+    // 타겟 마커 숨김
+    this.targetMarker.visible = false;
+    
+    // 공 리셋
+    this.resetBall();
+    
+    console.log('✅ 게임 재시작 완료');
+  }
+
+  /**
    * 다음 테마로 전환
    */
   public async switchToNextTheme(): Promise<void> {

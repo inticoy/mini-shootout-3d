@@ -8,7 +8,8 @@ export default {
     extend: {
       fontFamily: {
         russo: ['"Russo One"', 'sans-serif'],
-        orbitron: ['Orbitron', 'monospace']
+        orbitron: ['Orbitron', 'monospace'],
+        montserrat: ['Montserrat', 'sans-serif']
       },
       screens: {
         'xs-height': { 'raw': '(max-height: 550px)' },

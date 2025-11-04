@@ -42,7 +42,8 @@ export function bootstrapGame() {
     onSetMusicEnabled: (enabled: boolean) => game.setMusicEnabled(enabled),
     onSetSfxEnabled: (enabled: boolean) => game.setSfxEnabled(enabled),
     onSetMasterVolume: (volume: number) => game.setMasterVolume(volume),
-    onNextTheme: () => void game.switchToNextTheme()
+    onNextTheme: () => void game.switchToNextTheme(),
+    onRestart: () => game.restartGame()
   });
 }
 

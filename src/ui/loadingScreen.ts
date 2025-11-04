@@ -66,7 +66,7 @@ export class LoadingScreen {
 
     tip: 'loading-screen__tip absolute left-1/2 bottom-[20px] max-w-[600px] -translate-x-1/2 px-[20px] text-center text-[14px] text-[rgba(255,255,255,0.7)] animate-fade-in-delayed lg:bottom-[30px] lg:text-[16px]',
     tipStrong: 'text-[#7dd3a0] font-bold',
-    soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[10vh] -translate-x-1/2 flex flex-col items-center gap-8 opacity-0 transition-opacity duration-1000',
+    soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[10vh] -translate-x-1/2 flex w-[min(90vw,360px)] flex-col items-center gap-8 px-4 opacity-0 transition-opacity duration-1000',
     soccerBall: 'loading-screen__soccer-ball w-[72px] h-[72px] cursor-pointer animate-bounce drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]',
     swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[10000] touch-none pointer-events-auto'
   };
@@ -180,16 +180,20 @@ export class LoadingScreen {
       // 축구공 컨테이너 생성
       const soccerBallContainer = document.createElement('div');
       soccerBallContainer.className = LoadingScreen.CLASS_NAMES.soccerBallContainer;
+      soccerBallContainer.style.position = 'absolute';
+      soccerBallContainer.style.zIndex = '50';
 
       // 축구공 이미지 생성
       this.soccerBall = document.createElement('img');
       this.soccerBall.src = soccerBallUrl;
       this.soccerBall.className = LoadingScreen.CLASS_NAMES.soccerBall;
       this.soccerBall.alt = 'Soccer Ball';
+      this.soccerBall.style.position = 'relative';
+      this.soccerBall.style.zIndex = '60';
 
       // 안내 메시지
       const shootMessage = document.createElement('div');
-      shootMessage.className = 'animate-pulse text-center text-[20px] font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]';
+      shootMessage.className = 'animate-pulse whitespace-nowrap text-center text-[20px] font-bold text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.2)]';
       shootMessage.textContent = '위로 스와이프해 스냅슛!';
       shootMessage.style.fontFamily = "'Chiron GoRound TC', sans-serif";
 
