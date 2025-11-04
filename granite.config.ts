@@ -1,18 +1,21 @@
-import { defineConfig } from '@apps-in-toss/web-framework';
+import { defineConfig } from '@apps-in-toss/web-framework/config';
 
 export default defineConfig({
-  app: {
-    identifier: 'mini-shootout', // Toss Apps 콘솔의 앱 이름과 동일하게 설정
-  },
+  appName: 'snapshoot',
   brand: {
-    displayName: 'Mini Shootout',
-    iconPath: './public/icon.png',
-    color: '#FF6B00', // 주요 브랜드 컬러
+    displayName: '스냅슛', // 화면에 노출될 앱의 한글 이름으로 바꿔주세요.
+    primaryColor: '#35CD21', // 화면에 노출될 앱의 기본 색상으로 바꿔주세요.
+    icon: '/public/icon.svg', // 화면에 노출될 앱의 아이콘 이미지 주소로 바꿔주세요.
+    bridgeColorMode: 'basic',
   },
   web: {
     host: 'localhost',
     port: 5173,
-    devCommand: 'pnpm dev',
-    buildCommand: 'pnpm build',
+    commands: {
+      dev: 'vite',
+      build: 'tsc && vite build',
+    },
   },
+  permissions: [],
+  outdir: 'dist',
 });
