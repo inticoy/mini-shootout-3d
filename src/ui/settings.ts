@@ -227,7 +227,7 @@ export class Settings {
     backButton.style.width = '40px';
     backButton.style.height = '40px';
     backButton.type = 'button';
-    backButton.innerHTML = '<i class="ph-fill ph-arrow-left text-3xl"></i>';
+    backButton.innerHTML = '<i class="ph ph-arrow-left text-3xl"></i>';
     this.backButton = backButton;
 
     // Pause view - contentArea 안에 들어갈 내용
