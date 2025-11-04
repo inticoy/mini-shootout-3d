@@ -29,6 +29,12 @@
       var(--tw-backdrop-saturate)
       var(--tw-backdrop-sepia);
   }
+
+  /* 버튼 눌림 효과 - 즉각 반응 */
+  .button-pressed {
+    transform: translateY(2px) scale(0.96) !important;
+    transition: none !important;
+  }
 }
 
 * {
@@ -292,6 +298,7 @@ body {
     opacity: 1.;
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
     transition: transform 0.8s ease-out; /* Sync animation timing */
+    z-index: 30; /* swipeCanvas(z-25)보다 위에 */
   }
 }
 

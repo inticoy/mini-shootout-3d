@@ -38,11 +38,6 @@ type MasterVolumeSectionResult = {
   label: HTMLSpanElement;
 };
 
-type DebugSectionResult = {
-  element: HTMLDivElement;
-  debugButton: HTMLButtonElement;
-};
-
 export class Settings {
   private pauseButton: HTMLButtonElement;
   private buttonsContainer: HTMLDivElement;
@@ -141,11 +136,11 @@ export class Settings {
       border border-white/10
       bg-[#0000009A]
       shadow-[0_6px_18px_rgba(0,0,0,0.35)]
-      transition-all duration-200
+      transition-all duration-150
       hover:bg-[#000000b0]
       hover:shadow-[0_10px_24px_rgba(0,0,0,0.45)]
       active:bg-[#0000008c]
-      active:shadow-[0_4px_12px_rgba(0,0,0,0.35)]
+      active:shadow-[0_2px_8px_rgba(0,0,0,0.35)]
       pointer-events-auto
       cursor-pointer
       z-[10]
@@ -192,18 +187,20 @@ export class Settings {
       text-white
       transition-all duration-300 ease-out
     `.trim().replace(/\s+/g, ' ');
-    content.style.paddingTop = 'calc(env(safe-area-inset-top, 0px) + 16px)';
+    // Safe area padding
+    content.style.paddingTop = 'env(safe-area-inset-top, 0px)';
     content.style.paddingRight = 'calc(env(safe-area-inset-right, 0px) + 16px)';
-    content.style.paddingBottom = 'calc(env(safe-area-inset-bottom, 0px) + 24px)';
+    content.style.paddingBottom = 'env(safe-area-inset-bottom, 0px)';
     content.style.paddingLeft = 'calc(env(safe-area-inset-left, 0px) + 16px)';
     content.dataset.modal = 'pause';
 
-    // Title - 상단 18% 위치, 완전 중앙 정렬
+    // 상단 여백 (1/4 = 25%)
+    const topSpacer = document.createElement('div');
+    topSpacer.className = 'flex-[1]';
+
+    // Title
     const titleContainer = document.createElement('div');
-    titleContainer.className = 'absolute w-full flex items-center justify-center pointer-events-none';
-    titleContainer.style.top = '18%';
-    titleContainer.style.left = '0';
-    titleContainer.style.right = '0';
+    titleContainer.className = 'w-full flex items-center justify-center pointer-events-none py-4 pb-8';
 
     const title = document.createElement('div');
     title.className = 'font-russo text-white tracking-tight font-black';
@@ -213,6 +210,10 @@ export class Settings {
 
     titleContainer.appendChild(title);
 
+    // Content Area (flex-grow로 최대한 차지, 스크롤 가능)
+    const contentArea = document.createElement('div');
+    contentArea.className = 'flex-[3] flex flex-col items-center w-full overflow-y-auto min-h-0 px-6 pb-3';
+
     // Back button - 설정 화면에서만 표시 (왼쪽 상단)
     const backButton = document.createElement('button');
     backButton.className = `
@@ -220,9 +221,8 @@ export class Settings {
       absolute z-[40] pointer-events-auto
       flex items-center justify-center
       text-white/90
-      transition-all duration-200
+      transition-all duration-150
       hover:text-white
-      active:scale-95
     `.trim().replace(/\s+/g, ' ');
     backButton.style.top = 'calc(env(safe-area-inset-top, 0px) + 16px)';
     backButton.style.left = 'calc(env(safe-area-inset-left, 0px) + 16px)';
@@ -232,77 +232,90 @@ export class Settings {
     backButton.innerHTML = '<i class="ph-fill ph-arrow-left text-3xl"></i>';
     this.backButton = backButton;
 
-    // Pause view - 중앙 버튼들 + 왼쪽 하단 설정 버튼
+    // Pause view - contentArea 안에 들어갈 내용
     const pauseView = document.createElement('div');
-    pauseView.className = 'h-full flex flex-col items-center justify-center relative';
+    pauseView.className = 'flex-1 flex flex-col items-center justify-between w-full max-w-lg pt-20';
     this.pauseView = pauseView;
 
-    // 중앙 버튼 컨테이너
-    const centerButtons = document.createElement('div');
-    centerButtons.className = 'flex flex-col items-center gap-4 w-full max-w-md px-6';
+    // 상단 3개 버튼 컨테이너
+    const topButtonsWrapper = document.createElement('div');
+    topButtonsWrapper.className = 'flex gap-4 w-full justify-center';
 
-    const restartButton = this.createPauseActionButton(
-      'pause-restart-btn',
-      `<i class="ph-fill ph-arrow-clockwise text-2xl text-white flex-shrink-0"></i>`,
-      '재시작'
+    // 커스터마이즈 버튼
+    const customizeButton = this.createSquareIconButton(
+      'pause-customize-btn',
+      `<i class="ph-fill ph-palette text-4xl text-white"></i>`,
+      '테마 변경'
     );
-    this.restartButton = restartButton;
+    this.customizeButton = customizeButton;
 
-    const rankingButton = this.createPauseActionButton(
+    // 랭킹보기 버튼
+    const rankingButton = this.createSquareIconButton(
       'pause-ranking-btn',
-      `<i class="ph-fill ph-ranking text-2xl text-white flex-shrink-0"></i>`,
+      `<i class="ph-fill ph-ranking text-4xl text-white"></i>`,
       '랭킹보기'
     );
     this.rankingButton = rankingButton;
 
-    const customizeButton = this.createPauseActionButton(
-      'pause-customize-btn',
-      `<i class="ph-fill ph-palette text-2xl text-white flex-shrink-0"></i>`,
-      '커스터마이즈'
+    // 설정 버튼
+    const settingsButton = this.createSquareIconButton(
+      'pause-settings-btn',
+      `<i class="ph-fill ph-gear text-4xl text-white"></i>`,
+      '설정'
     );
-    this.customizeButton = customizeButton;
+    this.pauseSettingsButton = settingsButton;
 
-    // 이어하기 버튼 (다른 버튼과 완전히 동일)
-    const continueButton = this.createPauseActionButton(
-      'pause-continue-btn',
-      `<i class="ph-fill ph-play text-2xl text-white flex-shrink-0"></i>`,
-      '이어하기'
-    );
+    topButtonsWrapper.appendChild(customizeButton);
+    topButtonsWrapper.appendChild(rankingButton);
+    topButtonsWrapper.appendChild(settingsButton);
+
+    // 하단 버튼 컨테이너
+    const bottomButtonsWrapper = document.createElement('div');
+    bottomButtonsWrapper.className = 'flex items-center justify-center gap-6 w-full';
+
+    // 재시작 버튼 (작은 원형)
+    const restartButton = document.createElement('button');
+    restartButton.id = 'pause-restart-btn';
+    restartButton.type = 'button';
+    restartButton.className = `
+      w-16 h-16
+      flex items-center justify-center
+      rounded-full
+      bg-white/12 border border-white/15
+      shadow-[0_8px_20px_rgba(0,0,0,0.2)]
+      transition-all duration-150
+      hover:bg-white/16 hover:border-white/25 hover:shadow-[0_10px_24px_rgba(0,0,0,0.24)]
+      active:bg-white/10 active:shadow-[0_2px_8px_rgba(0,0,0,0.15)]
+    `.trim().replace(/\s+/g, ' ');
+    restartButton.innerHTML = `<i class="ph-fill ph-arrow-clockwise text-3xl text-white"></i>`;
+    this.restartButton = restartButton;
+
+    // 이어하기 버튼 (큰 원형)
+    const continueButton = document.createElement('button');
+    continueButton.id = 'pause-continue-btn';
+    continueButton.type = 'button';
+    continueButton.className = `
+      w-20 h-20
+      flex items-center justify-center
+      rounded-full
+      bg-white/20 border-2 border-white/25
+      shadow-[0_12px_28px_rgba(0,0,0,0.3)]
+      transition-all duration-150
+      hover:bg-white/25 hover:border-white/35 hover:shadow-[0_16px_32px_rgba(0,0,0,0.35)]
+      active:bg-white/15 active:shadow-[0_4px_12px_rgba(0,0,0,0.25)]
+    `.trim().replace(/\s+/g, ' ');
+    continueButton.innerHTML = `<i class="ph-fill ph-play text-4xl text-white"></i>`;
     this.continueButton = continueButton;
 
-    centerButtons.appendChild(restartButton);
-    centerButtons.appendChild(rankingButton);
-    centerButtons.appendChild(customizeButton);
-    centerButtons.appendChild(continueButton);
+    bottomButtonsWrapper.appendChild(restartButton);
+    bottomButtonsWrapper.appendChild(continueButton);
 
-    pauseView.appendChild(centerButtons);
+    pauseView.appendChild(topButtonsWrapper);
+    pauseView.appendChild(bottomButtonsWrapper);
 
-    // 왼쪽 하단 설정 버튼 - pauseView 밖에 배치
-    const settingsButton = document.createElement('button');
-    settingsButton.id = 'pause-settings-btn';
-    settingsButton.type = 'button';
-    settingsButton.className = `
-      absolute
-      w-12 h-12
-      flex items-center justify-center
-      rounded-2xl
-      border border-white/10
-      bg-[#0000009A]
-      shadow-[0_6px_18px_rgba(0,0,0,0.35)]
-      transition-all duration-200
-      hover:bg-[#000000b0]
-      hover:shadow-[0_10px_24px_rgba(0,0,0,0.45)]
-      active:bg-[#0000008c]
-      active:shadow-[0_4px_12px_rgba(0,0,0,0.35)]
-      pointer-events-auto
-      z-[40]
-    `.trim().replace(/\s+/g, ' ');
-    settingsButton.style.bottom = 'calc(env(safe-area-inset-bottom, 0px) + 24px)';
-    settingsButton.style.left = 'calc(env(safe-area-inset-left, 0px) + 24px)';
-    settingsButton.innerHTML = `
-      <i class="ph-fill ph-gear text-2xl text-white"></i>
-    `;
-    this.pauseSettingsButton = settingsButton;
+    // 하단 여백 (1/6 = 약 16.67%)
+    const bottomSpacer = document.createElement('div');
+    bottomSpacer.className = 'flex-[0.67]'; // 1/6 비율 (1은 25%이므로 0.67은 약 16.67%)
 
     // Settings view
     const settingsView = this.createSettingsView();
@@ -314,11 +327,15 @@ export class Settings {
     customizeView.classList.add('hidden');
     this.customizeView = customizeView;
 
+    // contentArea에 뷰들 추가
+    contentArea.appendChild(pauseView);
+    contentArea.appendChild(settingsView);
+    contentArea.appendChild(customizeView);
+
+    content.appendChild(topSpacer);
     content.appendChild(titleContainer);
-    content.appendChild(pauseView);
-    content.appendChild(settingsView);
-    content.appendChild(customizeView);
-    content.appendChild(settingsButton);
+    content.appendChild(contentArea);
+    content.appendChild(bottomSpacer);
     content.appendChild(backButton); // 마지막에 추가하여 최상위 레이어에 배치
 
     overlay.appendChild(content);
@@ -326,25 +343,28 @@ export class Settings {
   }
 
   /**
-   * Pause 모달에서 사용하는 버튼 공통 스타일 생성
+   * 정사각형 아이콘 버튼 생성 (상단 아이콘, 하단 텍스트)
    */
-  private createPauseActionButton(id: string, iconSvg: string, label: string): HTMLButtonElement {
+  private createSquareIconButton(id: string, iconSvg: string, label: string): HTMLButtonElement {
     const button = document.createElement('button');
     button.id = id;
     button.type = 'button';
     button.className = `
-      w-full flex items-center gap-3
-      p-4 rounded-xl
+      flex-1 aspect-[0.85]
+      flex flex-col items-center justify-center gap-3
+      p-4 rounded-2xl
       bg-white/12 border border-white/15
       shadow-[0_8px_20px_rgba(0,0,0,0.2)]
-      text-white/90 font-medium
-      transition-all duration-200
+      transition-all duration-150
       hover:bg-white/16 hover:border-white/25 hover:shadow-[0_10px_24px_rgba(0,0,0,0.24)]
-      active:bg-white/10
-      landscape-xs:p-3 landscape-xs:gap-2
+      active:bg-white/10 active:shadow-[0_2px_8px_rgba(0,0,0,0.15)]
+      max-w-[140px]
     `.trim().replace(/\s+/g, ' ');
 
-    button.innerHTML = `${iconSvg}<span>${label}</span>`;
+    button.innerHTML = `
+      ${iconSvg}
+      <span class="text-white/90 font-medium text-sm">${label}</span>
+    `;
     return button;
   }
 
@@ -353,16 +373,7 @@ export class Settings {
    */
   private createSettingsView(): HTMLDivElement {
     const view = document.createElement('div');
-    view.className = 'flex h-full flex-col items-center justify-center relative';
-    view.dataset.view = 'settings';
-
-    const scrollContainer = document.createElement('div');
-    scrollContainer.id = 'settings-scroll-container';
-    scrollContainer.className = `
-      w-full max-w-md px-6
-      flex flex-col gap-6
-      overflow-y-auto
-    `.trim().replace(/\s+/g, ' ');
+    view.className = 'w-full max-w-md flex flex-col gap-4';
 
     const musicSection = this.createToggleSection('배경음악', this.audioState.musicEnabled);
     this.musicToggle = musicSection.input;
@@ -374,15 +385,31 @@ export class Settings {
     this.masterVolumeRange = masterSection.range;
     this.masterVolumeLabel = masterSection.label;
 
-    const debugSection = this.createDebugSection();
-    this.debugToggleButton = debugSection.debugButton;
+    // 디버그 버튼 - 다른 항목들과 동일한 스타일
+    const debugSection = document.createElement('div');
+    debugSection.className = 'w-full py-3';
 
-    scrollContainer.appendChild(musicSection.element);
-    scrollContainer.appendChild(sfxSection.element);
-    scrollContainer.appendChild(masterSection.element);
-    scrollContainer.appendChild(debugSection.element);
+    const debugToggleBtn = document.createElement('button');
+    debugToggleBtn.type = 'button';
+    debugToggleBtn.className = `
+      w-full px-4 py-3 rounded-xl
+      bg-white/12 border border-white/15
+      shadow-[0_4px_12px_rgba(0,0,0,0.2)]
+      text-white/90 font-medium text-left
+      transition-all duration-150
+      hover:bg-white/16 hover:border-white/25 hover:shadow-[0_6px_16px_rgba(0,0,0,0.24)]
+      active:bg-white/10 active:shadow-[0_1px_4px_rgba(0,0,0,0.15)]
+    `.trim().replace(/\s+/g, ' ');
+    debugToggleBtn.textContent = '디버그 모드 전환';
+    this.debugToggleButton = debugToggleBtn;
 
-    view.appendChild(scrollContainer);
+    debugSection.appendChild(debugToggleBtn);
+
+    view.appendChild(musicSection.element);
+    view.appendChild(sfxSection.element);
+    view.appendChild(masterSection.element);
+    view.appendChild(debugSection);
+
     return view;
   }
 
@@ -391,16 +418,7 @@ export class Settings {
    */
   private createCustomizeView(): HTMLDivElement {
     const view = document.createElement('div');
-    view.className = 'flex h-full flex-col items-center justify-center relative';
-    view.dataset.view = 'customize';
-
-    const scrollContainer = document.createElement('div');
-    scrollContainer.id = 'customize-scroll-container';
-    scrollContainer.className = `
-      w-full max-w-md px-6 pb-8
-      flex flex-col gap-6
-      overflow-y-auto
-    `.trim().replace(/\s+/g, ' ');
+    view.className = 'w-full max-w-md flex flex-col gap-6';
 
     // 볼 테마 선택 섹션
     const ballThemeSection = document.createElement('div');
@@ -432,9 +450,9 @@ export class Settings {
         aspect-square rounded-full
         bg-white/12 border-2 border-white/15
         shadow-[0_4px_12px_rgba(0,0,0,0.2)]
-        transition-all duration-200
-        hover:bg-white/16 hover:border-white/30 hover:shadow-[0_6px_16px_rgba(0,0,0,0.3)] hover:scale-105
-        active:scale-95
+        transition-all duration-150
+        hover:bg-white/16 hover:border-white/30 hover:shadow-[0_6px_16px_rgba(0,0,0,0.3)]
+        active:bg-white/10 active:shadow-[0_2px_6px_rgba(0,0,0,0.2)]
         flex items-center justify-center
         overflow-hidden
         p-2
@@ -448,6 +466,9 @@ export class Settings {
       button.appendChild(img);
       themeGrid.appendChild(button);
 
+      // Press 효과 추가
+      this.addPressEffect(button);
+
       // 클릭 이벤트
       button.addEventListener('click', () => {
         if (this.callbacks.onSelectTheme) {
@@ -457,13 +478,12 @@ export class Settings {
     });
 
     ballThemeSection.appendChild(themeGrid);
-    scrollContainer.appendChild(ballThemeSection);
+    view.appendChild(ballThemeSection);
 
     // 이전 nextThemeButton은 더 이상 사용하지 않지만 호환성을 위해 더미 생성
     this.nextThemeButton = document.createElement('button');
     this.nextThemeButton.style.display = 'none';
 
-    view.appendChild(scrollContainer);
     return view;
   }
 
@@ -493,39 +513,21 @@ export class Settings {
     if (view === 'pause') {
       this.titleEl.textContent = '일시정지';
       this.backButton.classList.add('hidden');
-      this.pauseSettingsButton.classList.remove('hidden');
       this.pauseView.classList.remove('hidden');
-      this.pauseView.classList.add('flex');
       this.settingsView.classList.add('hidden');
-      this.settingsView.classList.remove('flex');
-      this.settingsView.classList.remove('flex-col');
       this.customizeView.classList.add('hidden');
-      this.customizeView.classList.remove('flex');
-      this.customizeView.classList.remove('flex-col');
     } else if (view === 'settings') {
       this.titleEl.textContent = '설정';
       this.backButton.classList.remove('hidden');
-      this.pauseSettingsButton.classList.add('hidden');
       this.pauseView.classList.add('hidden');
-      this.pauseView.classList.remove('flex');
       this.settingsView.classList.remove('hidden');
-      this.settingsView.classList.add('flex');
-      this.settingsView.classList.add('flex-col');
       this.customizeView.classList.add('hidden');
-      this.customizeView.classList.remove('flex');
-      this.customizeView.classList.remove('flex-col');
     } else {
-      this.titleEl.textContent = '커스터마이즈';
+      this.titleEl.textContent = '테마 변경';
       this.backButton.classList.remove('hidden');
-      this.pauseSettingsButton.classList.add('hidden');
       this.pauseView.classList.add('hidden');
-      this.pauseView.classList.remove('flex');
       this.settingsView.classList.add('hidden');
-      this.settingsView.classList.remove('flex');
-      this.settingsView.classList.remove('flex-col');
       this.customizeView.classList.remove('hidden');
-      this.customizeView.classList.add('flex');
-      this.customizeView.classList.add('flex-col');
     }
   }
 
@@ -579,9 +581,42 @@ export class Settings {
   }
 
   /**
+   * 버튼에 즉각 반응하는 press 효과 추가
+   */
+  private addPressEffect(button: HTMLButtonElement): void {
+    const onPress = () => {
+      button.classList.add('button-pressed');
+    };
+
+    const onRelease = () => {
+      button.classList.remove('button-pressed');
+    };
+
+    button.addEventListener('pointerdown', onPress);
+    button.addEventListener('pointerup', onRelease);
+    button.addEventListener('pointercancel', onRelease);
+    button.addEventListener('pointerleave', onRelease);
+    
+    // 터치 디바이스를 위한 추가 지원
+    button.addEventListener('touchstart', onPress, { passive: true });
+    button.addEventListener('touchend', onRelease, { passive: true });
+    button.addEventListener('touchcancel', onRelease, { passive: true });
+  }
+
+  /**
    * 이벤트 리스너 설정
    */
   private setupEventListeners(): void {
+    // 모든 버튼에 즉각 반응하는 pressed 효과 적용
+    this.addPressEffect(this.pauseButton);
+    this.addPressEffect(this.pauseSettingsButton);
+    this.addPressEffect(this.backButton);
+    this.addPressEffect(this.restartButton);
+    this.addPressEffect(this.rankingButton);
+    this.addPressEffect(this.customizeButton);
+    this.addPressEffect(this.continueButton);
+    this.addPressEffect(this.debugToggleButton);
+
     // click 이벤트 대신 pointerup으로 직접 처리 (더 확실함)
     let pointerDownTime = 0;
     let pointerDownTarget: EventTarget | null = null;
@@ -631,7 +666,10 @@ export class Settings {
       // 하지만 일단은 그냥 실행하도록 둠 (혹시 몰라서)
     });
     
-    this.pauseSettingsButton.addEventListener('click', () => this.switchToView('settings'));
+    this.pauseSettingsButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.switchToView('settings');
+    });
     this.backButton.addEventListener('click', () => this.switchToView('pause'));
     this.backButton.addEventListener('touchstart', () => this.switchToView('pause'));
 
@@ -726,7 +764,7 @@ export class Settings {
     const section = document.createElement('div');
     section.className = `
       w-full flex items-center justify-between
-      p-4
+      py-3
     `.trim().replace(/\s+/g, ' ');
 
     const labelEl = document.createElement('div');
@@ -775,8 +813,8 @@ export class Settings {
   private createMasterVolumeSection(initialVolume: number): MasterVolumeSectionResult {
     const section = document.createElement('div');
     section.className = `
-      w-full flex flex-col gap-3
-      p-4
+      w-full flex flex-col gap-2
+      py-3
     `.trim().replace(/\s+/g, ' ');
 
     const header = document.createElement('div');
@@ -810,22 +848,26 @@ export class Settings {
     `;
     const style = document.createElement('style');
     style.textContent = `
-      #settings-scroll-container input[type="range"]::-webkit-slider-thumb {
+      #settings-scroll-container input[type="range"]::-webkit-slider-thumb,
+      input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        width: 16px;
-        height: 16px;
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
         background: white;
         cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       }
-      #settings-scroll-container input[type="range"]::-moz-range-thumb {
-        width: 16px;
-        height: 16px;
+      #settings-scroll-container input[type="range"]::-moz-range-thumb,
+      input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
         background: white;
         cursor: pointer;
         border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       }
     `;
     document.head.appendChild(style);
@@ -834,34 +876,6 @@ export class Settings {
     section.appendChild(input);
 
     return { element: section, range: input, label: valueLabel };
-  }
-
-  /**
-   * 디버그 섹션 생성
-   */
-  private createDebugSection(): DebugSectionResult {
-    const section = document.createElement('div');
-    section.className = 'w-full flex flex-col gap-3';
-
-    const debugToggleBtn = document.createElement('button');
-    debugToggleBtn.type = 'button';
-    debugToggleBtn.className = `
-      w-full p-4 rounded-xl
-      bg-white/12 border border-white/15
-      shadow-[0_8px_20px_rgba(0,0,0,0.2)]
-      text-white/90 font-medium text-left
-      transition-all duration-200
-      hover:bg-white/16 hover:border-white/25 hover:shadow-[0_10px_24px_rgba(0,0,0,0.24)]
-      active:bg-white/10
-    `.trim().replace(/\s+/g, ' ');
-    debugToggleBtn.textContent = '디버그 모드 전환';
-
-    section.appendChild(debugToggleBtn);
-
-    return {
-      element: section,
-      debugButton: debugToggleBtn
-    };
   }
 
   /**

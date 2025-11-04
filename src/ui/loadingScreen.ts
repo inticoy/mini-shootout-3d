@@ -66,9 +66,9 @@ export class LoadingScreen {
 
     tip: 'loading-screen__tip absolute left-1/2 bottom-[20px] max-w-[600px] -translate-x-1/2 px-[20px] text-center text-[14px] text-[rgba(255,255,255,0.7)] animate-fade-in-delayed lg:bottom-[30px] lg:text-[16px]',
     tipStrong: 'text-[#7dd3a0] font-bold',
-    soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[10vh] -translate-x-1/2 flex w-[min(90vw,360px)] flex-col items-center gap-8 px-4 opacity-0 transition-opacity duration-1000',
+    soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[10vh] -translate-x-1/2 flex w-[min(90vw,360px)] flex-col items-center gap-8 px-4 opacity-0 transition-opacity duration-1000 z-[35]',
     soccerBall: 'loading-screen__soccer-ball w-[72px] h-[72px] cursor-pointer animate-bounce drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]',
-    swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[25] touch-none pointer-events-auto'
+    swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[36] touch-none pointer-events-auto'
   };
 
   constructor(onSwipe?: () => void, onLoadingComplete?: () => void) {
