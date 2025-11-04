@@ -93,34 +93,41 @@ body {
 }
 
 /* 커스텀 스크롤바 */
-#settings-scroll-container {
+#settings-scroll-container,
+#settings-modal-content {
   scrollbar-width: thin;
-  scrollbar-color: rgba(234, 179, 8, 0.3) rgba(255, 255, 255, 0.05);
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-#settings-scroll-container::-webkit-scrollbar {
-  width: 8px;
+#settings-scroll-container::-webkit-scrollbar,
+#settings-modal-content::-webkit-scrollbar {
+  width: 6px;
 }
 
-#settings-scroll-container::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
-  margin: 4px 0;
+#settings-scroll-container::-webkit-scrollbar-track,
+#settings-modal-content::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
 }
 
-#settings-scroll-container::-webkit-scrollbar-thumb {
-  background: rgba(234, 179, 8, 0.3);
-  border-radius: 4px;
+#settings-scroll-container::-webkit-scrollbar-thumb,
+#settings-modal-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
   transition: background 0.2s ease;
 }
 
-#settings-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(234, 179, 8, 0.5);
+#settings-scroll-container::-webkit-scrollbar-thumb:hover,
+#settings-modal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
 }
 
-#settings-scroll-container::-webkit-scrollbar-thumb:active {
-  background: rgba(234, 179, 8, 0.7);
+#settings-scroll-container::-webkit-scrollbar-thumb:active,
+#settings-modal-content::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.5);
 }
+
+/* Ball Theme 스크롤바 - 제거됨 (사용 안 함) */
 
 /* Volume slider 스타일 */
 .volume-slider::-webkit-slider-thumb {

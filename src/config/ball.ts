@@ -5,6 +5,10 @@ import moonBallModel from '../assets/ball/moon.glb?url';
 import basketBallModel from '../assets/ball/basketball.glb?url';
 import volleyBallModel from '../assets/ball/volleyball.glb?url';
 import earthBallModel from '../assets/ball/earth.glb?url';
+import worldCup2010BallModel from '../assets/ball/worldcup2010.glb?url';
+import beachBallModel from '../assets/ball/beachball.glb?url';
+import monsterBallModel from '../assets/ball/monsterball.glb?url';
+import sunBallModel from '../assets/ball/sun.glb?url';
 
 // PNG 이미지 import
 import basicBallImage from '../assets/ball/basic.png';
@@ -12,6 +16,10 @@ import moonBallImage from '../assets/ball/moon.png';
 import basketballBallImage from '../assets/ball/basketball.png';
 import volleyballBallImage from '../assets/ball/volleyball.png';
 import earthBallImage from '../assets/ball/earth.png';
+import worldcup2010BallImage from '../assets/ball/worldcup2010.png';
+import beachballImage from '../assets/ball/beachball.png';
+import monsterballImage from '../assets/ball/monsterball.png';
+import sunBallImage from '../assets/ball/sun.png';
 
 // 공통 물리 속성 (모든 테마에서 공유)
 export interface BallPhysicsConfig {
@@ -20,6 +28,7 @@ export interface BallPhysicsConfig {
   linearDamping: number;
   angularDamping: number;
   startPosition: { x: number; y: number; z: number };
+  startRotation: { x: number; y: number; z: number };  // 라디안 단위
 }
 
 // 테마별 시각적 속성
@@ -51,7 +60,8 @@ export const BALL_PHYSICS: BallPhysicsConfig = {
   mass: 1.2,
   linearDamping: PHYSICS_LINEAR_DAMPING,
   angularDamping: 0.9,
-  startPosition: { x: 0, y: 0.15, z: 0 }  // y는 아래에서 radius 기반으로 재계산됨
+  startPosition: { x: 0, y: 0.15, z: 0 },  // y는 아래에서 radius 기반으로 재계산됨
+  startRotation: { x: 0.3, y: 0.5, z: 0.2 }  // 자연스러운 초기 회전 (라디안)
 };
 
 // startPosition.y를 radius 기반으로 재설정
@@ -82,7 +92,7 @@ export const BALL_THEMES = {
 	name: 'basketball',
 	modelUrl: basketBallModel,
 	imageUrl: basketballBallImage,
-	gltfScale: 0.69
+	gltfScale: 0.15
   } as BallTheme,
   VOLLEYBALL : {
 	name: 'volleyball',
@@ -94,11 +104,35 @@ export const BALL_THEMES = {
 	name: 'earth',
 	modelUrl: earthBallModel,
 	imageUrl: earthBallImage,
-	gltfScale: 0.11,
+	gltfScale: 0.125,
 	material: {
 	  roughness: 0.,
 	  metalness: 0.3,
 	}
+  } as BallTheme,
+  WORLDCUP2010 : {
+	name: 'worldcup2010',
+	modelUrl: worldCup2010BallModel,
+	imageUrl: worldcup2010BallImage,
+	gltfScale: 0.4
+  } as BallTheme,
+  BEACHBALL : {
+	name: 'beachball',
+	modelUrl: beachBallModel,
+	imageUrl: beachballImage,
+	gltfScale: 0.14
+  } as BallTheme,
+  MONSTERBALL : {
+	name: 'monsterball',
+	modelUrl: monsterBallModel,
+	imageUrl: monsterballImage,
+	gltfScale: 0.04,
+  } as BallTheme,
+  SUN : {
+	name: 'sun',
+	modelUrl: sunBallModel,
+	imageUrl: sunBallImage,
+	gltfScale: 0.015
   } as BallTheme,
 } as const;
 

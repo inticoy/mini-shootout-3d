@@ -182,21 +182,18 @@ export class Settings {
     const content = document.createElement('div');
     content.className = `
       relative flex h-full w-full flex-col
+      overflow-y-auto
+      pt-[15vh] pb-[5vh]
+
       bg-black/30
       backdrop-blur-sm ios-backdrop
       text-white
       transition-all duration-300 ease-out
     `.trim().replace(/\s+/g, ' ');
     // Safe area padding
-    content.style.paddingTop = 'env(safe-area-inset-top, 0px)';
     content.style.paddingRight = 'calc(env(safe-area-inset-right, 0px) + 16px)';
-    content.style.paddingBottom = 'env(safe-area-inset-bottom, 0px)';
     content.style.paddingLeft = 'calc(env(safe-area-inset-left, 0px) + 16px)';
     content.dataset.modal = 'pause';
-
-    // 상단 여백 (1/4 = 25%)
-    const topSpacer = document.createElement('div');
-    topSpacer.className = 'flex-[1]';
 
     // Title
     const titleContainer = document.createElement('div');
@@ -210,9 +207,10 @@ export class Settings {
 
     titleContainer.appendChild(title);
 
-    // Content Area (flex-grow로 최대한 차지, 스크롤 가능)
+    // Content Area
     const contentArea = document.createElement('div');
-    contentArea.className = 'flex-[3] flex flex-col items-center w-full overflow-y-auto min-h-0 px-6 pb-3';
+    contentArea.className = 'flex-auto flex flex-col items-center w-full px-6';
+    contentArea.id = 'settings-modal-content';
 
     // Back button - 설정 화면에서만 표시 (왼쪽 상단)
     const backButton = document.createElement('button');
@@ -234,7 +232,7 @@ export class Settings {
 
     // Pause view - contentArea 안에 들어갈 내용
     const pauseView = document.createElement('div');
-    pauseView.className = 'flex-1 flex flex-col items-center justify-between w-full max-w-lg pt-20';
+    pauseView.className = 'flex-1 flex flex-col items-center justify-between w-full max-w-lg pt-[5vh] pb-[12vh]';
     this.pauseView = pauseView;
 
     // 상단 3개 버튼 컨테이너
@@ -313,10 +311,6 @@ export class Settings {
     pauseView.appendChild(topButtonsWrapper);
     pauseView.appendChild(bottomButtonsWrapper);
 
-    // 하단 여백 (1/6 = 약 16.67%)
-    const bottomSpacer = document.createElement('div');
-    bottomSpacer.className = 'flex-[0.67]'; // 1/6 비율 (1은 25%이므로 0.67은 약 16.67%)
-
     // Settings view
     const settingsView = this.createSettingsView();
     settingsView.classList.add('hidden');
@@ -332,13 +326,11 @@ export class Settings {
     contentArea.appendChild(settingsView);
     contentArea.appendChild(customizeView);
 
-    content.appendChild(topSpacer);
     content.appendChild(titleContainer);
     content.appendChild(contentArea);
-    content.appendChild(bottomSpacer);
-    content.appendChild(backButton); // 마지막에 추가하여 최상위 레이어에 배치
 
     overlay.appendChild(content);
+    overlay.appendChild(backButton); // overlay의 직접 자식으로 이동 (스크롤과 독립)
     return overlay;
   }
 
@@ -352,13 +344,13 @@ export class Settings {
     button.className = `
       flex-1 aspect-[0.85]
       flex flex-col items-center justify-center gap-3
-      p-4 rounded-2xl
+      rounded-2xl
       bg-white/12 border border-white/15
       shadow-[0_8px_20px_rgba(0,0,0,0.2)]
       transition-all duration-150
       hover:bg-white/16 hover:border-white/25 hover:shadow-[0_10px_24px_rgba(0,0,0,0.24)]
       active:bg-white/10 active:shadow-[0_2px_8px_rgba(0,0,0,0.15)]
-      max-w-[140px]
+      max-w-[120px] max-h-[140px]
     `.trim().replace(/\s+/g, ' ');
 
     button.innerHTML = `
@@ -373,7 +365,7 @@ export class Settings {
    */
   private createSettingsView(): HTMLDivElement {
     const view = document.createElement('div');
-    view.className = 'w-full max-w-md flex flex-col gap-4';
+    view.className = 'w-full max-w-md flex flex-col gap-4 pb-6';
 
     const musicSection = this.createToggleSection('배경음악', this.audioState.musicEnabled);
     this.musicToggle = musicSection.input;
@@ -418,7 +410,7 @@ export class Settings {
    */
   private createCustomizeView(): HTMLDivElement {
     const view = document.createElement('div');
-    view.className = 'w-full max-w-md flex flex-col gap-6';
+    view.className = 'w-full max-w-md flex flex-col gap-6 pb-6';
 
     // 볼 테마 선택 섹션
     const ballThemeSection = document.createElement('div');
@@ -437,9 +429,13 @@ export class Settings {
     const themes = [
       { name: BALL_THEMES.BASIC.name, image: BALL_THEMES.BASIC.imageUrl },
       { name: BALL_THEMES.BASKETBALL.name, image: BALL_THEMES.BASKETBALL.imageUrl },
-      { name: BALL_THEMES.EARTH.name, image: BALL_THEMES.EARTH.imageUrl },
+      { name: BALL_THEMES.VOLLEYBALL.name, image: BALL_THEMES.VOLLEYBALL.imageUrl },
+      { name: BALL_THEMES.SUN.name, image: BALL_THEMES.SUN.imageUrl },
       { name: BALL_THEMES.MOON.name, image: BALL_THEMES.MOON.imageUrl },
-      { name: BALL_THEMES.VOLLEYBALL.name, image: BALL_THEMES.VOLLEYBALL.imageUrl }
+      { name: BALL_THEMES.EARTH.name, image: BALL_THEMES.EARTH.imageUrl },
+      { name: BALL_THEMES.BEACHBALL.name, image: BALL_THEMES.BEACHBALL.imageUrl },
+      { name: BALL_THEMES.MONSTERBALL.name, image: BALL_THEMES.MONSTERBALL.imageUrl },
+      { name: BALL_THEMES.WORLDCUP2010.name, image: BALL_THEMES.WORLDCUP2010.imageUrl },
     ];
 
     themes.forEach((theme) => {

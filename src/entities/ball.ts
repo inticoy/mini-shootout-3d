@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { BALL_CONFIG, BALL_RADIUS, BALL_START_POSITION } from '../config/ball';
+import { BALL_CONFIG, BALL_RADIUS, BALL_START_POSITION, BALL_PHYSICS } from '../config/ball';
 import type { BallTheme } from '../config/ball';
 
 const START_POSITION = new CANNON.Vec3(
@@ -9,6 +9,18 @@ const START_POSITION = new CANNON.Vec3(
   BALL_START_POSITION.y,
   BALL_START_POSITION.z
 );
+
+// Three.js로 Euler를 Quaternion으로 변환 후 CANNON으로 복사
+const tempEuler = new THREE.Euler(
+  BALL_PHYSICS.startRotation.x,
+  BALL_PHYSICS.startRotation.y,
+  BALL_PHYSICS.startRotation.z,
+  'XYZ'
+);
+const tempQuat = new THREE.Quaternion().setFromEuler(tempEuler);
+const START_ROTATION = new CANNON.Quaternion(tempQuat.x, tempQuat.y, tempQuat.z, tempQuat.w);
+
+console.log('START_ROTATION:', START_ROTATION);
 
 export class Ball {
   private readonly rotationHelper = new THREE.Quaternion();
@@ -26,6 +38,7 @@ export class Ball {
       mass: BALL_CONFIG.mass,
       shape: new CANNON.Sphere(BALL_RADIUS),
       position: START_POSITION.clone(),
+      quaternion: START_ROTATION.clone(),
       material,
       linearDamping: BALL_CONFIG.linearDamping,
       angularDamping: BALL_CONFIG.angularDamping
@@ -77,7 +90,7 @@ export class Ball {
     this.body.position.copy(START_POSITION);
     this.body.velocity.set(0, 0, 0);
     this.body.angularVelocity.set(0, 0, 0);
-    this.body.quaternion.set(0, 0, 0, 1);
+    this.body.quaternion.copy(START_ROTATION);
     this.body.torque.set(0, 0, 0);
     this.syncVisuals();
   }
@@ -96,16 +109,15 @@ export class Ball {
   }
 
   private prepareVisual(model: THREE.Object3D): THREE.Object3D {
+    // 먼저 bounding box로 중심 계산
+    model.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    
+    // 각 child의 geometry를 중심으로 이동 (원본 구조 유지)
     model.traverse((child) => {
       if (child instanceof THREE.Mesh && child.geometry) {
-        child.updateWorldMatrix(true, true);
-        const geometry = child.geometry.clone();
-        geometry.applyMatrix4(child.matrixWorld);
-        geometry.center();
-        child.geometry = geometry;
-        child.position.set(0, 0, 0);
-        child.rotation.set(0, 0, 0);
-        child.scale.setScalar(1);
+        child.geometry.translate(-center.x, -center.y, -center.z);
         child.castShadow = true;
         this.adjustMaterial(child.material);
       }
@@ -114,6 +126,15 @@ export class Ball {
     // 테마별 스케일 적용
     model.scale.setScalar(this.theme.gltfScale);
     model.position.set(START_POSITION.x, START_POSITION.y, START_POSITION.z);
+    
+    // 초기 회전 적용
+    const startRot = new THREE.Quaternion(
+      START_ROTATION.x,
+      START_ROTATION.y,
+      START_ROTATION.z,
+      START_ROTATION.w
+    );
+    model.setRotationFromQuaternion(startRot);
 
     return model;
   }
