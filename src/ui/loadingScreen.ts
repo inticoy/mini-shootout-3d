@@ -1,4 +1,4 @@
-import soccerBallUrl from '../assets/soccer_ball.svg?url';
+import soccerBallUrl from '../assets/soccer_ball.png?url';
 import logoUrl from '../assets/Snapshoot!.png?url';
 import postUrl from '../assets/post.svg?url';
 import { SwipeTracker } from '../input/swipeTracker';
