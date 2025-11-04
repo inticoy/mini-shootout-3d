@@ -43,7 +43,7 @@ export function bootstrapGame() {
     onSetSfxEnabled: (enabled: boolean) => game.setSfxEnabled(enabled),
     onSetMasterVolume: (volume: number) => game.setMasterVolume(volume),
     onNextTheme: () => void game.switchToNextTheme(),
+    onSelectTheme: (themeName: string) => void game.switchToTheme(themeName),
     onRestart: () => game.restartGame()
   });
 }
-

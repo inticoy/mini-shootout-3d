@@ -6,6 +6,13 @@ import basketBallModel from '../assets/ball/basketball.glb?url';
 import volleyBallModel from '../assets/ball/volleyball.glb?url';
 import earthBallModel from '../assets/ball/earth.glb?url';
 
+// PNG 이미지 import
+import basicBallImage from '../assets/ball/basic.png';
+import moonBallImage from '../assets/ball/moon.png';
+import basketballBallImage from '../assets/ball/basketball.png';
+import volleyballBallImage from '../assets/ball/volleyball.png';
+import earthBallImage from '../assets/ball/earth.png';
+
 // 공통 물리 속성 (모든 테마에서 공유)
 export interface BallPhysicsConfig {
   radius: number;
@@ -19,6 +26,7 @@ export interface BallPhysicsConfig {
 export interface BallTheme {
   name: string;
   modelUrl: string;  // 실제 URL을 저장
+  imageUrl: string;  // 프리뷰 이미지 URL
   gltfScale: number;
   material?: {
     roughness?: number;
@@ -54,11 +62,13 @@ export const BALL_THEMES = {
   BASIC: {
     name: 'basic',
     modelUrl: basicBallModel,
+    imageUrl: basicBallImage,
     gltfScale: 1.3
   } as BallTheme,
   MOON: {
     name: 'moon',
     modelUrl: moonBallModel,
+    imageUrl: moonBallImage,
     gltfScale: 0.0048,
 	material: {
 	  roughness: 0.,
@@ -71,16 +81,19 @@ export const BALL_THEMES = {
   BASKETBALL : {
 	name: 'basketball',
 	modelUrl: basketBallModel,
+	imageUrl: basketballBallImage,
 	gltfScale: 0.69
   } as BallTheme,
   VOLLEYBALL : {
 	name: 'volleyball',
 	modelUrl: volleyBallModel,
+	imageUrl: volleyballBallImage,
 	gltfScale: 1.3
   } as BallTheme,
   EARTH : {
 	name: 'earth',
 	modelUrl: earthBallModel,
+	imageUrl: earthBallImage,
 	gltfScale: 0.11,
 	material: {
 	  roughness: 0.,

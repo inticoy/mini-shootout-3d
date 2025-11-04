@@ -3,12 +3,15 @@
  *
  * 왼쪽 하단 HUD 버튼 + 일시정지/설정 모달
  */
+import { BALL_THEMES } from '../config/ball';
+
 export interface SettingsCallbacks {
   onToggleDebug?: () => void;
   onSetMusicEnabled?: (enabled: boolean) => void;
   onSetSfxEnabled?: (enabled: boolean) => void;
   onSetMasterVolume?: (volume: number) => void;
   onNextTheme?: () => void;
+  onSelectTheme?: (themeName: string) => void;
   onRestart?: () => void;
 }
 
@@ -394,27 +397,72 @@ export class Settings {
     const scrollContainer = document.createElement('div');
     scrollContainer.id = 'customize-scroll-container';
     scrollContainer.className = `
-      w-full max-w-md px-6
+      w-full max-w-md px-6 pb-8
       flex flex-col gap-6
       overflow-y-auto
     `.trim().replace(/\s+/g, ' ');
 
-    // 다음 볼 테마 버튼만 포함
-    const nextThemeBtn = document.createElement('button');
-    nextThemeBtn.type = 'button';
-    nextThemeBtn.className = `
-      w-full p-4 rounded-xl
-      bg-white/12 border border-white/15
-      shadow-[0_8px_20px_rgba(0,0,0,0.2)]
-      text-white/90 font-medium text-left
-      transition-all duration-200
-      hover:bg-white/16 hover:border-white/25 hover:shadow-[0_10px_24px_rgba(0,0,0,0.24)]
-      active:bg-white/10
-    `.trim().replace(/\s+/g, ' ');
-    nextThemeBtn.textContent = '다음 볼 테마';
-    this.nextThemeButton = nextThemeBtn;
+    // 볼 테마 선택 섹션
+    const ballThemeSection = document.createElement('div');
+    ballThemeSection.className = 'flex flex-col gap-4';
+    
+    const sectionTitle = document.createElement('h3');
+    sectionTitle.className = 'text-white/90 font-semibold text-lg';
+    sectionTitle.textContent = '볼 테마';
+    ballThemeSection.appendChild(sectionTitle);
 
-    scrollContainer.appendChild(nextThemeBtn);
+    // 테마 버튼 그리드 (3열)
+    const themeGrid = document.createElement('div');
+    themeGrid.className = 'grid grid-cols-3 gap-4';
+
+    // BALL_THEMES에서 테마 정보 가져오기
+    const themes = [
+      { name: BALL_THEMES.BASIC.name, image: BALL_THEMES.BASIC.imageUrl },
+      { name: BALL_THEMES.BASKETBALL.name, image: BALL_THEMES.BASKETBALL.imageUrl },
+      { name: BALL_THEMES.EARTH.name, image: BALL_THEMES.EARTH.imageUrl },
+      { name: BALL_THEMES.MOON.name, image: BALL_THEMES.MOON.imageUrl },
+      { name: BALL_THEMES.VOLLEYBALL.name, image: BALL_THEMES.VOLLEYBALL.imageUrl }
+    ];
+
+    themes.forEach((theme) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.theme = theme.name;
+      button.className = `
+        aspect-square rounded-full
+        bg-white/12 border-2 border-white/15
+        shadow-[0_4px_12px_rgba(0,0,0,0.2)]
+        transition-all duration-200
+        hover:bg-white/16 hover:border-white/30 hover:shadow-[0_6px_16px_rgba(0,0,0,0.3)] hover:scale-105
+        active:scale-95
+        flex items-center justify-center
+        overflow-hidden
+        p-2
+      `.trim().replace(/\s+/g, ' ');
+
+      const img = document.createElement('img');
+      img.src = theme.image;
+      img.alt = theme.name;
+      img.className = 'w-full h-full object-contain';
+      
+      button.appendChild(img);
+      themeGrid.appendChild(button);
+
+      // 클릭 이벤트
+      button.addEventListener('click', () => {
+        if (this.callbacks.onSelectTheme) {
+          this.callbacks.onSelectTheme(theme.name);
+        }
+      });
+    });
+
+    ballThemeSection.appendChild(themeGrid);
+    scrollContainer.appendChild(ballThemeSection);
+
+    // 이전 nextThemeButton은 더 이상 사용하지 않지만 호환성을 위해 더미 생성
+    this.nextThemeButton = document.createElement('button');
+    this.nextThemeButton.style.display = 'none';
+
     view.appendChild(scrollContainer);
     return view;
   }

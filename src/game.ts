@@ -1180,4 +1180,34 @@ export class MiniShootout3D {
     }
   }
 
+  /**
+   * 특정 테마로 전환
+   */
+  public async switchToTheme(themeName: string): Promise<void> {
+    const themeKeys = Object.keys(BALL_THEMES) as Array<keyof typeof BALL_THEMES>;
+    const themeKey = themeKeys.find(key => BALL_THEMES[key].name === themeName);
+
+    if (!themeKey) {
+      console.error(`Theme '${themeName}' not found`);
+      return;
+    }
+
+    const newTheme = BALL_THEMES[themeKey];
+    const currentTheme = this.ball.getTheme();
+
+    if (currentTheme.name === newTheme.name) {
+      console.log(`Already using theme: ${themeName}`);
+      return;
+    }
+
+    console.log(`🎨 Switching to theme: ${themeName}`);
+
+    try {
+      await this.ball.changeTheme(newTheme);
+      console.log(`✅ Theme switched to: ${newTheme.name}`);
+    } catch (error) {
+      console.error('Failed to switch theme:', error);
+    }
+  }
+
 }
