@@ -1,3 +1,5 @@
+import './phosphor-icons.css';
+
 const pathname = window.location.pathname;
 const normalized = pathname.replace(/\/+$/, '');
 const isAdmin =

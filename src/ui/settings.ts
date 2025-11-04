@@ -118,9 +118,7 @@ export class Settings {
     `.trim().replace(/\s+/g, ' ');
 
     button.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white transition-all">
-        <path d="M200,32H160a16,16,0,0,0-16,16V208a16,16,0,0,0,16,16h40a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32ZM96,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V48A16,16,0,0,0,96,32Z"/>
-      </svg>
+      <i class="ph-fill ph-pause text-2xl text-white"></i>
     `;
 
     return button;
@@ -188,9 +186,8 @@ export class Settings {
     backButton.style.left = 'calc(env(safe-area-inset-left, 0px) + 16px)';
     backButton.style.width = '40px';
     backButton.style.height = '40px';
-    backButton.style.fontSize = '32px';
     backButton.type = 'button';
-    backButton.textContent = '←';
+    backButton.innerHTML = '<i class="ph-fill ph-arrow-left text-3xl"></i>';
     this.backButton = backButton;
 
     // Pause view - 중앙 버튼들 + 왼쪽 하단 설정 버튼
@@ -204,33 +201,21 @@ export class Settings {
 
     const restartButton = this.createPauseActionButton(
       'pause-restart-btn',
-      `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white flex-shrink-0">
-          <path d="M240,56v48a8,8,0,0,1-8,8H184a8,8,0,0,1,0-16H211.4L184.81,71.64l-.25-.24a80,80,0,1,0-1.67,114.78,8,8,0,0,1,11,11.63A95.44,95.44,0,0,1,128,224h-1.32A96,96,0,1,1,195.75,60L224,85.8V56a8,8,0,1,1,16,0Z"/>
-        </svg>
-      `,
+      `<i class="ph-fill ph-arrow-clockwise text-2xl text-white flex-shrink-0"></i>`,
       '재시작'
     );
     this.restartButton = restartButton;
 
     const rankingButton = this.createPauseActionButton(
       'pause-ranking-btn',
-      `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white flex-shrink-0">
-          <path d="M232,64H208V56a16,16,0,0,0-16-16H64A16,16,0,0,0,48,56v8H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120a24,24,0,0,1-24-24V80H48v32q0,4,.39,8Zm144-8a64,64,0,0,1-128,0V56H192Zm40-16a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"/>
-        </svg>
-      `,
+      `<i class="ph-fill ph-ranking text-2xl text-white flex-shrink-0"></i>`,
       '랭킹보기'
     );
     this.rankingButton = rankingButton;
 
     const customizeButton = this.createPauseActionButton(
       'pause-customize-btn',
-      `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white flex-shrink-0">
-          <path d="M200.12,60.42l-44.54-44.54a16,16,0,0,0-22.63,0L20.11,128.72a15.91,15.91,0,0,0-4.69,11.32V208a16,16,0,0,0,16,16H99.56a15.92,15.92,0,0,0,11.32-4.69L223.72,106.47a16,16,0,0,0,0-22.63ZM99.56,208H31.43V139.87l96-96L187.56,104Z"/>
-        </svg>
-      `,
+      `<i class="ph-fill ph-palette text-2xl text-white flex-shrink-0"></i>`,
       '커스터마이즈'
     );
     this.customizeButton = customizeButton;
@@ -238,11 +223,7 @@ export class Settings {
     // 이어하기 버튼 (다른 버튼과 완전히 동일)
     const continueButton = this.createPauseActionButton(
       'pause-continue-btn',
-      `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white flex-shrink-0">
-          <path d="M240,128a15.74,15.74,0,0,1-7.6,13.51L88.32,229.65a16,16,0,0,1-16.2.3A15.86,15.86,0,0,1,64,216.13V39.87a15.86,15.86,0,0,1,8.12-13.82,16,16,0,0,1,16.2.3L232.4,114.49A15.74,15.74,0,0,1,240,128Z"/>
-        </svg>
-      `,
+      `<i class="ph-fill ph-play text-2xl text-white flex-shrink-0"></i>`,
       '이어하기'
     );
     this.continueButton = continueButton;
@@ -277,9 +258,7 @@ export class Settings {
     settingsButton.style.bottom = 'calc(env(safe-area-inset-bottom, 0px) + 24px)';
     settingsButton.style.left = 'calc(env(safe-area-inset-left, 0px) + 24px)';
     settingsButton.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" class="w-6 h-6 fill-white">
-        <path d="M237.94,107.21a8,8,0,0,0-3.89-5.4l-29.83-17-.12-33.62a8,8,0,0,0-2.83-6.08,111.91,111.91,0,0,0-36.72-20.67,8,8,0,0,0-6.46.59L128,41.85,97.88,25a8,8,0,0,0-6.47-.6A111.92,111.92,0,0,0,54.73,45.15a8,8,0,0,0-2.83,6.07l-.15,33.65-29.83,17a8,8,0,0,0-3.89,5.4,106.47,106.47,0,0,0,0,41.56,8,8,0,0,0,3.89,5.4l29.83,17,.12,33.63a8,8,0,0,0,2.83,6.08,111.91,111.91,0,0,0,36.72,20.67,8,8,0,0,0,6.46-.59L128,214.15,158.12,231a7.91,7.91,0,0,0,3.9,1,8.09,8.09,0,0,0,2.57-.42,112.1,112.1,0,0,0,36.68-20.73,8,8,0,0,0,2.83-6.07l.15-33.65,29.83-17a8,8,0,0,0,3.89-5.4A106.47,106.47,0,0,0,237.94,107.21ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"/>
-      </svg>
+      <i class="ph-fill ph-gear text-2xl text-white"></i>
     `;
     this.pauseSettingsButton = settingsButton;
 
