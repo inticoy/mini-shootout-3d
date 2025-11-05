@@ -31,6 +31,7 @@ import { calculateShotParameters, debugShotParameters } from './shooting/shotPar
 import { calculateInitialVelocity, debugVelocity } from './shooting/velocityCalculator';
 import { calculateAngularVelocity, debugAngularVelocity } from './shooting/spinCalculator';
 import { CurveForceSystem } from './shooting/curveForceSystem';
+import { GameStateManager, GameState } from './core/GameStateManager';
 
 const MIN_VERTICAL_BOUNCE_SPEED = 0.45;
 const BOUNCE_COOLDOWN_MS = 120;
@@ -77,9 +78,7 @@ export class MiniShootout3D {
   private lastBounceSoundTime = 0;
   private score = 0;
   private debugMode = false;
-  private isShotInProgress = false;
   private shotResetTimer: number | null = null;
-  private hasScored = false;
   private readonly ballInitialMass: number;
   private isBallGravityEnabled = false;
   private currentDifficulty: DifficultyLevelConfig | null = null;
@@ -87,6 +86,32 @@ export class MiniShootout3D {
   private maxFailsBeforeGameOver = 2; // 게임오버까지 허용되는 실패 횟수
   private onGameFailed?: (failCount: number) => void; // 실패 시 콜백
   private savedGameState?: { score: number; difficulty: DifficultyLevelConfig | null }; // 이어하기용 상태 저장
+
+  // 게임 상태 관리자
+  private readonly stateManager = new GameStateManager(GameState.INITIALIZING);
+
+  // 기존 플래그들을 stateManager로 위임 (하위 호환성)
+  private get isShotInProgress(): boolean {
+    return this.stateManager.isShotInProgress();
+  }
+  private set isShotInProgress(value: boolean) {
+    if (value) {
+      this.stateManager.setState(GameState.SHOOTING);
+    } else if (this.stateManager.isShotInProgress()) {
+      this.stateManager.setState(GameState.IDLE);
+    }
+  }
+
+  private get hasScored(): boolean {
+    return this.stateManager.is(GameState.SCORING);
+  }
+  private set hasScored(value: boolean) {
+    if (value) {
+      this.stateManager.setState(GameState.SCORING);
+    } else if (this.stateManager.is(GameState.SCORING)) {
+      this.stateManager.setState(GameState.IDLE);
+    }
+  }
 
   // 🔍 궤적 디버깅
   private isTrackingBall = false;
@@ -278,6 +303,9 @@ export class MiniShootout3D {
   private onAllAssetsLoaded() {
     this.isGameReady = true;
     console.log('All assets loaded, game ready!');
+
+    // 게임 상태를 IDLE로 전환 (슈팅 가능)
+    this.stateManager.setState(GameState.IDLE);
 
     // 로딩 화면은 사용자가 축구공을 스와이프할 때까지 대기
     // loadingScreen의 내부 로직에서 처리됨
