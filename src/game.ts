@@ -7,9 +7,10 @@ import { createPhysicsWorld } from './physics/world';
 import { createField } from './environment/field';
 import type { Field } from './environment/field';
 import { Ball } from './entities/ball';
+import { BallController } from './entities/BallController';
 import { Goal } from './entities/goal';
 import { Obstacle } from './entities/obstacle';
-import { BALL_RADIUS, BALL_START_POSITION, BALL_THEMES, BALL_PHYSICS } from './config/ball';
+import { BALL_RADIUS, BALL_THEMES } from './config/ball';
 import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
 import { GOAL_NET_CONFIG } from './config/net';
 import { AD_BOARD_CONFIG } from './config/adBoard';
@@ -47,6 +48,7 @@ export class MiniShootout3D {
   private readonly world: CANNON.World;
 
   private readonly ball: Ball;
+  private readonly ballController: BallController;
   private readonly goal: Goal;
   private obstacles: Obstacle[] = [];
   private readonly field: Field;
@@ -74,13 +76,10 @@ export class MiniShootout3D {
   private readonly tempAxisX = new THREE.Vector3();
   private readonly tempAxisY = new THREE.Vector3();
   private readonly tempAxisZ = new THREE.Vector3();
-  private readonly tempBallPosition = new THREE.Vector3();
   private lastBounceSoundTime = 0;
   private score = 0;
   private debugMode = false;
   private shotResetTimer: number | null = null;
-  private readonly ballInitialMass: number;
-  private isBallGravityEnabled = false;
   private currentDifficulty: DifficultyLevelConfig | null = null;
   private failCount = 0; // 현재 게임에서 실패한 횟수
   private maxFailsBeforeGameOver = 2; // 게임오버까지 허용되는 실패 횟수
@@ -175,7 +174,7 @@ export class MiniShootout3D {
 
     this.ball = new Ball(this.world, materials.ball);
     this.ball.body.addEventListener('collide', this.handleBallCollideBound);
-    this.ballInitialMass = this.ball.body.mass;
+    this.ballController = new BallController(this.ball);
 
     void this.ball.load(this.scene, THREE.DefaultLoadingManager).catch((error) => {
       console.error('Failed to load ball model', error);
@@ -329,12 +328,8 @@ export class MiniShootout3D {
     this.onShowTouchGuide(false);
     this.hasScored = true;
     this.obstacles.forEach((obstacle) => obstacle.stopTracking());
-    this.tempBallPosition.set(
-      this.ball.body.position.x,
-      this.ball.body.position.y,
-      this.ball.body.position.z
-    );
-    this.goal.triggerNetPulse(this.tempBallPosition, 1);
+    const tempBallPosition = this.ballController.copyPositionToTemp();
+    this.goal.triggerNetPulse(tempBallPosition, 1);
 
     // 골 사운드: 최고 기록 경신 중이면 record, 아니면 goal
     const isNewRecord = this.scoreDisplay.isNewRecordAchieved();
@@ -958,7 +953,7 @@ export class MiniShootout3D {
     this.isShotInProgress = true;
     this.hasScored = false;
 
-    this.prepareBallForShot();
+    this.ballController.prepareBallForShot();
 
     // 공의 velocity 설정
     this.ball.body.velocity.copy(velocity);
@@ -986,47 +981,6 @@ export class MiniShootout3D {
     }, 2500);
   }
 
-  private prepareBallForShot() {
-    this.setBallGravityEnabled(true);
-    this.ball.body.force.set(0, 0, 0);
-    this.ball.body.torque.set(0, 0, 0);
-    this.ball.body.velocity.set(0, 0, 0);
-    this.ball.body.angularVelocity.set(0, 0, 0);
-    this.syncBallKinematicFrames();
-  }
-
-  private setBallGravityEnabled(enabled: boolean) {
-    if (enabled === this.isBallGravityEnabled) {
-      return;
-    }
-
-    if (enabled) {
-      this.ball.body.type = CANNON.Body.DYNAMIC;
-      this.ball.body.mass = this.ballInitialMass;
-      this.ball.body.updateMassProperties();
-      this.ball.body.force.set(0, 0, 0);
-      this.ball.body.torque.set(0, 0, 0);
-      this.ball.body.wakeUp();
-    } else {
-      this.ball.body.velocity.set(0, 0, 0);
-      this.ball.body.angularVelocity.set(0, 0, 0);
-      this.ball.body.force.set(0, 0, 0);
-      this.ball.body.torque.set(0, 0, 0);
-      this.ball.body.type = CANNON.Body.STATIC;
-      this.ball.body.mass = 0;
-      this.ball.body.updateMassProperties();
-      this.ball.body.sleep();
-    }
-
-    this.isBallGravityEnabled = enabled;
-  }
-
-  private syncBallKinematicFrames() {
-    this.ball.body.previousPosition.copy(this.ball.body.position);
-    this.ball.body.interpolatedPosition.copy(this.ball.body.position);
-    this.ball.body.previousQuaternion.copy(this.ball.body.quaternion);
-    this.ball.body.interpolatedQuaternion.copy(this.ball.body.quaternion);
-  }
 
   private updateDifficulty(forceRefresh = false) {
     const nextDifficulty = getDifficultyForScore(this.score);
@@ -1123,7 +1077,7 @@ export class MiniShootout3D {
     }
 
     // 공 리셋
-    this.resetBall();
+    this.ballController.resetBall();
 
     // 타겟 마커 숨김
     this.targetMarker.visible = false;
@@ -1141,31 +1095,10 @@ export class MiniShootout3D {
    * 공을 초기 위치로 리셋
    */
   private resetBall() {
-    console.log('Resetting ball to origin');
-    this.setBallGravityEnabled(false);
-    this.ball.body.position.set(
-      BALL_START_POSITION.x,
-      BALL_START_POSITION.y,
-      BALL_START_POSITION.z
-    );
-    // 초기 회전 적용
-    const tempEuler = new THREE.Euler(
-      BALL_PHYSICS.startRotation.x,
-      BALL_PHYSICS.startRotation.y,
-      BALL_PHYSICS.startRotation.z,
-      'XYZ'
-    );
-    const tempQuat = new THREE.Quaternion().setFromEuler(tempEuler);
-    this.ball.body.quaternion.set(tempQuat.x, tempQuat.y, tempQuat.z, tempQuat.w);
-    this.ball.body.velocity.set(0, 0, 0);
-    this.ball.body.angularVelocity.set(0, 0, 0);
-    this.ball.body.force.set(0, 0, 0);
-    this.ball.body.torque.set(0, 0, 0);
-    this.syncBallKinematicFrames();
+    // 공 리셋 (BallController에 위임)
+    this.ballController.resetBall();
 
-    this.ball.syncVisuals();
-    console.log('Ball reset complete. Position:', this.ball.body.position);
-
+    // 게임 환경 리셋
     this.obstacles.forEach((obstacle) => obstacle.resetTracking());
     this.updateDifficulty(true);
 
@@ -1207,43 +1140,14 @@ export class MiniShootout3D {
     this.targetMarker.visible = false;
 
     // 공만 원위치로 (난이도와 점수는 유지)
-    this.resetBallOnly();
+    this.ballController.resetBallOnly();
+
+    // 장애물은 리셋하지 않음 (난이도 유지)
+    this.obstacles.forEach((obstacle) => obstacle.resetTracking());
 
     console.log('✅ 게임 이어하기 완료');
   }
 
-  /**
-   * 공만 원위치로 리셋 (점수와 난이도는 유지)
-   */
-  private resetBallOnly(): void {
-    console.log('Resetting ball only (keeping score and difficulty)');
-    this.setBallGravityEnabled(false);
-    this.ball.body.position.set(
-      BALL_START_POSITION.x,
-      BALL_START_POSITION.y,
-      BALL_START_POSITION.z
-    );
-    // 초기 회전 적용
-    const tempEuler = new THREE.Euler(
-      BALL_PHYSICS.startRotation.x,
-      BALL_PHYSICS.startRotation.y,
-      BALL_PHYSICS.startRotation.z,
-      'XYZ'
-    );
-    const tempQuat = new THREE.Quaternion().setFromEuler(tempEuler);
-    this.ball.body.quaternion.set(tempQuat.x, tempQuat.y, tempQuat.z, tempQuat.w);
-    this.ball.body.velocity.set(0, 0, 0);
-    this.ball.body.angularVelocity.set(0, 0, 0);
-    this.ball.body.force.set(0, 0, 0);
-    this.ball.body.torque.set(0, 0, 0);
-    this.syncBallKinematicFrames();
-
-    this.ball.syncVisuals();
-    console.log('Ball reset complete. Position:', this.ball.body.position);
-
-    // 장애물은 리셋하지 않음 (난이도 유지)
-    this.obstacles.forEach((obstacle) => obstacle.resetTracking());
-  }
 
   /**
    * 게임을 처음부터 재시작 (점수 초기화 포함)
@@ -1279,7 +1183,7 @@ export class MiniShootout3D {
     this.targetMarker.visible = false;
 
     // 공 리셋
-    this.resetBall();
+    this.ballController.resetBall();
 
     console.log('✅ 게임 재시작 완료');
   }
@@ -1302,7 +1206,7 @@ export class MiniShootout3D {
     this.savedGameState = undefined;
 
     // 공 리셋
-    this.resetBall();
+    this.ballController.resetBall();
 
     console.log('✅ 게임오버 처리 완료');
   }
