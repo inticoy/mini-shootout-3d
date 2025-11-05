@@ -101,6 +101,15 @@ export class ScoreDisplay {
   }
 
   /**
+   * 현재 점수 가져오기
+   */
+  getScore(): number {
+    const currentScoreEl = document.getElementById('scoreboard-current-score');
+    if (!currentScoreEl) return 0;
+    return parseInt(currentScoreEl.textContent || '0');
+  }
+
+  /**
    * 점수 업데이트 (게임에서 호출)
    */
   update(score: number): void {

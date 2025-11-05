@@ -83,6 +83,10 @@ export class MiniShootout3D {
   private readonly ballInitialMass: number;
   private isBallGravityEnabled = false;
   private currentDifficulty: DifficultyLevelConfig | null = null;
+  private failCount = 0; // 현재 게임에서 실패한 횟수
+  private maxFailsBeforeGameOver = 2; // 게임오버까지 허용되는 실패 횟수
+  private onGameFailed?: (failCount: number) => void; // 실패 시 콜백
+  private savedGameState?: { score: number; difficulty: DifficultyLevelConfig | null }; // 이어하기용 상태 저장
 
   // 🔍 궤적 디버깅
   private isTrackingBall = false;
@@ -106,10 +110,17 @@ export class MiniShootout3D {
   private threeItemsTotal = 0;
   private isGameReady = false;
 
-  constructor(canvas: HTMLCanvasElement, onScoreChange: (score: number) => void, onShowTouchGuide: (show: boolean) => void, scoreDisplay: ScoreDisplay) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    onScoreChange: (score: number) => void,
+    onShowTouchGuide: (show: boolean) => void,
+    scoreDisplay: ScoreDisplay,
+    onGameFailed?: (failCount: number) => void
+  ) {
     this.onScoreChange = onScoreChange;
     this.onShowTouchGuide = onShowTouchGuide;
     this.scoreDisplay = scoreDisplay;
+    this.onGameFailed = onGameFailed;
 
     // 로딩 화면 생성 및 표시
     this.loadingScreen = new LoadingScreen(
@@ -1066,12 +1077,37 @@ export class MiniShootout3D {
       // 실패시 항상 리셋 사운드
       this.audio.playSound('reset');
 
-      // 점수 초기화
-      this.score = 0;
-      this.onScoreChange(this.score);
+      // 실패 카운트 증가
+      this.failCount++;
+      console.log(`⚠️ 실패! 실패 횟수: ${this.failCount}/${this.maxFailsBeforeGameOver}`);
 
-      // 최고 기록 플래그 리셋
-      this.scoreDisplay.resetNewRecordFlag();
+      // 현재 게임 상태 저장 (이어하기용)
+      this.savedGameState = {
+        score: this.score,
+        difficulty: this.currentDifficulty
+      };
+
+      // 실패 콜백 호출 (모달 띄우기)
+      if (this.onGameFailed) {
+        this.onGameFailed(this.failCount);
+      }
+
+      // 실패 콜백이 없거나 2번째 실패면 점수 초기화
+      if (!this.onGameFailed || this.failCount >= this.maxFailsBeforeGameOver) {
+        this.score = 0;
+        this.onScoreChange(this.score);
+        this.scoreDisplay.resetNewRecordFlag();
+      }
+
+      // 2번째 실패가 아니면 여기서 리턴 (모달에서 처리)
+      if (this.failCount < this.maxFailsBeforeGameOver && this.onGameFailed) {
+        // 상태 초기화만 하고 공은 리셋하지 않음 (모달에서 선택에 따라 처리)
+        this.isShotInProgress = false;
+        this.hasScored = false;
+        this.shotResetTimer = null;
+        this.curveForceSystem.stopCurveShot();
+        return;
+      }
     }
 
     // 공 리셋
@@ -1134,38 +1170,129 @@ export class MiniShootout3D {
   }
 
   /**
+   * 게임 이어하기 (저장된 상태로 복원, 공만 원위치)
+   */
+  public continueGame(): void {
+    console.log('▶️ 게임 이어하기');
+
+    // 저장된 상태가 있으면 복원
+    if (this.savedGameState) {
+      this.score = this.savedGameState.score;
+      this.currentDifficulty = this.savedGameState.difficulty;
+      console.log(`복원된 점수: ${this.score}`);
+    }
+
+    // 실패 카운트는 그대로 유지 (다시 실패하면 게임오버)
+
+    // 상태 초기화
+    this.isShotInProgress = false;
+    this.hasScored = false;
+
+    // 커브 힘 시스템 중지
+    this.curveForceSystem.stopCurveShot();
+
+    // 타겟 마커 숨김
+    this.targetMarker.visible = false;
+
+    // 공만 원위치로 (난이도와 점수는 유지)
+    this.resetBallOnly();
+
+    console.log('✅ 게임 이어하기 완료');
+  }
+
+  /**
+   * 공만 원위치로 리셋 (점수와 난이도는 유지)
+   */
+  private resetBallOnly(): void {
+    console.log('Resetting ball only (keeping score and difficulty)');
+    this.setBallGravityEnabled(false);
+    this.ball.body.position.set(
+      BALL_START_POSITION.x,
+      BALL_START_POSITION.y,
+      BALL_START_POSITION.z
+    );
+    // 초기 회전 적용
+    const tempEuler = new THREE.Euler(
+      BALL_PHYSICS.startRotation.x,
+      BALL_PHYSICS.startRotation.y,
+      BALL_PHYSICS.startRotation.z,
+      'XYZ'
+    );
+    const tempQuat = new THREE.Quaternion().setFromEuler(tempEuler);
+    this.ball.body.quaternion.set(tempQuat.x, tempQuat.y, tempQuat.z, tempQuat.w);
+    this.ball.body.velocity.set(0, 0, 0);
+    this.ball.body.angularVelocity.set(0, 0, 0);
+    this.ball.body.force.set(0, 0, 0);
+    this.ball.body.torque.set(0, 0, 0);
+    this.syncBallKinematicFrames();
+
+    this.ball.syncVisuals();
+    console.log('Ball reset complete. Position:', this.ball.body.position);
+
+    // 장애물은 리셋하지 않음 (난이도 유지)
+    this.obstacles.forEach((obstacle) => obstacle.resetTracking());
+  }
+
+  /**
    * 게임을 처음부터 재시작 (점수 초기화 포함)
    */
   public restartGame(): void {
     console.log('🔄 게임 재시작');
-    
+
     // 진행 중인 샷 타이머 정리
     if (this.shotResetTimer !== null) {
       clearTimeout(this.shotResetTimer);
       this.shotResetTimer = null;
     }
-    
+
     // 점수 초기화
     this.score = 0;
     this.onScoreChange(this.score);
-    
+
     // 최고 기록 플래그 리셋
     this.scoreDisplay.resetNewRecordFlag();
-    
+
+    // 실패 카운트 리셋
+    this.failCount = 0;
+    this.savedGameState = undefined;
+
     // 상태 초기화
     this.isShotInProgress = false;
     this.hasScored = false;
-    
+
     // 커브 힘 시스템 중지
     this.curveForceSystem.stopCurveShot();
-    
+
     // 타겟 마커 숨김
     this.targetMarker.visible = false;
-    
+
     // 공 리셋
     this.resetBall();
-    
+
     console.log('✅ 게임 재시작 완료');
+  }
+
+  /**
+   * 게임오버 처리 (점수 초기화)
+   */
+  public gameOver(): void {
+    console.log('💀 게임오버');
+
+    // 점수 초기화
+    this.score = 0;
+    this.onScoreChange(this.score);
+
+    // 최고 기록 플래그 리셋
+    this.scoreDisplay.resetNewRecordFlag();
+
+    // 실패 카운트 리셋
+    this.failCount = 0;
+    this.savedGameState = undefined;
+
+    // 공 리셋
+    this.resetBall();
+
+    console.log('✅ 게임오버 처리 완료');
   }
 
   /**
