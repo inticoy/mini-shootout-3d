@@ -23,7 +23,7 @@ import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { ShotInfoHud } from './ui/shotInfoHud';
 import { AudioManager } from './core/audio';
 import { LoadingScreen } from './ui/loadingScreen';
-import { SwipeTracker } from './input/swipeTracker';
+import { InputController } from './input/InputController';
 import type { ScoreDisplay } from './ui/scoreDisplay';
 import { normalizeSwipeData, debugNormalizedSwipe } from './shooting/swipeNormalizer';
 import { analyzeShotType, debugShotAnalysis, ShotType } from './shooting/shotAnalyzer';
@@ -61,7 +61,7 @@ export class MiniShootout3D {
   private readonly trajectoryPositions: Float32Array;
   private readonly trajectorySampleStep = 0.05;
   private readonly trajectorySampleCount = 60;
-  private readonly swipeTracker: SwipeTracker;
+  private readonly inputController: InputController;
   private readonly curveForceSystem = new CurveForceSystem();
   private readonly shotInfoHud = new ShotInfoHud();
   private readonly targetMarker: THREE.Mesh;
@@ -125,8 +125,6 @@ export class MiniShootout3D {
   private readonly handleResizeBound = () => this.handleResize();
   private readonly handleBallCollideBound = (event: { body: CANNON.Body }) => this.handleBallCollide(event);
   private readonly handleGoalCollisionBound = (event: { body: CANNON.Body }) => this.handleGoalCollision(event);
-  // handleDebugButtonClickBound는 settings에서 직접 호출하므로 제거
-  private readonly handleCanvasPointerUpBound = (e: PointerEvent) => this.handleCanvasPointerUp(e);
   private touchGuideTimer: number | null = null;
   private loadingScreen: LoadingScreen | null = null;
   private threeAssetsProgress = 0;
@@ -217,8 +215,10 @@ export class MiniShootout3D {
     this.trajectoryLine.visible = false;
     this.scene.add(this.trajectoryLine);
 
-    // 스와이프 트래커 초기화
-    this.swipeTracker = new SwipeTracker(canvas, 5);
+    // 입력 컨트롤러 초기화
+    this.inputController = new InputController(canvas, this.camera, {
+      onShoot: (params) => this.handleShoot(params)
+    });
 
     // 스와이프 디버그 라인 초기화
     this.swipeDebugGeometry = new LineGeometry();
@@ -387,9 +387,7 @@ export class MiniShootout3D {
 
   private attachEventListeners() {
     window.addEventListener('resize', this.handleResizeBound);
-    // 캔버스에서 pointerup 이벤트 감지 (스와이프 완료 시 정규화 테스트)
-    // capture phase에서 실행하여 버튼보다 먼저 받지 않도록 함
-    this.renderer.domElement.addEventListener('pointerup', this.handleCanvasPointerUpBound);
+    // InputController가 입력 이벤트를 관리
   }
 
   private handleResize() {
@@ -459,7 +457,7 @@ export class MiniShootout3D {
       clearTimeout(this.touchGuideTimer);
     }
     window.removeEventListener('resize', this.handleResizeBound);
-    this.renderer.domElement.removeEventListener('pointerup', this.handleCanvasPointerUpBound);
+    this.inputController.destroy();
     this.goal.bodies.sensor.removeEventListener('collide', this.handleGoalCollisionBound);
     this.ball.body.removeEventListener('collide', this.handleBallCollideBound);
     this.scene.remove(this.goalColliderGroup);
@@ -472,7 +470,6 @@ export class MiniShootout3D {
     this.shotInfoHud.destroy();
     this.obstacles.forEach((obstacle) => obstacle.dispose());
     this.obstacles = [];
-    this.swipeTracker.destroy();
 
     // 배경음악 중지
     this.audio.stopMusic();
@@ -693,7 +690,7 @@ export class MiniShootout3D {
     this.trajectoryLine.visible = visible;
     this.shotInfoHud.setVisible(visible);
     this.targetMarker.visible = visible && this.targetMarker.visible; // visible 상태 유지하되 debugMode에 따라
-    const hasSwipe = this.swipeTracker.getLastSwipe() !== null;
+    const hasSwipe = this.inputController.getLastSwipe() !== null;
     this.swipeDebugLine.visible = visible && hasSwipe;
     this.swipePointMarkers.forEach((marker) => {
       marker.visible = visible && hasSwipe;
@@ -839,7 +836,7 @@ export class MiniShootout3D {
       return;
     }
 
-    const lastSwipe = this.swipeTracker.getLastSwipe();
+    const lastSwipe = this.inputController.getLastSwipe();
     if (!lastSwipe) {
       this.swipeDebugLine.visible = false;
       this.swipePointMarkers.forEach((marker) => {
@@ -852,7 +849,7 @@ export class MiniShootout3D {
     }
 
     // 스와이프 포인트를 월드 좌표로 변환 (공의 초기 위치 Z 좌표 사용)
-    const worldPositions = this.swipeTracker.getLastSwipeWorldPositions(this.camera, 0);
+    const worldPositions = this.inputController.getLastSwipeWorldPositions(this.camera, 0);
 
     if (!worldPositions || worldPositions.length < 2) {
       this.swipeDebugLine.visible = false;
@@ -898,27 +895,14 @@ export class MiniShootout3D {
     });
   }
 
-  private handleCanvasPointerUp(e: PointerEvent) {
-    console.log('⚽ Game handleCanvasPointerUp 호출됨', {
-      target: e.target,
-      targetTag: (e.target as HTMLElement).tagName,
-      targetId: (e.target as HTMLElement).id
-    });
-    
-    // UI 버튼 클릭인 경우 무시
-    const target = e.target as HTMLElement;
-    if (target !== this.renderer.domElement) {
-      console.log('⚽ canvas가 아닌 요소 클릭 - 무시');
-      return;
-    }
-    
-    const swipeData = this.swipeTracker.getLastSwipe();
-    if (!swipeData) {
-      console.log('⚽ swipeData 없음 - 리턴');
-      return;
-    }
+  /**
+   * 슈팅 처리 (InputController에서 호출)
+   */
+  private handleShoot(params: { swipeData: any; worldPositions: THREE.Vector3[] | null }): void {
+    console.log('⚽ Game handleShoot 호출됨');
 
-    console.log('⚽ swipeData 있음 - 슛 처리 시작');
+    const { swipeData } = params;
+
     // Step 1: 정규화
     const normalized = normalizeSwipeData(swipeData);
     console.log(debugNormalizedSwipe(normalized));
