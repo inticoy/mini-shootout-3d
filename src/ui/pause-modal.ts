@@ -10,6 +10,7 @@
 import { BaseModal } from './base-modal';
 import { ViewManager } from './view-manager';
 import { createCustomizeView } from './views/customize-view';
+import { gameStateService } from '../core/GameStateService';
 
 export interface PauseModalCallbacks {
   onToggleDebug?: () => void;
@@ -20,12 +21,6 @@ export interface PauseModalCallbacks {
   onSelectTheme?: (themeName: string) => void;
   onRestart?: () => void;
 }
-
-const LS_KEYS = {
-  musicEnabled: 'snapshoot.audio.musicEnabled',
-  sfxEnabled: 'snapshoot.audio.sfxEnabled',
-  masterVolume: 'snapshoot.audio.masterVolume'
-} as const;
 
 type AudioSettingsState = {
   musicEnabled: boolean;
@@ -375,14 +370,14 @@ export class PauseModal extends BaseModal {
       const enabled = this.musicToggle.checked;
       this.audioState.musicEnabled = enabled;
       this.callbacks.onSetMusicEnabled?.(enabled);
-      localStorage.setItem(LS_KEYS.musicEnabled, String(enabled));
+      gameStateService.setMusicEnabled(enabled);
     });
 
     this.sfxToggle.addEventListener('change', () => {
       const enabled = this.sfxToggle.checked;
       this.audioState.sfxEnabled = enabled;
       this.callbacks.onSetSfxEnabled?.(enabled);
-      localStorage.setItem(LS_KEYS.sfxEnabled, String(enabled));
+      gameStateService.setSfxEnabled(enabled);
     });
 
     this.masterVolumeRange.addEventListener('input', () => {
@@ -391,7 +386,7 @@ export class PauseModal extends BaseModal {
       this.audioState.masterVolume = volume;
       this.masterVolumeLabel.textContent = `${val}%`;
       this.callbacks.onSetMasterVolume?.(volume);
-      localStorage.setItem(LS_KEYS.masterVolume, String(volume));
+      gameStateService.setMasterVolume(volume);
     });
 
     return view;
@@ -551,19 +546,7 @@ export class PauseModal extends BaseModal {
    * Audio Settings State 로드
    */
   private loadAudioSettingsState(): AudioSettingsState {
-    const musicEnabledStr = localStorage.getItem(LS_KEYS.musicEnabled);
-    const sfxEnabledStr = localStorage.getItem(LS_KEYS.sfxEnabled);
-    const masterVolumeStr = localStorage.getItem(LS_KEYS.masterVolume);
-
-    return {
-      musicEnabled: musicEnabledStr === null ? true : musicEnabledStr === 'true',
-      sfxEnabled: sfxEnabledStr === null ? true : sfxEnabledStr === 'true',
-      masterVolume: (() => {
-        if (masterVolumeStr === null) return 0.5;
-        const num = Number(masterVolumeStr);
-        return Number.isFinite(num) ? Math.max(0, Math.min(1, num)) : 0.5;
-      })()
-    };
+    return gameStateService.getAudioSettings();
   }
 
   /**

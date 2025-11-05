@@ -6,6 +6,8 @@
  * - 최고 기록: localStorage 저장 및 표시
  * - Tailwind CSS 기반 스타일링
  */
+import { gameStateService } from '../core/GameStateService';
+
 export class ScoreDisplay {
   private scoreContainer: HTMLDivElement;
   private bestContainer: HTMLDivElement;
@@ -199,12 +201,11 @@ export class ScoreDisplay {
   }
 
   private loadBestScore(): number {
-    const saved = localStorage.getItem('snapshoot-best-score');
-    return saved ? parseInt(saved) : 0;
+    return gameStateService.getBestScore();
   }
 
   private saveBestScore(score: number): void {
-    localStorage.setItem('snapshoot-best-score', score.toString());
+    gameStateService.setBestScore(score);
   }
 
   /**

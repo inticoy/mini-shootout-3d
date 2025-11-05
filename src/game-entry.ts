@@ -5,6 +5,7 @@ import { TouchGuide } from './ui/touchGuide';
 import { PauseModal } from './ui/pause-modal';
 import { ContinueModal } from './ui/continue-modal';
 import { GameOverModal } from './ui/game-over-modal';
+import { gameStateService } from './core/GameStateService';
 
 export function bootstrapGame() {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
@@ -43,20 +44,11 @@ export function bootstrapGame() {
     }
   );
 
-  // 저장된 오디오 설정 복구 및 적용 (기본값: ON/ON, master 1.0)
-  try {
-    const musicEnabledStr = localStorage.getItem('snapshoot.audio.musicEnabled');
-    const sfxEnabledStr = localStorage.getItem('snapshoot.audio.sfxEnabled');
-    const masterVolumeStr = localStorage.getItem('snapshoot.audio.masterVolume');
-
-    const musicEnabled = musicEnabledStr === null ? true : musicEnabledStr === 'true';
-    const sfxEnabled = sfxEnabledStr === null ? true : sfxEnabledStr === 'true';
-    const masterVolume = masterVolumeStr === null ? 0.5 : Math.max(0, Math.min(1, Number(masterVolumeStr)));
-
-    game.setMusicEnabled(musicEnabled);
-    game.setSfxEnabled(sfxEnabled);
-    game.setMasterVolume(masterVolume);
-  } catch {}
+  // 저장된 오디오 설정 복구 및 적용
+  const audioSettings = gameStateService.getAudioSettings();
+  game.setMusicEnabled(audioSettings.musicEnabled);
+  game.setSfxEnabled(audioSettings.sfxEnabled);
+  game.setMasterVolume(audioSettings.masterVolume);
 
   // Pause Modal 생성
   new PauseModal(uiContainer, {
