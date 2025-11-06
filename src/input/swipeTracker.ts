@@ -157,6 +157,9 @@ export class SwipeTracker {
       return [...points];
     }
 
+    const startPoint = points[0];
+    const endPoint = points[points.length - 1];
+
     // 1. 누적 거리 계산
     const cumulativeDistances: number[] = [0];
     for (let i = 1; i < points.length; i++) {
@@ -176,38 +179,51 @@ export class SwipeTracker {
         const index = Math.round(i * step);
         sampled.push(points[index]);
       }
+      sampled[0] = startPoint;
+      sampled[sampled.length - 1] = endPoint;
       return sampled;
     }
 
     // 3. 거리 기반 샘플링: 0%, 25%, 50%, 75%, 100%
     // 중복 방지를 위해 이미 선택된 인덱스 추적
-    const sampled: SwipePoint[] = [];
-    const usedIndices = new Set<number>();
+    const sampled: SwipePoint[] = [startPoint];
+    let lastIndex = 0;
 
-    for (let i = 0; i < targetCount; i++) {
-      const targetRatio = i / (targetCount - 1); // 0, 0.25, 0.5, 0.75, 1
+    for (let i = 1; i < targetCount - 1; i++) {
+      const targetRatio = i / (targetCount - 1);
       const targetDistance = totalDistance * targetRatio;
 
-      // targetDistance에 가장 가까운 점 찾기 (이미 사용된 인덱스 제외)
-      let closestIndex = -1;
-      let minDiff = Infinity;
+      // 남은 포인트 수를 고려해 선택 가능한 인덱스 범위 계산
+      const minIndex = lastIndex + 1;
+      const maxIndex = points.length - 1 - (targetCount - i - 1);
 
-      for (let j = 0; j < points.length; j++) {
-        if (usedIndices.has(j)) continue; // 이미 사용된 점은 스킵
+      // targetDistance 이상이 되는 첫 번째 인덱스 탐색
+      let candidateIndex = minIndex;
+      while (
+        candidateIndex < points.length - 1 &&
+        cumulativeDistances[candidateIndex] < targetDistance
+      ) {
+        candidateIndex++;
+      }
 
-        const diff = Math.abs(cumulativeDistances[j] - targetDistance);
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestIndex = j;
+      // 범위를 벗어나지 않도록 조정
+      candidateIndex = Math.max(minIndex, Math.min(candidateIndex, maxIndex));
+
+      // 이전 인덱스와의 거리가 더 가깝다면 교체 (단, 순서 유지)
+      const prevIndex = Math.max(minIndex, candidateIndex - 1);
+      if (prevIndex > lastIndex) {
+        const prevDiff = Math.abs(cumulativeDistances[prevIndex] - targetDistance);
+        const currDiff = Math.abs(cumulativeDistances[candidateIndex] - targetDistance);
+        if (prevDiff < currDiff) {
+          candidateIndex = prevIndex;
         }
       }
 
-      // 가장 가까운 점을 찾았으면 추가
-      if (closestIndex !== -1) {
-        sampled.push(points[closestIndex]);
-        usedIndices.add(closestIndex);
-      }
+      sampled.push(points[candidateIndex]);
+      lastIndex = candidateIndex;
     }
+
+    sampled.push(endPoint);
 
     return sampled;
   }

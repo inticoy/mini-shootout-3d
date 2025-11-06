@@ -1076,8 +1076,8 @@ export class MiniShootout3D {
       }
     }
 
-    // 공 리셋
-    this.ballController.resetBall();
+    // 공 및 환경 리셋 (난이도/광고판 포함)
+    this.resetBall();
 
     // 타겟 마커 숨김
     this.targetMarker.visible = false;

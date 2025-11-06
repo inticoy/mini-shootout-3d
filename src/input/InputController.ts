@@ -47,8 +47,8 @@ export class InputController {
     this.camera = camera;
     this.callbacks = callbacks;
 
-    // SwipeTracker 생성
-    this.swipeTracker = new SwipeTracker(canvas, 10);
+    // SwipeTracker 생성 (5개 포인트 샘플링)
+    this.swipeTracker = new SwipeTracker(canvas, 5);
 
     // Canvas pointerup 이벤트 리스너 추가
     this.attachEventListeners();
