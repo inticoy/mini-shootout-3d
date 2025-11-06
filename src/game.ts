@@ -1182,8 +1182,8 @@ export class MiniShootout3D {
     // 타겟 마커 숨김
     this.targetMarker.visible = false;
 
-    // 공 리셋
-    this.ballController.resetBall();
+    // 공 및 환경 리셋
+    this.resetBall();
 
     console.log('✅ 게임 재시작 완료');
   }
@@ -1205,8 +1205,8 @@ export class MiniShootout3D {
     this.failCount = 0;
     this.savedGameState = undefined;
 
-    // 공 리셋
-    this.ballController.resetBall();
+    // 공 및 환경 리셋
+    this.resetBall();
 
     console.log('✅ 게임오버 처리 완료');
   }
