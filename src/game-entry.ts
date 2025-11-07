@@ -1,10 +1,10 @@
 import './style.css';
 import { MiniShootout3D } from './game';
-import { ScoreDisplay } from './ui/scoreDisplay';
-import { TouchGuide } from './ui/touchGuide';
-import { PauseModal } from './ui/pause-modal';
-import { ContinueModal } from './ui/continue-modal';
-import { GameOverModal } from './ui/game-over-modal';
+import { ScoreDisplay } from './ui/hud/ScoreDisplay';
+import { TouchGuide } from './ui/hud/TouchGuide';
+import { PauseModal } from './ui/modals/PauseModal';
+import { ContinueModal } from './ui/modals/ContinueModal';
+import { GameOverModal } from './ui/modals/GameOverModal';
 import { gameStateService } from './core/GameStateService';
 
 export function bootstrapGame() {
@@ -29,16 +29,12 @@ export function bootstrapGame() {
     scoreDisplay,
     (failCount: number) => {
       // 실패 시 콜백
-      console.log(`게임 실패! 실패 횟수: ${failCount}`);
-
       if (failCount >= 2) {
         // 2번째 실패 -> 바로 GameOver
-        console.log('2번째 실패 -> GameOver');
         gameOverModal.updateScore(scoreDisplay.getScore());
         gameOverModal.open();
       } else {
         // 1번째 실패 -> Continue Modal
-        console.log('1번째 실패 -> Continue Modal');
         continueModal.open();
       }
     }
@@ -66,20 +62,17 @@ export function bootstrapGame() {
     uiContainer,
     {
       onContinue: () => {
-        console.log('✅ 광고보고 이어하기 선택');
         // TODO: 광고 재생 로직 구현
         // 광고 완료 후 game.continueGame() 호출
         game.continueGame(); // 현재 점수와 난이도 유지, 공만 원위치
       },
       onGiveUp: () => {
-        console.log('❌ 포기하기 선택 - GameOver로 전환');
         const finalScore = scoreDisplay.getScore();
         game.gameOver(); // 게임오버 처리 (점수 초기화)
         gameOverModal.updateScore(finalScore);
         gameOverModal.open();
       },
       onTimeout: () => {
-        console.log('⏱️ 타임아웃 - GameOver로 전환');
         const finalScore = scoreDisplay.getScore();
         game.gameOver(); // 게임오버 처리 (점수 초기화)
         gameOverModal.updateScore(finalScore);
@@ -97,15 +90,12 @@ export function bootstrapGame() {
     0, // 초기 점수
     {
       onRestart: () => {
-        console.log('🔄 다시하기 선택');
         game.restartGame(); // 점수와 실패 카운트 초기화
       },
       onShare: () => {
-        console.log('공유하기');
         // TODO: 공유 기능 구현
       },
       onRanking: () => {
-        console.log('랭킹보기');
         // TODO: 랭킹 화면 구현
       },
       onSelectTheme: (themeName: string) => void game.switchToTheme(themeName)

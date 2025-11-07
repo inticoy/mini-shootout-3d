@@ -1,4 +1,4 @@
-import { PHYSICS_LINEAR_DAMPING } from '../physics/constants';
+import { PHYSICS_LINEAR_DAMPING } from '../physics/Constants';
 import type { SoundKey } from './audio';
 import basicBallModel from '../assets/ball/basic.glb?url';
 import moonBallModel from '../assets/ball/moon.glb?url';

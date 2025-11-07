@@ -1,41 +1,37 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { createRenderer } from './core/graphics';
-import { createPerspectiveCamera } from './core/camera';
-import { configureSceneLighting } from './core/lighting';
-import { createPhysicsWorld } from './physics/world';
-import { createField } from './environment/field';
-import type { Field } from './environment/field';
-import { Ball } from './entities/ball';
-import { BallController } from './entities/BallController';
-import { Goal } from './entities/goal';
-import { Obstacle } from './entities/obstacle';
-import { BALL_RADIUS, BALL_THEMES } from './config/ball';
-import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from './config/goal';
-import { GOAL_NET_CONFIG } from './config/net';
-import { AD_BOARD_CONFIG } from './config/adBoard';
-import { getDifficultyForScore, type DifficultyLevelConfig } from './config/difficulty';
-import { getObstacleBlueprint } from './config/obstacles';
-import type { ObstacleBlueprint, ObstacleInstanceConfig } from './config/obstacles';
-import { Line2 } from 'three/examples/jsm/lines/Line2.js';
-import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
-import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+import { createRenderer } from './infra/Graphics';
+import { createPerspectiveCamera } from './infra/Camera';
+import { configureSceneLighting } from './infra/Lighting';
+import { createPhysicsWorld } from './physics/World';
+import { createField } from './environment/Field';
+import type { Field } from './environment/Field';
+import { Ball } from './entities/ball/Ball';
+import { BallController } from './entities/ball/BallController';
+import { Goal } from './entities/goal/Goal';
+import { BALL_THEMES } from './config/ball';
+import { GOAL_DEPTH } from './config/goal';
+import type { DifficultyLevelConfig } from './config/difficulty';
 // Debug button removed - now integrated into Settings modal
-import { ShotInfoHud } from './ui/shotInfoHud';
-import { AudioManager } from './core/audio';
-import { LoadingScreen } from './ui/loadingScreen';
+import { ShotInfoHud } from './ui/hud/ShotInfoHud';
+import { AudioManager } from './infra/Audio';
+import { LoadingScreen } from './ui/screens/LoadingScreen';
 import { InputController } from './input/InputController';
-import type { ScoreDisplay } from './ui/scoreDisplay';
-import { normalizeSwipeData, debugNormalizedSwipe } from './shooting/swipeNormalizer';
-import { analyzeShotType, debugShotAnalysis, ShotType } from './shooting/shotAnalyzer';
-import { calculateShotParameters, debugShotParameters } from './shooting/shotParameters';
-import { calculateInitialVelocity, debugVelocity } from './shooting/velocityCalculator';
-import { calculateAngularVelocity, debugAngularVelocity } from './shooting/spinCalculator';
-import { CurveForceSystem } from './shooting/curveForceSystem';
+import type { ScoreDisplay } from './ui/hud/ScoreDisplay';
+import { executeShot } from './shooting/ExecuteShot';
+import { ShotType } from './shooting/ShotAnalyzer';
+import { CurveForceSystem } from './shooting/CurveForceSystem';
+import { debugNormalizedSwipe } from './shooting/SwipeNormalizer';
+import { debugShotAnalysis } from './shooting/ShotAnalyzer';
+import { debugShotParameters } from './shooting/ShotParameters';
+import { debugVelocity } from './shooting/VelocityCalculator';
+import { debugAngularVelocity } from './shooting/SpinCalculator';
 import { GameStateManager, GameState } from './core/GameStateManager';
-
-const MIN_VERTICAL_BOUNCE_SPEED = 0.45;
-const BOUNCE_COOLDOWN_MS = 120;
+import { GAME_CONFIG } from './config/game';
+import { CategoryLogger } from './utils/Logger';
+import { DebugVisualizer } from './debug/DebugVisualizer';
+import { DifficultyManager } from './core/DifficultyManager';
+import { AssetLoader } from './core/AssetLoader';
 
 export class MiniShootout3D {
   private readonly onScoreChange: (score: number) => void;
@@ -50,39 +46,23 @@ export class MiniShootout3D {
   private readonly ball: Ball;
   private readonly ballController: BallController;
   private readonly goal: Goal;
-  private obstacles: Obstacle[] = [];
   private readonly field: Field;
   private readonly audio = new AudioManager();
-  private readonly ballColliderMesh: THREE.Mesh;
-  private readonly goalColliderGroup: THREE.Group;
-  private readonly adBoardColliderGroup: THREE.Group;
-  private readonly axisArrows: THREE.ArrowHelper[];
-  private readonly trajectoryGeometry: LineGeometry;
-  private readonly trajectoryMaterial: LineMaterial;
-  private readonly trajectoryLine: Line2;
-  private readonly trajectoryPositions: Float32Array;
-  private readonly trajectorySampleStep = 0.05;
-  private readonly trajectorySampleCount = 60;
+
+  // Loggers
+  private readonly gameLog = new CategoryLogger('Game');
+  private readonly shootingLog = new CategoryLogger('Shooting');
+  private readonly themeLog = new CategoryLogger('Theme');
+
   private readonly inputController: InputController;
   private readonly curveForceSystem = new CurveForceSystem();
   private readonly shotInfoHud = new ShotInfoHud();
-  private readonly targetMarker: THREE.Mesh;
-  private readonly swipeDebugGeometry: LineGeometry;
-  private readonly swipeDebugMaterial: LineMaterial;
-  private readonly swipeDebugLine: Line2;
-  private readonly swipePointMarkers: THREE.Sprite[] = [];
-  private readonly swipePointLabels: HTMLDivElement[] = [];
-  private readonly tempQuaternion = new THREE.Quaternion();
-  private readonly tempAxisX = new THREE.Vector3();
-  private readonly tempAxisY = new THREE.Vector3();
-  private readonly tempAxisZ = new THREE.Vector3();
+  private debugVisualizer!: DebugVisualizer; // 초기화는 생성자에서 (의존성 필요)
+  private difficultyManager!: DifficultyManager; // 초기화는 생성자에서 (의존성 필요)
   private lastBounceSoundTime = 0;
   private score = 0;
-  private debugMode = false;
   private shotResetTimer: number | null = null;
-  private currentDifficulty: DifficultyLevelConfig | null = null;
   private failCount = 0; // 현재 게임에서 실패한 횟수
-  private maxFailsBeforeGameOver = 2; // 게임오버까지 허용되는 실패 횟수
   private onGameFailed?: (failCount: number) => void; // 실패 시 콜백
   private savedGameState?: { score: number; difficulty: DifficultyLevelConfig | null }; // 이어하기용 상태 저장
 
@@ -112,12 +92,9 @@ export class MiniShootout3D {
     }
   }
 
-  // 🔍 궤적 디버깅
+  // 🔍 궤적 추적
   private isTrackingBall = false;
   private trackingStartTime = 0;
-  private trackingTargetY = 0;
-  private lastLogTime = 0;
-  private goalLineCrossed = false;
 
   private readonly clock = new THREE.Clock();
 
@@ -126,11 +103,7 @@ export class MiniShootout3D {
   private readonly handleGoalCollisionBound = (event: { body: CANNON.Body }) => this.handleGoalCollision(event);
   private touchGuideTimer: number | null = null;
   private loadingScreen: LoadingScreen | null = null;
-  private threeAssetsProgress = 0;
-  private audioProgress = 0;
-  private threeItemsLoaded = 0;
-  private threeItemsTotal = 0;
-  private isGameReady = false;
+  private assetLoader!: AssetLoader; // 초기화는 생성자에서 (의존성 필요)
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -157,7 +130,14 @@ export class MiniShootout3D {
     );
     this.loadingScreen.show();
     this.loadingScreen.setProgress(0);
-    this.setupAssetLoadingTracker();
+
+    // 에셋 로더 초기화
+    this.assetLoader = new AssetLoader({
+      loadingScreen: this.loadingScreen,
+      gameLog: this.gameLog,
+      onAllAssetsLoaded: () => this.onAllAssetsLoaded()
+    });
+    this.assetLoader.setupAssetLoadingTracker();
 
     this.scene = new THREE.Scene();
     this.scene.background = null; // HTML 배경(빨강-녹색 그라디언트)이 보이도록 투명
@@ -177,7 +157,7 @@ export class MiniShootout3D {
     this.ballController = new BallController(this.ball);
 
     void this.ball.load(this.scene, THREE.DefaultLoadingManager).catch((error) => {
-      console.error('Failed to load ball model', error);
+      this.gameLog.error('Failed to load ball model', error);
     });
 
     this.goal = new Goal(this.scene, this.world, materials.ball);
@@ -185,124 +165,41 @@ export class MiniShootout3D {
     this.goal.bodies.sensor.addEventListener('collide', this.handleGoalCollisionBound);
 
     void this.audio.loadAll().then(() => {
-      this.audioProgress = 1;
-      this.updateLoadingProgress();
+      this.assetLoader.setAudioLoaded();
     }).catch((error) => {
-      console.warn('Failed to preload audio', error);
-      this.audioProgress = 1;
-      this.updateLoadingProgress();
+      this.gameLog.warn('Failed to preload audio', error);
+      this.assetLoader.setAudioLoaded();
     });
-
-    this.ballColliderMesh = this.createBallColliderMesh();
-    this.goalColliderGroup = this.createGoalColliderGroup();
-    this.adBoardColliderGroup = this.createAdBoardColliderGroup();
-    this.axisArrows = this.createAxisArrows();
-    this.trajectoryPositions = new Float32Array(this.trajectorySampleCount * 3);
-    this.trajectoryGeometry = new LineGeometry();
-    this.trajectoryGeometry.setPositions(Array.from(this.trajectoryPositions));
-    this.trajectoryMaterial = new LineMaterial({
-      color: 0x00aaff,
-      linewidth: 0.045,
-      transparent: true,
-      opacity: 0.95,
-      worldUnits: true
-    });
-    this.trajectoryMaterial.resolution.set(window.innerWidth, window.innerHeight);
-    this.trajectoryMaterial.needsUpdate = true;
-    this.trajectoryLine = new Line2(this.trajectoryGeometry, this.trajectoryMaterial);
-    this.trajectoryLine.computeLineDistances();
-    this.trajectoryLine.visible = false;
-    this.scene.add(this.trajectoryLine);
 
     // 입력 컨트롤러 초기화
     this.inputController = new InputController(canvas, this.camera, {
       onShoot: (params) => this.handleShoot(params)
     });
 
-    // 스와이프 디버그 라인 초기화
-    this.swipeDebugGeometry = new LineGeometry();
-    this.swipeDebugMaterial = new LineMaterial({
-      color: 0xffff00,
-      linewidth: 0.06,
-      transparent: true,
-      opacity: 0.9,
-      worldUnits: true,
-      depthTest: false,
-      depthWrite: false
+    // 디버그 시각화 초기화
+    this.debugVisualizer = new DebugVisualizer({
+      scene: this.scene,
+      camera: this.camera,
+      world: this.world,
+      ball: this.ball,
+      goal: this.goal,
+      inputController: this.inputController,
+      shotInfoHud: this.shotInfoHud
     });
-    this.swipeDebugMaterial.resolution.set(window.innerWidth, window.innerHeight);
-    this.swipeDebugLine = new Line2(this.swipeDebugGeometry, this.swipeDebugMaterial);
-    this.swipeDebugLine.visible = false;
-    this.swipeDebugLine.renderOrder = 999;
-    this.scene.add(this.swipeDebugLine);
 
-    // 스와이프 포인트 마커 초기화 (5개)
-    this.createSwipePointMarkers(5);
-
-    // 타겟 마커 초기화
-    this.targetMarker = this.createTargetMarker();
-
-    // Debug visibility 적용
-    this.applyDebugVisibility();
+    // 난이도 관리자 초기화
+    this.difficultyManager = new DifficultyManager({
+      scene: this.scene,
+      world: this.world,
+      gameLog: this.gameLog
+    });
 
     this.attachEventListeners();
     this.resetBall();
     this.animate();
   }
 
-  private setupAssetLoadingTracker() {
-    const manager = THREE.DefaultLoadingManager;
-    manager.onStart = (_url, itemsLoaded, itemsTotal) => {
-      this.updateThreeAssetProgress(itemsLoaded, itemsTotal);
-    };
-    manager.onProgress = (_url, itemsLoaded, itemsTotal) => {
-      this.updateThreeAssetProgress(itemsLoaded, itemsTotal);
-    };
-    manager.onLoad = () => {
-      this.threeItemsLoaded = this.threeItemsTotal;
-      this.threeAssetsProgress = 1;
-      this.updateLoadingProgress();
-    };
-    manager.onError = (url) => {
-      console.warn(`Failed to load visual asset: ${url}`);
-      this.handleThreeAssetError();
-    };
-    this.updateLoadingProgress();
-  }
-
-  private updateThreeAssetProgress(itemsLoaded: number, itemsTotal: number) {
-    if (itemsTotal > 0) {
-      this.threeItemsTotal = Math.max(this.threeItemsTotal, itemsTotal);
-      this.threeItemsLoaded = Math.max(this.threeItemsLoaded, itemsLoaded);
-      this.threeAssetsProgress = Math.min(this.threeItemsLoaded / this.threeItemsTotal, 1);
-    }
-    this.updateLoadingProgress();
-  }
-
-  private handleThreeAssetError() {
-    if (this.threeItemsTotal === 0) {
-      this.threeItemsTotal = 1;
-    }
-    this.threeItemsLoaded = Math.min(this.threeItemsLoaded + 1, this.threeItemsTotal);
-    this.threeAssetsProgress = Math.min(this.threeItemsLoaded / this.threeItemsTotal, 1);
-    this.updateLoadingProgress();
-  }
-
-  private updateLoadingProgress() {
-    const combined = Math.min(this.threeAssetsProgress * 0.85 + this.audioProgress * 0.15, 1);
-    if (this.loadingScreen) {
-      this.loadingScreen.setProgress(combined);
-    }
-
-    if (!this.isGameReady && this.threeAssetsProgress >= 1 && this.audioProgress >= 1) {
-      this.onAllAssetsLoaded();
-    }
-  }
-
-  private onAllAssetsLoaded() {
-    this.isGameReady = true;
-    console.log('All assets loaded, game ready!');
-
+  private onAllAssetsLoaded(): void {
     // 게임 상태를 IDLE로 전환 (슈팅 가능)
     this.stateManager.setState(GameState.IDLE);
 
@@ -315,7 +212,7 @@ export class MiniShootout3D {
     if (!this.isShotInProgress) return; // 슈팅 중이 아니면 무시
     if (this.hasScored) return; // 이미 골 처리했으면 무시 (중복 방지)
 
-    console.log('⚽ GOAL! Score:', this.score + 1);
+    this.gameLog.info(`⚽ GOAL! Score: ${this.score + 1}`);
 
     this.score += 1;
     this.onScoreChange(this.score);
@@ -327,7 +224,7 @@ export class MiniShootout3D {
     }
     this.onShowTouchGuide(false);
     this.hasScored = true;
-    this.obstacles.forEach((obstacle) => obstacle.stopTracking());
+    this.difficultyManager.stopAllTracking();
     const tempBallPosition = this.ballController.copyPositionToTemp();
     this.goal.triggerNetPulse(tempBallPosition, 1);
 
@@ -351,15 +248,15 @@ export class MiniShootout3D {
   private handleBallCollide(event: { body: CANNON.Body }) {
     if (event.body === this.field.groundBody) {
       const now = performance.now();
-      if (now - this.lastBounceSoundTime < BOUNCE_COOLDOWN_MS) return;
+      if (now - this.lastBounceSoundTime < GAME_CONFIG.bounceSound.cooldownMs) return;
       const vy = Math.abs(this.ball.body.velocity.y);
-      if (vy < MIN_VERTICAL_BOUNCE_SPEED) return;
+      if (vy < GAME_CONFIG.bounceSound.minVerticalSpeed) return;
       this.lastBounceSoundTime = now;
 
       // 테마별 바운스 사운드 사용 (지정되지 않으면 기본 'bounce' 사용)
       const bounceSound = this.ball.getTheme().sounds?.bounce ?? 'bounce';
       this.audio.playSound(bounceSound);
-    } else if (this.obstacles.some((obstacle) => obstacle.body === event.body)) {
+    } else if (this.difficultyManager.getObstacles().some((obstacle) => obstacle.body === event.body)) {
       this.audio.playSound('save');
     } else if (
       event.body === this.goal.bodies.leftPost ||
@@ -390,8 +287,7 @@ export class MiniShootout3D {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.trajectoryMaterial.resolution.set(window.innerWidth, window.innerHeight);
-    this.swipeDebugMaterial.resolution.set(window.innerWidth, window.innerHeight);
+    this.debugVisualizer.handleResize(window.innerWidth, window.innerHeight);
   }
 
   private animate = () => {
@@ -400,46 +296,24 @@ export class MiniShootout3D {
     const deltaTime = this.clock.getDelta();
     // Tunneling 방지: 더 작은 timestep, 더 많은 substeps
     // 빠른 슛(40 m/s)도 얇은 골대(0.1m)와 정확히 충돌
-    this.world.step(1 / 120, deltaTime, 5);
+    this.world.step(GAME_CONFIG.physics.timeStep, deltaTime, GAME_CONFIG.physics.substeps);
     this.curveForceSystem.update(deltaTime, this.ball.body);
-    this.obstacles.forEach((obstacle) => obstacle.update(deltaTime));
+    this.difficultyManager.getObstacles().forEach((obstacle) => obstacle.update(deltaTime));
     this.goal.update(deltaTime);
     this.field.update(deltaTime);
 
-    // 🔍 궤적 추적 로그
+    // 궤적 추적 중지 체크 (디버그 로그는 제거됨)
     if (this.isTrackingBall) {
       const now = performance.now();
-      const elapsed = (now - this.trackingStartTime) / 1000; // 초 단위
-      const pos = this.ball.body.position;
-      const vel = this.ball.body.velocity;
-
-      // 🔍 첫 0.1초 동안 매 프레임 상세 로그
-      if (elapsed < 0.1) {
-        console.log(`⚡ [t=${elapsed.toFixed(3)}s] world.step 직후: vel(${vel.x.toFixed(2)}, ${vel.y.toFixed(2)}, ${vel.z.toFixed(2)})`);
-      }
-
-      // 0.05초마다 로그 (또는 골라인 근처)
-      if (elapsed - this.lastLogTime >= 0.05) {
-        console.log(`⚽ t=${elapsed.toFixed(2)}s: pos(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}), vel(${vel.x.toFixed(2)}, ${vel.y.toFixed(2)}, ${vel.z.toFixed(2)})`);
-        this.lastLogTime = elapsed;
-      }
-
-      // 골라인(-6) 통과 감지
-      if (!this.goalLineCrossed && pos.z <= -6.0) {
-        this.goalLineCrossed = true;
-        const diff = pos.y - this.trackingTargetY;
-        console.log(`🎯 골라인 통과: Y = ${pos.y.toFixed(2)}m (목표 ${this.trackingTargetY.toFixed(2)}m, 차이 ${diff.toFixed(2)}m)`);
-      }
-
-      // 1초 후 또는 리셋되면 추적 중지
+      const elapsed = (now - this.trackingStartTime) / 1000;
       if (elapsed > 1.0 || !this.isShotInProgress) {
         this.isTrackingBall = false;
       }
     }
 
     this.ball.syncVisuals();
-    this.updateColliderVisuals();
-    this.updateSwipeDebugLine();
+    this.debugVisualizer.updateColliderVisuals();
+    this.debugVisualizer.updateSwipeDebugLine();
 
     this.renderer.render(this.scene, this.camera);
   };
@@ -455,16 +329,9 @@ export class MiniShootout3D {
     this.inputController.destroy();
     this.goal.bodies.sensor.removeEventListener('collide', this.handleGoalCollisionBound);
     this.ball.body.removeEventListener('collide', this.handleBallCollideBound);
-    this.scene.remove(this.goalColliderGroup);
-    this.scene.remove(this.adBoardColliderGroup);
-    this.scene.remove(this.swipeDebugLine);
-    this.scene.remove(this.targetMarker);
-    this.swipePointMarkers.forEach((marker) => this.scene.remove(marker));
-    this.swipePointLabels.forEach((label) => label.remove());
-    this.axisArrows.forEach((arrow) => this.scene.remove(arrow));
+    this.debugVisualizer.dispose();
+    this.difficultyManager.dispose();
     this.shotInfoHud.destroy();
-    this.obstacles.forEach((obstacle) => obstacle.dispose());
-    this.obstacles = [];
 
     // 배경음악 중지
     this.audio.stopMusic();
@@ -491,454 +358,49 @@ export class MiniShootout3D {
     this.audio.setMasterVolume(volume);
   }
 
-  private createBallColliderMesh(): THREE.Mesh {
-    const geometry = new THREE.SphereGeometry(BALL_RADIUS, 16, 16);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0x00ffc6,
-      transparent: true,
-      opacity: 0.45,
-      depthTest: false,
-      depthWrite: false
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x00ffc6 });
-    const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(geometry), edgeMaterial);
-    mesh.add(wireframe);
-    mesh.visible = false;
-    this.scene.add(mesh);
-    return mesh;
-  }
-
-  private createGoalColliderGroup(): THREE.Group {
-    const group = new THREE.Group();
-    group.visible = false;
-
-    const colliderMaterial = new THREE.MeshBasicMaterial({ color: 0xff4400 });
-    colliderMaterial.transparent = true;
-    colliderMaterial.opacity = 0.55;
-    colliderMaterial.depthTest = false;
-    colliderMaterial.depthWrite = false;
-    const colliderEdgeMaterial = new THREE.LineBasicMaterial({ color: 0xff5500 });
-
-    const addBoxCollider = (geometry: THREE.BoxGeometry, position: THREE.Vector3) => {
-      const mesh = new THREE.Mesh(geometry, colliderMaterial);
-      mesh.position.copy(position);
-      group.add(mesh);
-
-      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), colliderEdgeMaterial);
-      edges.position.copy(position);
-      group.add(edges);
-    };
-
-    const postGeometry = new THREE.BoxGeometry(POST_RADIUS * 2, GOAL_HEIGHT, POST_RADIUS * 2);
-    addBoxCollider(postGeometry, new THREE.Vector3(-GOAL_WIDTH / 2, GOAL_HEIGHT / 2, GOAL_DEPTH));
-    addBoxCollider(postGeometry, new THREE.Vector3(GOAL_WIDTH / 2, GOAL_HEIGHT / 2, GOAL_DEPTH));
-
-    const rearSupportX = GOAL_WIDTH / 2;
-    const rearSupportZ = GOAL_DEPTH - GOAL_NET_CONFIG.layout.depthBottom;
-    addBoxCollider(postGeometry, new THREE.Vector3(-rearSupportX, GOAL_HEIGHT / 2, rearSupportZ));
-    addBoxCollider(postGeometry, new THREE.Vector3(rearSupportX, GOAL_HEIGHT / 2, rearSupportZ));
-
-    const floorThickness = POST_RADIUS * 2;
-    const depthSpan = GOAL_NET_CONFIG.layout.depthBottom;
-    const sideFloorGeometry = new THREE.BoxGeometry(POST_RADIUS * 2, floorThickness, depthSpan);
-    addBoxCollider(sideFloorGeometry, new THREE.Vector3(-rearSupportX, POST_RADIUS, GOAL_DEPTH - depthSpan / 2));
-    addBoxCollider(sideFloorGeometry, new THREE.Vector3(rearSupportX, POST_RADIUS, GOAL_DEPTH - depthSpan / 2));
-
-    const backFloorGeometry = new THREE.BoxGeometry(rearSupportX * 2, floorThickness, POST_RADIUS * 2);
-    addBoxCollider(backFloorGeometry, new THREE.Vector3(0, POST_RADIUS, rearSupportZ));
-
-    addBoxCollider(sideFloorGeometry, new THREE.Vector3(-rearSupportX, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH - depthSpan / 2));
-    addBoxCollider(sideFloorGeometry, new THREE.Vector3(rearSupportX, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH - depthSpan / 2));
-
-    const crossbarGeometry = new THREE.BoxGeometry(GOAL_WIDTH, POST_RADIUS * 2, POST_RADIUS * 2);
-    addBoxCollider(crossbarGeometry, new THREE.Vector3(0, GOAL_HEIGHT - POST_RADIUS, GOAL_DEPTH));
-
-    const sensorWidth = Math.max(GOAL_WIDTH - POST_RADIUS * 2, 0.1);
-    const sensorHeight = Math.max(GOAL_HEIGHT - POST_RADIUS * 1.8, 0.1);
-    const sensorDepth = BALL_RADIUS * 0.6;
-    const sensorGeometry = new THREE.BoxGeometry(sensorWidth, sensorHeight, sensorDepth);
-    const sensorMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00e0ff,
-      transparent: true,
-      opacity: 0.2,
-      depthWrite: false,
-      depthTest: false,
-      side: THREE.DoubleSide
-    });
-    const sensorFace = new THREE.Mesh(sensorGeometry, sensorMaterial);
-    const sensorZ = GOAL_DEPTH - (BALL_RADIUS + sensorDepth * 0.5);
-    sensorFace.position.set(0, sensorHeight / 2, sensorZ);
-    group.add(sensorFace);
-
-    const sensorEdges = new THREE.LineSegments(
-      new THREE.EdgesGeometry(sensorGeometry),
-      new THREE.LineBasicMaterial({ color: 0x00e0ff })
-    );
-    sensorEdges.position.copy(sensorFace.position);
-    group.add(sensorEdges);
-
-    const netInfos = this.goal.getNetColliderInfos();
-    const netFaceMaterial = new THREE.MeshBasicMaterial({
-      color: 0x0096ff,
-      transparent: true,
-      opacity: 0.28,
-      depthWrite: false,
-      depthTest: false,
-      side: THREE.DoubleSide
-    });
-    const netEdgeMaterial = new THREE.LineBasicMaterial({ color: 0x33bbff });
-
-    netInfos.forEach(({ size, position }) => {
-      const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
-      const faceMesh = new THREE.Mesh(geometry, netFaceMaterial);
-      faceMesh.position.copy(position);
-      group.add(faceMesh);
-
-      const edgeMesh = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), netEdgeMaterial);
-      edgeMesh.position.copy(position);
-      group.add(edgeMesh);
-    });
-
-    this.scene.add(group);
-    return group;
-  }
-
-  private createAdBoardColliderGroup(): THREE.Group {
-    const group = new THREE.Group();
-    group.visible = false;
-
-    const outlineMaterial = new THREE.LineBasicMaterial({ color: 0xffaa33 });
-    const faceMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffaa33,
-      transparent: true,
-      opacity: 0.12,
-      depthWrite: false,
-      depthTest: false,
-      side: THREE.DoubleSide
-    });
-
-    const size = AD_BOARD_CONFIG.size;
-    const adGeometry = new THREE.BoxGeometry(size.width, size.height, size.depth);
-
-    const face = new THREE.Mesh(adGeometry, faceMaterial);
-    const adDepth = GOAL_DEPTH + AD_BOARD_CONFIG.position.depthOffset;
-    face.position.set(
-      AD_BOARD_CONFIG.position.x,
-      AD_BOARD_CONFIG.position.y,
-      adDepth
-    );
-    group.add(face);
-
-    const edges = new THREE.LineSegments(
-      new THREE.EdgesGeometry(adGeometry),
-      outlineMaterial
-    );
-    edges.position.copy(face.position);
-    group.add(edges);
-
-    this.scene.add(group);
-    return group;
-  }
-
-  private createAxisArrows(): THREE.ArrowHelper[] {
-    const origin = new THREE.Vector3(0, 0, 0);
-    const length = 0.7;
-    const headLength = 0.2;
-    const headWidth = 0.1;
-
-    const createArrow = (direction: THREE.Vector3, color: number) => {
-      const arrow = new THREE.ArrowHelper(direction.clone(), origin, length, color, headLength, headWidth);
-      arrow.visible = this.debugMode;
-      this.scene.add(arrow);
-      return arrow;
-    };
-
-    const arrows = [
-      createArrow(new THREE.Vector3(1, 0, 0), 0xff5555),
-      createArrow(new THREE.Vector3(0, 1, 0), 0x55ff55),
-      createArrow(new THREE.Vector3(0, 0, 1), 0x5599ff)
-    ];
-    return arrows;
-  }
-
   public toggleDebugMode(enabled?: boolean): boolean {
-    const next = enabled ?? !this.debugMode;
-    if (this.debugMode === next) {
-      return this.debugMode;
+    this.debugVisualizer.toggleDebugMode(enabled);
+    this.debugVisualizer.applyDebugVisibility(this.difficultyManager.getObstacles());
+    if (this.debugVisualizer.isDebugMode()) {
+      this.debugVisualizer.updateColliderVisuals();
     }
-
-    this.debugMode = next;
-    this.applyDebugVisibility();
-    if (this.debugMode) {
-      this.updateColliderVisuals();
-    }
-    return this.debugMode;
-  }
-
-  private applyDebugVisibility() {
-    const visible = this.debugMode;
-    this.obstacles.forEach((obstacle) => obstacle.setColliderDebugVisible(visible));
-    this.ballColliderMesh.visible = visible;
-    this.goalColliderGroup.visible = visible;
-    this.adBoardColliderGroup.visible = visible;
-    this.trajectoryLine.visible = visible;
-    this.shotInfoHud.setVisible(visible);
-    this.targetMarker.visible = visible && this.targetMarker.visible; // visible 상태 유지하되 debugMode에 따라
-    const hasSwipe = this.inputController.getLastSwipe() !== null;
-    this.swipeDebugLine.visible = visible && hasSwipe;
-    this.swipePointMarkers.forEach((marker) => {
-      marker.visible = visible && hasSwipe;
-    });
-    this.swipePointLabels.forEach((label) => {
-      label.style.display = visible && hasSwipe ? 'block' : 'none';
-    });
-    this.axisArrows.forEach((arrow) => {
-      arrow.visible = visible;
-    });
-  }
-
-  private updateColliderVisuals() {
-    if (!this.debugMode) {
-      return;
-    }
-    this.ballColliderMesh.position.set(
-      this.ball.body.position.x,
-      this.ball.body.position.y,
-      this.ball.body.position.z
-    );
-    this.updateTrajectoryLine();
-    this.updateAxisArrows();
-  }
-
-  private updateTrajectoryLine() {
-    const positions = this.trajectoryPositions;
-    const basePosition = this.ball.body.position;
-    const velocity = this.ball.body.velocity;
-    const gravity = this.world.gravity;
-    const sampleStep = this.trajectorySampleStep;
-    const sampleCount = this.trajectorySampleCount;
-
-    for (let i = 0; i < sampleCount; i++) {
-      const t = i * sampleStep;
-      const idx = i * 3;
-      const x = basePosition.x + velocity.x * t + 0.5 * gravity.x * t * t;
-      const y = basePosition.y + velocity.y * t + 0.5 * gravity.y * t * t;
-      const z = basePosition.z + velocity.z * t + 0.5 * gravity.z * t * t;
-      positions[idx] = x;
-      positions[idx + 1] = Math.max(y, BALL_RADIUS);
-      positions[idx + 2] = z;
-    }
-
-    this.trajectoryGeometry.setPositions(Array.from(this.trajectoryPositions));
-    this.trajectoryLine.computeLineDistances();
-    this.trajectoryGeometry.computeBoundingSphere();
-  }
-
-  private updateAxisArrows() {
-    const { position, quaternion } = this.ball.body;
-    this.axisArrows.forEach((arrow) => {
-      arrow.position.set(position.x, position.y, position.z);
-    });
-
-    this.tempQuaternion.set(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
-
-    this.tempAxisX.set(1, 0, 0).applyQuaternion(this.tempQuaternion);
-    this.tempAxisY.set(0, 1, 0).applyQuaternion(this.tempQuaternion);
-    this.tempAxisZ.set(0, 0, 1).applyQuaternion(this.tempQuaternion);
-
-    this.axisArrows[0].setDirection(this.tempAxisX.normalize());
-    this.axisArrows[1].setDirection(this.tempAxisY.normalize());
-    this.axisArrows[2].setDirection(this.tempAxisZ.normalize());
-  }
-
-  /**
-   * 타겟 마커 생성 (반투명 빨간 공)
-   */
-  private createTargetMarker(): THREE.Mesh {
-    const geometry = new THREE.SphereGeometry(0.11, 16, 16);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xff0000,
-      transparent: true,
-      opacity: 0.5,
-      depthTest: false,
-      depthWrite: false
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.visible = false;
-    this.scene.add(mesh);
-    return mesh;
-  }
-
-  /**
-   * 스와이프 포인트 마커 생성
-   */
-  private createSwipePointMarkers(count: number) {
-    for (let i = 0; i < count; i++) {
-      // 3D 스프라이트 마커 (원형)
-      const canvas = document.createElement('canvas');
-      canvas.width = 64;
-      canvas.height = 64;
-      const ctx = canvas.getContext('2d')!;
-
-      // 원 그리기
-      ctx.fillStyle = '#ffff00';
-      ctx.beginPath();
-      ctx.arc(32, 32, 28, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 테두리
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 4;
-      ctx.stroke();
-
-      const texture = new THREE.CanvasTexture(canvas);
-      const material = new THREE.SpriteMaterial({
-        map: texture,
-        depthTest: false,
-        depthWrite: false
-      });
-      const sprite = new THREE.Sprite(material);
-      sprite.scale.set(0.15, 0.15, 1);
-      sprite.visible = false;
-      sprite.renderOrder = 1000;
-      this.scene.add(sprite);
-      this.swipePointMarkers.push(sprite);
-
-      // HTML 레이블 (번호)
-      const label = document.createElement('div');
-      label.textContent = (i + 1).toString();
-      label.style.position = 'fixed';
-      label.style.color = '#000000';
-      label.style.fontSize = '18px';
-      label.style.fontWeight = 'bold';
-      label.style.fontFamily = 'Arial, sans-serif';
-      label.style.textShadow = '0 0 3px #ffff00, 0 0 6px #ffff00';
-      label.style.pointerEvents = 'none';
-      label.style.display = 'none';
-      label.style.zIndex = '5';
-      label.style.transform = 'translate(-50%, -50%)';
-      document.body.appendChild(label);
-      this.swipePointLabels.push(label);
-    }
-  }
-
-  /**
-   * 스와이프 디버그 라인 업데이트
-   */
-  private updateSwipeDebugLine() {
-    if (!this.debugMode) {
-      return;
-    }
-
-    const lastSwipe = this.inputController.getLastSwipe();
-    if (!lastSwipe) {
-      this.swipeDebugLine.visible = false;
-      this.swipePointMarkers.forEach((marker) => {
-        marker.visible = false;
-      });
-      this.swipePointLabels.forEach((label) => {
-        label.style.display = 'none';
-      });
-      return;
-    }
-
-    // 스와이프 포인트를 월드 좌표로 변환 (공의 초기 위치 Z 좌표 사용)
-    const worldPositions = this.inputController.getLastSwipeWorldPositions(this.camera, 0);
-
-    if (!worldPositions || worldPositions.length < 2) {
-      this.swipeDebugLine.visible = false;
-      this.swipePointMarkers.forEach((marker) => {
-        marker.visible = false;
-      });
-      this.swipePointLabels.forEach((label) => {
-        label.style.display = 'none';
-      });
-      return;
-    }
-
-    // Float32Array로 변환
-    const positions: number[] = [];
-    for (const pos of worldPositions) {
-      positions.push(pos.x, pos.y, pos.z);
-    }
-
-    this.swipeDebugGeometry.setPositions(positions);
-    this.swipeDebugLine.computeLineDistances();
-    this.swipeDebugGeometry.computeBoundingSphere();
-    this.swipeDebugLine.visible = true;
-
-    // 포인트 마커 업데이트
-    const tempVector = new THREE.Vector3();
-    worldPositions.forEach((pos, i) => {
-      if (i < this.swipePointMarkers.length) {
-        // 3D 마커 위치
-        this.swipePointMarkers[i].position.copy(pos);
-        this.swipePointMarkers[i].visible = true;
-
-        // 2D 레이블 위치 (화면 좌표로 변환)
-        tempVector.copy(pos);
-        tempVector.project(this.camera);
-
-        const x = (tempVector.x * 0.5 + 0.5) * window.innerWidth;
-        const y = (tempVector.y * -0.5 + 0.5) * window.innerHeight;
-
-        this.swipePointLabels[i].style.left = `${x}px`;
-        this.swipePointLabels[i].style.top = `${y}px`;
-        this.swipePointLabels[i].style.display = 'block';
-      }
-    });
+    return this.debugVisualizer.isDebugMode();
   }
 
   /**
    * 슈팅 처리 (InputController에서 호출)
    */
   private handleShoot(params: { swipeData: any; worldPositions: THREE.Vector3[] | null }): void {
-    console.log('⚽ Game handleShoot 호출됨');
-
     const { swipeData } = params;
 
-    // Step 1: 정규화
-    const normalized = normalizeSwipeData(swipeData);
-    console.log(debugNormalizedSwipe(normalized));
+    // 슈팅 파이프라인 실행
+    const shot = executeShot(swipeData);
 
-    // Step 2: 슈팅 타입 분석
-    const analysis = analyzeShotType(normalized);
-    console.log(debugShotAnalysis(analysis));
+    // 디버그 정보 출력
+    this.shootingLog.debug(debugNormalizedSwipe(shot.debugInfo.normalized));
+    this.shootingLog.debug(debugShotAnalysis(shot.debugInfo.analysis));
+    this.shootingLog.debug(debugShotParameters(shot.debugInfo.shotParams));
+    this.shootingLog.debug(debugVelocity(shot.velocity));
+    this.shootingLog.debug(debugAngularVelocity(shot.angularVelocity));
 
-    // Step 3: 슈팅 파라미터 계산
-    const shotParams = calculateShotParameters(normalized, analysis);
-    console.log(debugShotParameters(shotParams));
+    // INVALID가 아니면 실제 슈팅 실행
+    if (shot.shotType !== ShotType.INVALID) {
+      // 타겟 마커 위치 업데이트
+      this.debugVisualizer.setTargetMarkerPosition(shot.targetPosition);
 
-    // 타겟 마커 위치 업데이트
-    if (analysis.type !== ShotType.INVALID) {
-      this.targetMarker.position.copy(shotParams.targetPosition);
-      this.targetMarker.visible = this.debugMode;
-    }
+      // Shot Info HUD 업데이트 (디버그 모드일 때만 보임)
+      this.shotInfoHud.update(
+        shot.debugInfo.analysis,
+        shot.debugInfo.shotParams,
+        shot.velocity,
+        shot.angularVelocity
+      );
 
-    // Step 4: 초기 velocity 계산
-    const velocity = calculateInitialVelocity(shotParams);
-    console.log(debugVelocity(velocity));
+      // 🔍 궤적 추적 시작
+      this.isTrackingBall = true;
+      this.trackingStartTime = performance.now();
 
-    // Step 5: 초기 spin (angular velocity) 계산
-    if (velocity) {
-      const angularVelocity = calculateAngularVelocity(shotParams, velocity);
-      console.log(debugAngularVelocity(angularVelocity));
-
-      // INVALID가 아니면 실제 슈팅 실행
-      if (analysis.type !== ShotType.INVALID) {
-        // Shot Info HUD 업데이트 (디버그 모드일 때만 보임)
-        this.shotInfoHud.update(analysis, shotParams, velocity, angularVelocity);
-
-        // 🔍 궤적 추적 시작
-        this.isTrackingBall = true;
-        this.trackingStartTime = performance.now();
-        this.trackingTargetY = shotParams.targetPosition.y;
-        this.lastLogTime = 0;
-        this.goalLineCrossed = false;
-
-        this.executeShooting(velocity, angularVelocity, analysis);
-      }
+      this.executeShooting(shot.velocity, shot.angularVelocity, shot.debugInfo.analysis);
     }
   }
 
@@ -957,7 +419,6 @@ export class MiniShootout3D {
 
     // 공의 velocity 설정
     this.ball.body.velocity.copy(velocity);
-    console.log('🚀 [t=0.00s] velocity 설정 직후:', `vel(${this.ball.body.velocity.x.toFixed(2)}, ${this.ball.body.velocity.y.toFixed(2)}, ${this.ball.body.velocity.z.toFixed(2)})`);
 
     // 공의 angular velocity (회전) 설정
     this.ball.body.angularVelocity.copy(angularVelocity);
@@ -966,7 +427,7 @@ export class MiniShootout3D {
     this.curveForceSystem.startCurveShot(analysis);
 
     // 골키퍼 추적 시작
-    this.obstacles.forEach((obstacle) => obstacle.startTracking());
+    this.difficultyManager.getObstacles().forEach((obstacle) => obstacle.startTracking());
 
     // 터치 가이드 타이머 취소 및 숨김
     if (this.touchGuideTimer !== null) {
@@ -978,58 +439,7 @@ export class MiniShootout3D {
     // 2.5초 후 리셋 타이머 설정
     this.shotResetTimer = window.setTimeout(() => {
       this.resetAfterShot();
-    }, 2500);
-  }
-
-
-  private updateDifficulty(forceRefresh = false) {
-    const nextDifficulty = getDifficultyForScore(this.score);
-    const levelChanged = this.currentDifficulty !== nextDifficulty;
-
-    if (forceRefresh || levelChanged) {
-      this.syncObstacles(nextDifficulty.obstacles);
-      if (levelChanged) {
-        console.log(`🎯 난이도 변경: ${nextDifficulty.name} (score=${this.score})`);
-      }
-    }
-
-    this.currentDifficulty = nextDifficulty;
-  }
-
-  private syncObstacles(configs: ObstacleInstanceConfig[]) {
-    if (this.obstacles.length > configs.length) {
-      for (let i = configs.length; i < this.obstacles.length; i++) {
-        this.obstacles[i].dispose();
-      }
-      this.obstacles.length = configs.length;
-    }
-
-    configs.forEach((config, index) => {
-      let obstacle = this.obstacles[index];
-      if (!obstacle || obstacle.blueprintId !== config.blueprintId) {
-        if (obstacle) {
-          obstacle.dispose();
-        }
-        const blueprintId = config.blueprintId;
-        const blueprint = this.resolveBlueprint(blueprintId);
-        obstacle = new Obstacle(this.scene, this.world, blueprint, config);
-        this.obstacles[index] = obstacle;
-      } else {
-        obstacle.configure(config);
-      }
-      obstacle.setColliderDebugVisible(this.debugMode);
-      obstacle.startTracking();
-    });
-
-    this.obstacles.length = configs.length;
-  }
-
-  private resolveBlueprint(id: string): ObstacleBlueprint {
-    const blueprint = getObstacleBlueprint(id);
-    if (!blueprint) {
-      throw new Error(`Unknown obstacle blueprint: ${id}`);
-    }
-    return blueprint;
+    }, GAME_CONFIG.timing.shotResetMs);
   }
 
   /**
@@ -1045,12 +455,12 @@ export class MiniShootout3D {
 
       // 실패 카운트 증가
       this.failCount++;
-      console.log(`⚠️ 실패! 실패 횟수: ${this.failCount}/${this.maxFailsBeforeGameOver}`);
+      console.log(`⚠️ 실패! 실패 횟수: ${this.failCount}/${GAME_CONFIG.gameOver.maxFailsAllowed}`);
 
       // 현재 게임 상태 저장 (이어하기용)
       this.savedGameState = {
         score: this.score,
-        difficulty: this.currentDifficulty
+        difficulty: this.difficultyManager.getCurrentDifficulty()
       };
 
       // 실패 콜백 호출 (모달 띄우기)
@@ -1059,14 +469,14 @@ export class MiniShootout3D {
       }
 
       // 실패 콜백이 없거나 2번째 실패면 점수 초기화
-      if (!this.onGameFailed || this.failCount >= this.maxFailsBeforeGameOver) {
+      if (!this.onGameFailed || this.failCount >= GAME_CONFIG.gameOver.maxFailsAllowed) {
         this.score = 0;
         this.onScoreChange(this.score);
         this.scoreDisplay.resetNewRecordFlag();
       }
 
       // 2번째 실패가 아니면 여기서 리턴 (모달에서 처리)
-      if (this.failCount < this.maxFailsBeforeGameOver && this.onGameFailed) {
+      if (this.failCount < GAME_CONFIG.gameOver.maxFailsAllowed && this.onGameFailed) {
         // 상태 초기화만 하고 공은 리셋하지 않음 (모달에서 선택에 따라 처리)
         this.isShotInProgress = false;
         this.hasScored = false;
@@ -1080,7 +490,7 @@ export class MiniShootout3D {
     this.resetBall();
 
     // 타겟 마커 숨김
-    this.targetMarker.visible = false;
+    this.debugVisualizer.hideTargetMarker();
 
     // 상태 초기화
     this.isShotInProgress = false;
@@ -1099,8 +509,9 @@ export class MiniShootout3D {
     this.ballController.resetBall();
 
     // 게임 환경 리셋
-    this.obstacles.forEach((obstacle) => obstacle.resetTracking());
-    this.updateDifficulty(true);
+    this.difficultyManager.resetAllTracking();
+    this.difficultyManager.updateDifficulty(this.score, true);
+    this.difficultyManager.setColliderDebugVisible(this.debugVisualizer.isDebugMode());
 
     // 광고판 효과: 깜빡임 중지 + 기본 광고로 복원
     this.field.adBoard.stopBlinking();
@@ -1110,7 +521,7 @@ export class MiniShootout3D {
     if (this.score === 0) {
       this.touchGuideTimer = window.setTimeout(() => {
         this.onShowTouchGuide(true);
-      }, 1000);
+      }, GAME_CONFIG.timing.touchGuideDelayMs);
     }
   }
 
@@ -1123,7 +534,7 @@ export class MiniShootout3D {
     // 저장된 상태가 있으면 복원
     if (this.savedGameState) {
       this.score = this.savedGameState.score;
-      this.currentDifficulty = this.savedGameState.difficulty;
+      this.difficultyManager.updateDifficulty(this.score, false);
       console.log(`복원된 점수: ${this.score}`);
     }
 
@@ -1137,13 +548,13 @@ export class MiniShootout3D {
     this.curveForceSystem.stopCurveShot();
 
     // 타겟 마커 숨김
-    this.targetMarker.visible = false;
+    this.debugVisualizer.hideTargetMarker();
 
     // 공만 원위치로 (난이도와 점수는 유지)
     this.ballController.resetBallOnly();
 
     // 장애물은 리셋하지 않음 (난이도 유지)
-    this.obstacles.forEach((obstacle) => obstacle.resetTracking());
+    this.difficultyManager.resetAllTracking();
 
     console.log('✅ 게임 이어하기 완료');
   }
@@ -1180,7 +591,7 @@ export class MiniShootout3D {
     this.curveForceSystem.stopCurveShot();
 
     // 타겟 마커 숨김
-    this.targetMarker.visible = false;
+    this.debugVisualizer.hideTargetMarker();
 
     // 공 및 환경 리셋
     this.resetBall();
@@ -1221,13 +632,13 @@ export class MiniShootout3D {
     const nextIndex = (currentIndex + 1) % themeKeys.length;
     const nextTheme = BALL_THEMES[themeKeys[nextIndex]];
 
-    console.log(`🎨 Switching theme: ${currentTheme.name} -> ${nextTheme.name}`);
+    this.themeLog.info(`🎨 Switching theme: ${currentTheme.name} -> ${nextTheme.name}`);
 
     try {
       await this.ball.changeTheme(nextTheme);
-      console.log(`✅ Theme switched to: ${nextTheme.name}`);
+      this.themeLog.info(`✅ Theme switched to: ${nextTheme.name}`);
     } catch (error) {
-      console.error('Failed to switch theme:', error);
+      this.themeLog.error('Failed to switch theme:', error);
     }
   }
 
@@ -1239,7 +650,7 @@ export class MiniShootout3D {
     const themeKey = themeKeys.find(key => BALL_THEMES[key].name === themeName);
 
     if (!themeKey) {
-      console.error(`Theme '${themeName}' not found`);
+      this.themeLog.error(`Theme '${themeName}' not found`);
       return;
     }
 
@@ -1247,17 +658,17 @@ export class MiniShootout3D {
     const currentTheme = this.ball.getTheme();
 
     if (currentTheme.name === newTheme.name) {
-      console.log(`Already using theme: ${themeName}`);
+      this.themeLog.info(`Already using theme: ${themeName}`);
       return;
     }
 
-    console.log(`🎨 Switching to theme: ${themeName}`);
+    this.themeLog.info(`🎨 Switching to theme: ${themeName}`);
 
     try {
       await this.ball.changeTheme(newTheme);
-      console.log(`✅ Theme switched to: ${newTheme.name}`);
+      this.themeLog.info(`✅ Theme switched to: ${newTheme.name}`);
     } catch (error) {
-      console.error('Failed to switch theme:', error);
+      this.themeLog.error('Failed to switch theme:', error);
     }
   }
 
