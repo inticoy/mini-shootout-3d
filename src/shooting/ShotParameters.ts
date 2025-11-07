@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import type { ShotAnalysis } from './shotAnalyzer';
-import { ShotType } from './shotAnalyzer';
-import type { NormalizedSwipeData } from './swipeNormalizer';
+import type { ShotAnalysis } from './ShotAnalyzer';
+import { ShotType } from './ShotAnalyzer';
+import type { NormalizedSwipeData } from './SwipeNormalizer';
 import { GOAL_WIDTH, GOAL_HEIGHT, GOAL_DEPTH } from '../config/goal';
 import { BALL_START_POSITION as BALL_START_POS } from '../config/ball';
 import { CURVE_AIM_CONFIG, SHOT_TARGET_CONFIG } from '../config/shooting';

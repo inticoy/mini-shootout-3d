@@ -1,10 +1,10 @@
 import './style.css';
 import { MiniShootout3D } from './game';
-import { ScoreDisplay } from './ui/scoreDisplay';
-import { TouchGuide } from './ui/touchGuide';
-import { PauseModal } from './ui/pause-modal';
-import { ContinueModal } from './ui/continue-modal';
-import { GameOverModal } from './ui/game-over-modal';
+import { ScoreDisplay } from './ui/hud/ScoreDisplay';
+import { TouchGuide } from './ui/hud/TouchGuide';
+import { PauseModal } from './ui/modals/PauseModal';
+import { ContinueModal } from './ui/modals/ContinueModal';
+import { GameOverModal } from './ui/modals/GameOverModal';
 import { gameStateService } from './core/GameStateService';
 
 export function bootstrapGame() {

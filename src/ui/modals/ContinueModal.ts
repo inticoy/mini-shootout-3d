@@ -8,7 +8,7 @@
  * - 모바일 게임 스타일
  */
 
-import { BaseModal } from './base-modal';
+import { BaseModal } from './BaseModal';
 
 export interface ContinueModalCallbacks {
   onContinue?: () => void;        // 광고보고 이어하기

@@ -9,7 +9,7 @@
 
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { Obstacle } from '../entities/obstacle';
+import { Obstacle } from '../entities/Obstacle';
 import { getDifficultyForScore, type DifficultyLevelConfig } from '../config/difficulty';
 import { getObstacleBlueprint } from '../config/obstacles';
 import type { ObstacleBlueprint, ObstacleInstanceConfig } from '../config/obstacles';

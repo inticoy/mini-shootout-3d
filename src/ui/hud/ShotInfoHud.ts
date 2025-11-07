@@ -1,5 +1,5 @@
-import type { ShotAnalysis } from '../shooting/shotAnalyzer';
-import type { ShotParameters } from '../shooting/shotParameters';
+import type { ShotAnalysis } from '../../shooting/ShotAnalyzer';
+import type { ShotParameters } from '../../shooting/ShotParameters';
 import * as CANNON from 'cannon-es';
 
 /**

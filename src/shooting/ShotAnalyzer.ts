@@ -1,4 +1,4 @@
-import type { NormalizedSwipeData } from './swipeNormalizer';
+import type { NormalizedSwipeData } from './SwipeNormalizer';
 
 /**
  * 슈팅 타입

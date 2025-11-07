@@ -10,8 +10,8 @@
 
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { Ball } from './ball';
-import { BALL_START_POSITION, BALL_PHYSICS } from '../config/ball';
+import { Ball } from './Ball';
+import { BALL_START_POSITION, BALL_PHYSICS } from '../../config/ball';
 
 /**
  * 공 컨트롤러

@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { ShotType } from './shotAnalyzer';
-import type { ShotParameters } from './shotParameters';
-import { PHYSICS_GRAVITY } from '../physics/constants';
+import { ShotType } from './ShotAnalyzer';
+import type { ShotParameters } from './ShotParameters';
+import { PHYSICS_GRAVITY } from '../physics/Constants';
 import { BALL_START_POSITION } from '../config/ball';
 import { SHOT_TIMING_CONFIG } from '../config/shooting';
 

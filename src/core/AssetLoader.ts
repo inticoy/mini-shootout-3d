@@ -9,7 +9,7 @@
  */
 
 import * as THREE from 'three';
-import type { LoadingScreen } from '../ui/loadingScreen';
+import type { LoadingScreen } from '../ui/screens/LoadingScreen';
 import { CategoryLogger } from '../utils/Logger';
 
 /**

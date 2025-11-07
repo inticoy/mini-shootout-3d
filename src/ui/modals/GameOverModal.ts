@@ -7,9 +7,9 @@
  * - 다시하기 버튼
  */
 
-import { BaseModal } from './base-modal';
-import { ViewManager } from './view-manager';
-import { createCustomizeView } from './views/customize-view';
+import { BaseModal } from './BaseModal';
+import { ViewManager } from '../ViewManager';
+import { createCustomizeView } from '../views/CustomizeView';
 
 export interface GameOverModalCallbacks {
   onRestart?: () => void;

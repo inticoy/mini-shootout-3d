@@ -1,10 +1,10 @@
 import * as CANNON from 'cannon-es';
 import * as THREE from 'three';
-import { normalizeSwipeData } from './swipeNormalizer';
-import { analyzeShotType, ShotType } from './shotAnalyzer';
-import { calculateShotParameters } from './shotParameters';
-import { calculateInitialVelocity } from './velocityCalculator';
-import { calculateAngularVelocity } from './spinCalculator';
+import { normalizeSwipeData } from './SwipeNormalizer';
+import { analyzeShotType, ShotType } from './ShotAnalyzer';
+import { calculateShotParameters } from './ShotParameters';
+import { calculateInitialVelocity } from './VelocityCalculator';
+import { calculateAngularVelocity } from './SpinCalculator';
 
 /**
  * 슈팅 실행 결과

@@ -8,7 +8,7 @@
  */
 
 import * as THREE from 'three';
-import { SwipeTracker, type SwipeData } from './swipeTracker';
+import { SwipeTracker, type SwipeData } from './SwipeTracker';
 
 /**
  * 슈팅 콜백 파라미터

@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { BALL_RADIUS } from '../config/ball';
-import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from '../config/goal';
-import { GOAL_NET_CONFIG } from '../config/net';
-import { GoalNet } from './goalNet';
-import { GoalNetAnimator } from './goalNetAnimator';
+import { BALL_RADIUS } from '../../config/ball';
+import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from '../../config/goal';
+import { GOAL_NET_CONFIG } from '../../config/net';
+import { GoalNet } from './GoalNet';
+import { GoalNetAnimator } from './GoalNetAnimator';
 
 const CROSSBAR_LENGTH = GOAL_WIDTH;
 

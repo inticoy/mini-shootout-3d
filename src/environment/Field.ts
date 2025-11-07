@@ -4,8 +4,8 @@ import grassColorUrl from '../assets/grass/Grass005_1K-JPG_Color.jpeg?url';
 import { GOAL_DEPTH, GOAL_WIDTH } from '../config/goal';
 import { FIELD_DIMENSIONS, FIELD_OFFSETS, FIELD_STRIPES, FIELD_TEXTURE_REPEAT } from '../config/field';
 import { AD_BOARD_CONFIG } from '../config/adBoard';
-import { AdBoard } from '../entities/adBoard';
-import { Stands } from './stands';
+import { AdBoard } from '../entities/AdBoard';
+import { Stands } from './Stands';
 
 export interface FieldOptions {
   goalDepth?: number;

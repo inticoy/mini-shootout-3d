@@ -1,6 +1,6 @@
 import * as CANNON from 'cannon-es';
-import { ShotType } from './shotAnalyzer';
-import type { ShotParameters } from './shotParameters';
+import { ShotType } from './ShotAnalyzer';
+import type { ShotParameters } from './ShotParameters';
 
 /**
  * 슈팅 타입별 스핀 설정

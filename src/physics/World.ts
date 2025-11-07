@@ -1,5 +1,5 @@
 import * as CANNON from 'cannon-es';
-import { PHYSICS_GRAVITY } from './constants';
+import { PHYSICS_GRAVITY } from './Constants';
 
 export interface PhysicsContext {
   world: CANNON.World;

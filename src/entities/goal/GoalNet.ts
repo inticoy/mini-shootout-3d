@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from '../config/goal';
-import { GOAL_NET_CONFIG } from '../config/net';
+import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from '../../config/goal';
+import { GOAL_NET_CONFIG } from '../../config/net';
 
 export type GoalNetEdgeType = 'structural' | 'shear' | 'bend';
 

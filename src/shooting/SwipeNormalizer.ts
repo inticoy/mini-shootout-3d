@@ -1,4 +1,4 @@
-import type { SwipeData } from '../input/swipeTracker';
+import type { SwipeData } from '../input/SwipeTracker';
 
 /**
  * 정규화된 스와이프 포인트

@@ -7,10 +7,10 @@
  * - 테마 변경 화면 (볼 테마 선택)
  */
 
-import { BaseModal } from './base-modal';
-import { ViewManager } from './view-manager';
-import { createCustomizeView } from './views/customize-view';
-import { gameStateService } from '../core/GameStateService';
+import { BaseModal } from './BaseModal';
+import { ViewManager } from '../ViewManager';
+import { createCustomizeView } from '../views/CustomizeView';
+import { gameStateService } from '../../core/GameStateService';
 
 export interface PauseModalCallbacks {
   onToggleDebug?: () => void;

@@ -1,5 +1,5 @@
 import * as CANNON from 'cannon-es';
-import { ShotType, type ShotAnalysis } from './shotAnalyzer';
+import { ShotType, type ShotAnalysis } from './ShotAnalyzer';
 import { CURVE_FORCE_CONFIG } from '../config/shooting';
 
 /**

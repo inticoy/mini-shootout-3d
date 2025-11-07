@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { GOAL_NET_CONFIG } from '../config/net';
-import type { GoalNet, GoalNetNode } from './goalNet';
+import { GOAL_NET_CONFIG } from '../../config/net';
+import type { GoalNet, GoalNetNode } from './GoalNet';
 
 interface NetPulse {
   center: THREE.Vector2;

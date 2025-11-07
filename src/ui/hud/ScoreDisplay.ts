@@ -6,7 +6,7 @@
  * - 최고 기록: localStorage 저장 및 표시
  * - Tailwind CSS 기반 스타일링
  */
-import { gameStateService } from '../core/GameStateService';
+import { gameStateService } from '../../core/GameStateService';
 
 export class ScoreDisplay {
   private scoreContainer: HTMLDivElement;
