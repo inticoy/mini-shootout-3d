@@ -9,12 +9,9 @@ import type { Field } from './environment/field';
 import { Ball } from './entities/ball';
 import { BallController } from './entities/BallController';
 import { Goal } from './entities/goal';
-import { Obstacle } from './entities/obstacle';
 import { BALL_THEMES } from './config/ball';
 import { GOAL_DEPTH } from './config/goal';
-import { getDifficultyForScore, type DifficultyLevelConfig } from './config/difficulty';
-import { getObstacleBlueprint } from './config/obstacles';
-import type { ObstacleBlueprint, ObstacleInstanceConfig } from './config/obstacles';
+import type { DifficultyLevelConfig } from './config/difficulty';
 // Debug button removed - now integrated into Settings modal
 import { ShotInfoHud } from './ui/shotInfoHud';
 import { AudioManager } from './core/audio';
@@ -33,6 +30,7 @@ import { GameStateManager, GameState } from './core/GameStateManager';
 import { GAME_CONFIG } from './config/game';
 import { CategoryLogger } from './utils/Logger';
 import { DebugVisualizer } from './core/DebugVisualizer';
+import { DifficultyManager } from './core/DifficultyManager';
 
 export class MiniShootout3D {
   private readonly onScoreChange: (score: number) => void;
@@ -47,7 +45,6 @@ export class MiniShootout3D {
   private readonly ball: Ball;
   private readonly ballController: BallController;
   private readonly goal: Goal;
-  private obstacles: Obstacle[] = [];
   private readonly field: Field;
   private readonly audio = new AudioManager();
 
@@ -60,10 +57,10 @@ export class MiniShootout3D {
   private readonly curveForceSystem = new CurveForceSystem();
   private readonly shotInfoHud = new ShotInfoHud();
   private debugVisualizer!: DebugVisualizer; // 초기화는 생성자에서 (의존성 필요)
+  private difficultyManager!: DifficultyManager; // 초기화는 생성자에서 (의존성 필요)
   private lastBounceSoundTime = 0;
   private score = 0;
   private shotResetTimer: number | null = null;
-  private currentDifficulty: DifficultyLevelConfig | null = null;
   private failCount = 0; // 현재 게임에서 실패한 횟수
   private onGameFailed?: (failCount: number) => void; // 실패 시 콜백
   private savedGameState?: { score: number; difficulty: DifficultyLevelConfig | null }; // 이어하기용 상태 저장
@@ -188,6 +185,13 @@ export class MiniShootout3D {
       shotInfoHud: this.shotInfoHud
     });
 
+    // 난이도 관리자 초기화
+    this.difficultyManager = new DifficultyManager({
+      scene: this.scene,
+      world: this.world,
+      gameLog: this.gameLog
+    });
+
     this.attachEventListeners();
     this.resetBall();
     this.animate();
@@ -270,7 +274,7 @@ export class MiniShootout3D {
     }
     this.onShowTouchGuide(false);
     this.hasScored = true;
-    this.obstacles.forEach((obstacle) => obstacle.stopTracking());
+    this.difficultyManager.stopAllTracking();
     const tempBallPosition = this.ballController.copyPositionToTemp();
     this.goal.triggerNetPulse(tempBallPosition, 1);
 
@@ -302,7 +306,7 @@ export class MiniShootout3D {
       // 테마별 바운스 사운드 사용 (지정되지 않으면 기본 'bounce' 사용)
       const bounceSound = this.ball.getTheme().sounds?.bounce ?? 'bounce';
       this.audio.playSound(bounceSound);
-    } else if (this.obstacles.some((obstacle) => obstacle.body === event.body)) {
+    } else if (this.difficultyManager.getObstacles().some((obstacle) => obstacle.body === event.body)) {
       this.audio.playSound('save');
     } else if (
       event.body === this.goal.bodies.leftPost ||
@@ -344,7 +348,7 @@ export class MiniShootout3D {
     // 빠른 슛(40 m/s)도 얇은 골대(0.1m)와 정확히 충돌
     this.world.step(GAME_CONFIG.physics.timeStep, deltaTime, GAME_CONFIG.physics.substeps);
     this.curveForceSystem.update(deltaTime, this.ball.body);
-    this.obstacles.forEach((obstacle) => obstacle.update(deltaTime));
+    this.difficultyManager.getObstacles().forEach((obstacle) => obstacle.update(deltaTime));
     this.goal.update(deltaTime);
     this.field.update(deltaTime);
 
@@ -376,9 +380,8 @@ export class MiniShootout3D {
     this.goal.bodies.sensor.removeEventListener('collide', this.handleGoalCollisionBound);
     this.ball.body.removeEventListener('collide', this.handleBallCollideBound);
     this.debugVisualizer.dispose();
+    this.difficultyManager.dispose();
     this.shotInfoHud.destroy();
-    this.obstacles.forEach((obstacle) => obstacle.dispose());
-    this.obstacles = [];
 
     // 배경음악 중지
     this.audio.stopMusic();
@@ -407,7 +410,7 @@ export class MiniShootout3D {
 
   public toggleDebugMode(enabled?: boolean): boolean {
     this.debugVisualizer.toggleDebugMode(enabled);
-    this.debugVisualizer.applyDebugVisibility(this.obstacles);
+    this.debugVisualizer.applyDebugVisibility(this.difficultyManager.getObstacles());
     if (this.debugVisualizer.isDebugMode()) {
       this.debugVisualizer.updateColliderVisuals();
     }
@@ -474,7 +477,7 @@ export class MiniShootout3D {
     this.curveForceSystem.startCurveShot(analysis);
 
     // 골키퍼 추적 시작
-    this.obstacles.forEach((obstacle) => obstacle.startTracking());
+    this.difficultyManager.getObstacles().forEach((obstacle) => obstacle.startTracking());
 
     // 터치 가이드 타이머 취소 및 숨김
     if (this.touchGuideTimer !== null) {
@@ -487,57 +490,6 @@ export class MiniShootout3D {
     this.shotResetTimer = window.setTimeout(() => {
       this.resetAfterShot();
     }, GAME_CONFIG.timing.shotResetMs);
-  }
-
-
-  private updateDifficulty(forceRefresh = false) {
-    const nextDifficulty = getDifficultyForScore(this.score);
-    const levelChanged = this.currentDifficulty !== nextDifficulty;
-
-    if (forceRefresh || levelChanged) {
-      this.syncObstacles(nextDifficulty.obstacles);
-      if (levelChanged) {
-        this.gameLog.info(`🎯 난이도 변경: ${nextDifficulty.name} (score=${this.score})`);
-      }
-    }
-
-    this.currentDifficulty = nextDifficulty;
-  }
-
-  private syncObstacles(configs: ObstacleInstanceConfig[]) {
-    if (this.obstacles.length > configs.length) {
-      for (let i = configs.length; i < this.obstacles.length; i++) {
-        this.obstacles[i].dispose();
-      }
-      this.obstacles.length = configs.length;
-    }
-
-    configs.forEach((config, index) => {
-      let obstacle = this.obstacles[index];
-      if (!obstacle || obstacle.blueprintId !== config.blueprintId) {
-        if (obstacle) {
-          obstacle.dispose();
-        }
-        const blueprintId = config.blueprintId;
-        const blueprint = this.resolveBlueprint(blueprintId);
-        obstacle = new Obstacle(this.scene, this.world, blueprint, config);
-        this.obstacles[index] = obstacle;
-      } else {
-        obstacle.configure(config);
-      }
-      obstacle.setColliderDebugVisible(this.debugVisualizer.isDebugMode());
-      obstacle.startTracking();
-    });
-
-    this.obstacles.length = configs.length;
-  }
-
-  private resolveBlueprint(id: string): ObstacleBlueprint {
-    const blueprint = getObstacleBlueprint(id);
-    if (!blueprint) {
-      throw new Error(`Unknown obstacle blueprint: ${id}`);
-    }
-    return blueprint;
   }
 
   /**
@@ -558,7 +510,7 @@ export class MiniShootout3D {
       // 현재 게임 상태 저장 (이어하기용)
       this.savedGameState = {
         score: this.score,
-        difficulty: this.currentDifficulty
+        difficulty: this.difficultyManager.getCurrentDifficulty()
       };
 
       // 실패 콜백 호출 (모달 띄우기)
@@ -607,8 +559,9 @@ export class MiniShootout3D {
     this.ballController.resetBall();
 
     // 게임 환경 리셋
-    this.obstacles.forEach((obstacle) => obstacle.resetTracking());
-    this.updateDifficulty(true);
+    this.difficultyManager.resetAllTracking();
+    this.difficultyManager.updateDifficulty(this.score, true);
+    this.difficultyManager.setColliderDebugVisible(this.debugVisualizer.isDebugMode());
 
     // 광고판 효과: 깜빡임 중지 + 기본 광고로 복원
     this.field.adBoard.stopBlinking();
@@ -631,7 +584,7 @@ export class MiniShootout3D {
     // 저장된 상태가 있으면 복원
     if (this.savedGameState) {
       this.score = this.savedGameState.score;
-      this.currentDifficulty = this.savedGameState.difficulty;
+      this.difficultyManager.updateDifficulty(this.score, false);
       console.log(`복원된 점수: ${this.score}`);
     }
 
@@ -651,7 +604,7 @@ export class MiniShootout3D {
     this.ballController.resetBallOnly();
 
     // 장애물은 리셋하지 않음 (난이도 유지)
-    this.obstacles.forEach((obstacle) => obstacle.resetTracking());
+    this.difficultyManager.resetAllTracking();
 
     console.log('✅ 게임 이어하기 완료');
   }
