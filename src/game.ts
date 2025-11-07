@@ -33,9 +33,9 @@ import { calculateInitialVelocity, debugVelocity } from './shooting/velocityCalc
 import { calculateAngularVelocity, debugAngularVelocity } from './shooting/spinCalculator';
 import { CurveForceSystem } from './shooting/curveForceSystem';
 import { GameStateManager, GameState } from './core/GameStateManager';
-
-const MIN_VERTICAL_BOUNCE_SPEED = 0.45;
-const BOUNCE_COOLDOWN_MS = 120;
+import { GAME_CONFIG } from './config/game';
+import { DEBUG_CONFIG } from './config/debug';
+import { COLORS } from './config/colors';
 
 export class MiniShootout3D {
   private readonly onScoreChange: (score: number) => void;
@@ -61,8 +61,6 @@ export class MiniShootout3D {
   private readonly trajectoryMaterial: LineMaterial;
   private readonly trajectoryLine: Line2;
   private readonly trajectoryPositions: Float32Array;
-  private readonly trajectorySampleStep = 0.05;
-  private readonly trajectorySampleCount = 60;
   private readonly inputController: InputController;
   private readonly curveForceSystem = new CurveForceSystem();
   private readonly shotInfoHud = new ShotInfoHud();
@@ -82,7 +80,6 @@ export class MiniShootout3D {
   private shotResetTimer: number | null = null;
   private currentDifficulty: DifficultyLevelConfig | null = null;
   private failCount = 0; // 현재 게임에서 실패한 횟수
-  private maxFailsBeforeGameOver = 2; // 게임오버까지 허용되는 실패 횟수
   private onGameFailed?: (failCount: number) => void; // 실패 시 콜백
   private savedGameState?: { score: number; difficulty: DifficultyLevelConfig | null }; // 이어하기용 상태 저장
 
@@ -197,14 +194,14 @@ export class MiniShootout3D {
     this.goalColliderGroup = this.createGoalColliderGroup();
     this.adBoardColliderGroup = this.createAdBoardColliderGroup();
     this.axisArrows = this.createAxisArrows();
-    this.trajectoryPositions = new Float32Array(this.trajectorySampleCount * 3);
+    this.trajectoryPositions = new Float32Array(DEBUG_CONFIG.trajectory.sampleCount * 3);
     this.trajectoryGeometry = new LineGeometry();
     this.trajectoryGeometry.setPositions(Array.from(this.trajectoryPositions));
     this.trajectoryMaterial = new LineMaterial({
-      color: 0x00aaff,
-      linewidth: 0.045,
+      color: COLORS.debug.trajectory,
+      linewidth: DEBUG_CONFIG.trajectory.lineWidth,
       transparent: true,
-      opacity: 0.95,
+      opacity: DEBUG_CONFIG.trajectory.opacity,
       worldUnits: true
     });
     this.trajectoryMaterial.resolution.set(window.innerWidth, window.innerHeight);
@@ -222,10 +219,10 @@ export class MiniShootout3D {
     // 스와이프 디버그 라인 초기화
     this.swipeDebugGeometry = new LineGeometry();
     this.swipeDebugMaterial = new LineMaterial({
-      color: 0xffff00,
-      linewidth: 0.06,
+      color: COLORS.debug.swipeDebug,
+      linewidth: DEBUG_CONFIG.swipeDebug.lineWidth,
       transparent: true,
-      opacity: 0.9,
+      opacity: DEBUG_CONFIG.swipeDebug.opacity,
       worldUnits: true,
       depthTest: false,
       depthWrite: false
@@ -233,7 +230,7 @@ export class MiniShootout3D {
     this.swipeDebugMaterial.resolution.set(window.innerWidth, window.innerHeight);
     this.swipeDebugLine = new Line2(this.swipeDebugGeometry, this.swipeDebugMaterial);
     this.swipeDebugLine.visible = false;
-    this.swipeDebugLine.renderOrder = 999;
+    this.swipeDebugLine.renderOrder = DEBUG_CONFIG.renderOrder.swipeDebugLine;
     this.scene.add(this.swipeDebugLine);
 
     // 스와이프 포인트 마커 초기화 (5개)
@@ -351,9 +348,9 @@ export class MiniShootout3D {
   private handleBallCollide(event: { body: CANNON.Body }) {
     if (event.body === this.field.groundBody) {
       const now = performance.now();
-      if (now - this.lastBounceSoundTime < BOUNCE_COOLDOWN_MS) return;
+      if (now - this.lastBounceSoundTime < GAME_CONFIG.bounceSound.cooldownMs) return;
       const vy = Math.abs(this.ball.body.velocity.y);
-      if (vy < MIN_VERTICAL_BOUNCE_SPEED) return;
+      if (vy < GAME_CONFIG.bounceSound.minVerticalSpeed) return;
       this.lastBounceSoundTime = now;
 
       // 테마별 바운스 사운드 사용 (지정되지 않으면 기본 'bounce' 사용)
@@ -400,7 +397,7 @@ export class MiniShootout3D {
     const deltaTime = this.clock.getDelta();
     // Tunneling 방지: 더 작은 timestep, 더 많은 substeps
     // 빠른 슛(40 m/s)도 얇은 골대(0.1m)와 정확히 충돌
-    this.world.step(1 / 120, deltaTime, 5);
+    this.world.step(GAME_CONFIG.physics.timeStep, deltaTime, GAME_CONFIG.physics.substeps);
     this.curveForceSystem.update(deltaTime, this.ball.body);
     this.obstacles.forEach((obstacle) => obstacle.update(deltaTime));
     this.goal.update(deltaTime);
@@ -494,14 +491,14 @@ export class MiniShootout3D {
   private createBallColliderMesh(): THREE.Mesh {
     const geometry = new THREE.SphereGeometry(BALL_RADIUS, 16, 16);
     const material = new THREE.MeshBasicMaterial({
-      color: 0x00ffc6,
+      color: COLORS.collider.ball,
       transparent: true,
-      opacity: 0.45,
+      opacity: DEBUG_CONFIG.ballCollider.opacity,
       depthTest: false,
       depthWrite: false
     });
     const mesh = new THREE.Mesh(geometry, material);
-    const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x00ffc6 });
+    const edgeMaterial = new THREE.LineBasicMaterial({ color: COLORS.collider.ballEdge });
     const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(geometry), edgeMaterial);
     mesh.add(wireframe);
     mesh.visible = false;
@@ -513,12 +510,12 @@ export class MiniShootout3D {
     const group = new THREE.Group();
     group.visible = false;
 
-    const colliderMaterial = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+    const colliderMaterial = new THREE.MeshBasicMaterial({ color: COLORS.collider.goal });
     colliderMaterial.transparent = true;
-    colliderMaterial.opacity = 0.55;
+    colliderMaterial.opacity = DEBUG_CONFIG.goalCollider.opacity;
     colliderMaterial.depthTest = false;
     colliderMaterial.depthWrite = false;
-    const colliderEdgeMaterial = new THREE.LineBasicMaterial({ color: 0xff5500 });
+    const colliderEdgeMaterial = new THREE.LineBasicMaterial({ color: COLORS.collider.goalEdge });
 
     const addBoxCollider = (geometry: THREE.BoxGeometry, position: THREE.Vector3) => {
       const mesh = new THREE.Mesh(geometry, colliderMaterial);
@@ -559,9 +556,9 @@ export class MiniShootout3D {
     const sensorDepth = BALL_RADIUS * 0.6;
     const sensorGeometry = new THREE.BoxGeometry(sensorWidth, sensorHeight, sensorDepth);
     const sensorMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00e0ff,
+      color: COLORS.collider.sensorFace,
       transparent: true,
-      opacity: 0.2,
+      opacity: DEBUG_CONFIG.sensorFace.opacity,
       depthWrite: false,
       depthTest: false,
       side: THREE.DoubleSide
@@ -573,21 +570,21 @@ export class MiniShootout3D {
 
     const sensorEdges = new THREE.LineSegments(
       new THREE.EdgesGeometry(sensorGeometry),
-      new THREE.LineBasicMaterial({ color: 0x00e0ff })
+      new THREE.LineBasicMaterial({ color: COLORS.collider.sensorEdge })
     );
     sensorEdges.position.copy(sensorFace.position);
     group.add(sensorEdges);
 
     const netInfos = this.goal.getNetColliderInfos();
     const netFaceMaterial = new THREE.MeshBasicMaterial({
-      color: 0x0096ff,
+      color: COLORS.collider.net,
       transparent: true,
-      opacity: 0.28,
+      opacity: DEBUG_CONFIG.netCollider.opacity,
       depthWrite: false,
       depthTest: false,
       side: THREE.DoubleSide
     });
-    const netEdgeMaterial = new THREE.LineBasicMaterial({ color: 0x33bbff });
+    const netEdgeMaterial = new THREE.LineBasicMaterial({ color: COLORS.collider.netEdge });
 
     netInfos.forEach(({ size, position }) => {
       const geometry = new THREE.BoxGeometry(size.x, size.y, size.z);
@@ -608,11 +605,11 @@ export class MiniShootout3D {
     const group = new THREE.Group();
     group.visible = false;
 
-    const outlineMaterial = new THREE.LineBasicMaterial({ color: 0xffaa33 });
+    const outlineMaterial = new THREE.LineBasicMaterial({ color: COLORS.collider.adBoardEdge });
     const faceMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffaa33,
+      color: COLORS.collider.adBoard,
       transparent: true,
-      opacity: 0.12,
+      opacity: DEBUG_CONFIG.adBoardCollider.opacity,
       depthWrite: false,
       depthTest: false,
       side: THREE.DoubleSide
@@ -643,9 +640,9 @@ export class MiniShootout3D {
 
   private createAxisArrows(): THREE.ArrowHelper[] {
     const origin = new THREE.Vector3(0, 0, 0);
-    const length = 0.7;
-    const headLength = 0.2;
-    const headWidth = 0.1;
+    const length = DEBUG_CONFIG.axisArrows.length;
+    const headLength = DEBUG_CONFIG.axisArrows.headLength;
+    const headWidth = DEBUG_CONFIG.axisArrows.headWidth;
 
     const createArrow = (direction: THREE.Vector3, color: number) => {
       const arrow = new THREE.ArrowHelper(direction.clone(), origin, length, color, headLength, headWidth);
@@ -655,9 +652,9 @@ export class MiniShootout3D {
     };
 
     const arrows = [
-      createArrow(new THREE.Vector3(1, 0, 0), 0xff5555),
-      createArrow(new THREE.Vector3(0, 1, 0), 0x55ff55),
-      createArrow(new THREE.Vector3(0, 0, 1), 0x5599ff)
+      createArrow(new THREE.Vector3(1, 0, 0), COLORS.axisArrows.x),
+      createArrow(new THREE.Vector3(0, 1, 0), COLORS.axisArrows.y),
+      createArrow(new THREE.Vector3(0, 0, 1), COLORS.axisArrows.z)
     ];
     return arrows;
   }
@@ -716,8 +713,8 @@ export class MiniShootout3D {
     const basePosition = this.ball.body.position;
     const velocity = this.ball.body.velocity;
     const gravity = this.world.gravity;
-    const sampleStep = this.trajectorySampleStep;
-    const sampleCount = this.trajectorySampleCount;
+    const sampleStep = DEBUG_CONFIG.trajectory.sampleStep;
+    const sampleCount = DEBUG_CONFIG.trajectory.sampleCount;
 
     for (let i = 0; i < sampleCount; i++) {
       const t = i * sampleStep;
@@ -756,11 +753,15 @@ export class MiniShootout3D {
    * 타겟 마커 생성 (반투명 빨간 공)
    */
   private createTargetMarker(): THREE.Mesh {
-    const geometry = new THREE.SphereGeometry(0.11, 16, 16);
+    const geometry = new THREE.SphereGeometry(
+      DEBUG_CONFIG.targetMarker.radius,
+      DEBUG_CONFIG.targetMarker.segments,
+      DEBUG_CONFIG.targetMarker.segments
+    );
     const material = new THREE.MeshBasicMaterial({
-      color: 0xff0000,
+      color: COLORS.debug.targetMarker,
       transparent: true,
-      opacity: 0.5,
+      opacity: DEBUG_CONFIG.targetMarker.opacity,
       depthTest: false,
       depthWrite: false
     });
@@ -799,9 +800,9 @@ export class MiniShootout3D {
         depthWrite: false
       });
       const sprite = new THREE.Sprite(material);
-      sprite.scale.set(0.15, 0.15, 1);
+      sprite.scale.set(DEBUG_CONFIG.swipePointMarker.scale, DEBUG_CONFIG.swipePointMarker.scale, 1);
       sprite.visible = false;
-      sprite.renderOrder = 1000;
+      sprite.renderOrder = DEBUG_CONFIG.swipePointMarker.renderOrder;
       this.scene.add(sprite);
       this.swipePointMarkers.push(sprite);
 
@@ -809,8 +810,8 @@ export class MiniShootout3D {
       const label = document.createElement('div');
       label.textContent = (i + 1).toString();
       label.style.position = 'fixed';
-      label.style.color = '#000000';
-      label.style.fontSize = '18px';
+      label.style.color = DEBUG_CONFIG.swipePointMarker.labelColor;
+      label.style.fontSize = DEBUG_CONFIG.swipePointMarker.labelFontSize;
       label.style.fontWeight = 'bold';
       label.style.fontFamily = 'Arial, sans-serif';
       label.style.textShadow = '0 0 3px #ffff00, 0 0 6px #ffff00';
@@ -978,7 +979,7 @@ export class MiniShootout3D {
     // 2.5초 후 리셋 타이머 설정
     this.shotResetTimer = window.setTimeout(() => {
       this.resetAfterShot();
-    }, 2500);
+    }, GAME_CONFIG.timing.shotResetMs);
   }
 
 
@@ -1045,7 +1046,7 @@ export class MiniShootout3D {
 
       // 실패 카운트 증가
       this.failCount++;
-      console.log(`⚠️ 실패! 실패 횟수: ${this.failCount}/${this.maxFailsBeforeGameOver}`);
+      console.log(`⚠️ 실패! 실패 횟수: ${this.failCount}/${GAME_CONFIG.gameOver.maxFailsAllowed}`);
 
       // 현재 게임 상태 저장 (이어하기용)
       this.savedGameState = {
@@ -1059,14 +1060,14 @@ export class MiniShootout3D {
       }
 
       // 실패 콜백이 없거나 2번째 실패면 점수 초기화
-      if (!this.onGameFailed || this.failCount >= this.maxFailsBeforeGameOver) {
+      if (!this.onGameFailed || this.failCount >= GAME_CONFIG.gameOver.maxFailsAllowed) {
         this.score = 0;
         this.onScoreChange(this.score);
         this.scoreDisplay.resetNewRecordFlag();
       }
 
       // 2번째 실패가 아니면 여기서 리턴 (모달에서 처리)
-      if (this.failCount < this.maxFailsBeforeGameOver && this.onGameFailed) {
+      if (this.failCount < GAME_CONFIG.gameOver.maxFailsAllowed && this.onGameFailed) {
         // 상태 초기화만 하고 공은 리셋하지 않음 (모달에서 선택에 따라 처리)
         this.isShotInProgress = false;
         this.hasScored = false;
@@ -1110,7 +1111,7 @@ export class MiniShootout3D {
     if (this.score === 0) {
       this.touchGuideTimer = window.setTimeout(() => {
         this.onShowTouchGuide(true);
-      }, 1000);
+      }, GAME_CONFIG.timing.touchGuideDelayMs);
     }
   }
 
