@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { createRenderer } from './intra/Graphics';
-import { createPerspectiveCamera } from './intra/Camera';
-import { configureSceneLighting } from './intra/Lighting';
+import { createRenderer } from './infra/Graphics';
+import { createPerspectiveCamera } from './infra/Camera';
+import { configureSceneLighting } from './infra/Lighting';
 import { createPhysicsWorld } from './physics/World';
 import { createField } from './environment/Field';
 import type { Field } from './environment/Field';
@@ -14,7 +14,7 @@ import { GOAL_DEPTH } from './config/goal';
 import type { DifficultyLevelConfig } from './config/difficulty';
 // Debug button removed - now integrated into Settings modal
 import { ShotInfoHud } from './ui/hud/ShotInfoHud';
-import { AudioManager } from './intra/Audio';
+import { AudioManager } from './infra/Audio';
 import { LoadingScreen } from './ui/screens/LoadingScreen';
 import { InputController } from './input/InputController';
 import type { ScoreDisplay } from './ui/hud/ScoreDisplay';
