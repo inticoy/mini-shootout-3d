@@ -31,6 +31,7 @@ import { GAME_CONFIG } from './config/game';
 import { CategoryLogger } from './utils/Logger';
 import { DebugVisualizer } from './core/DebugVisualizer';
 import { DifficultyManager } from './core/DifficultyManager';
+import { AssetLoader } from './core/AssetLoader';
 
 export class MiniShootout3D {
   private readonly onScoreChange: (score: number) => void;
@@ -102,11 +103,7 @@ export class MiniShootout3D {
   private readonly handleGoalCollisionBound = (event: { body: CANNON.Body }) => this.handleGoalCollision(event);
   private touchGuideTimer: number | null = null;
   private loadingScreen: LoadingScreen | null = null;
-  private threeAssetsProgress = 0;
-  private audioProgress = 0;
-  private threeItemsLoaded = 0;
-  private threeItemsTotal = 0;
-  private isGameReady = false;
+  private assetLoader!: AssetLoader; // 초기화는 생성자에서 (의존성 필요)
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -133,7 +130,14 @@ export class MiniShootout3D {
     );
     this.loadingScreen.show();
     this.loadingScreen.setProgress(0);
-    this.setupAssetLoadingTracker();
+
+    // 에셋 로더 초기화
+    this.assetLoader = new AssetLoader({
+      loadingScreen: this.loadingScreen,
+      gameLog: this.gameLog,
+      onAllAssetsLoaded: () => this.onAllAssetsLoaded()
+    });
+    this.assetLoader.setupAssetLoadingTracker();
 
     this.scene = new THREE.Scene();
     this.scene.background = null; // HTML 배경(빨강-녹색 그라디언트)이 보이도록 투명
@@ -161,12 +165,10 @@ export class MiniShootout3D {
     this.goal.bodies.sensor.addEventListener('collide', this.handleGoalCollisionBound);
 
     void this.audio.loadAll().then(() => {
-      this.audioProgress = 1;
-      this.updateLoadingProgress();
+      this.assetLoader.setAudioLoaded();
     }).catch((error) => {
       this.gameLog.warn('Failed to preload audio', error);
-      this.audioProgress = 1;
-      this.updateLoadingProgress();
+      this.assetLoader.setAudioLoaded();
     });
 
     // 입력 컨트롤러 초기화
@@ -197,59 +199,7 @@ export class MiniShootout3D {
     this.animate();
   }
 
-  private setupAssetLoadingTracker() {
-    const manager = THREE.DefaultLoadingManager;
-    manager.onStart = (_url, itemsLoaded, itemsTotal) => {
-      this.updateThreeAssetProgress(itemsLoaded, itemsTotal);
-    };
-    manager.onProgress = (_url, itemsLoaded, itemsTotal) => {
-      this.updateThreeAssetProgress(itemsLoaded, itemsTotal);
-    };
-    manager.onLoad = () => {
-      this.threeItemsLoaded = this.threeItemsTotal;
-      this.threeAssetsProgress = 1;
-      this.updateLoadingProgress();
-    };
-    manager.onError = (url) => {
-      this.gameLog.warn(`Failed to load visual asset: ${url}`);
-      this.handleThreeAssetError();
-    };
-    this.updateLoadingProgress();
-  }
-
-  private updateThreeAssetProgress(itemsLoaded: number, itemsTotal: number) {
-    if (itemsTotal > 0) {
-      this.threeItemsTotal = Math.max(this.threeItemsTotal, itemsTotal);
-      this.threeItemsLoaded = Math.max(this.threeItemsLoaded, itemsLoaded);
-      this.threeAssetsProgress = Math.min(this.threeItemsLoaded / this.threeItemsTotal, 1);
-    }
-    this.updateLoadingProgress();
-  }
-
-  private handleThreeAssetError() {
-    if (this.threeItemsTotal === 0) {
-      this.threeItemsTotal = 1;
-    }
-    this.threeItemsLoaded = Math.min(this.threeItemsLoaded + 1, this.threeItemsTotal);
-    this.threeAssetsProgress = Math.min(this.threeItemsLoaded / this.threeItemsTotal, 1);
-    this.updateLoadingProgress();
-  }
-
-  private updateLoadingProgress() {
-    const combined = Math.min(this.threeAssetsProgress * 0.85 + this.audioProgress * 0.15, 1);
-    if (this.loadingScreen) {
-      this.loadingScreen.setProgress(combined);
-    }
-
-    if (!this.isGameReady && this.threeAssetsProgress >= 1 && this.audioProgress >= 1) {
-      this.onAllAssetsLoaded();
-    }
-  }
-
-  private onAllAssetsLoaded() {
-    this.isGameReady = true;
-    this.gameLog.info('All assets loaded, game ready!');
-
+  private onAllAssetsLoaded(): void {
     // 게임 상태를 IDLE로 전환 (슈팅 가능)
     this.stateManager.setState(GameState.IDLE);
 
