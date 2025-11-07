@@ -72,7 +72,6 @@ export class BallController {
    * 공 초기 위치로 리셋 (중력 off)
    */
   resetBall(): void {
-    console.log('Resetting ball to origin');
     this.setBallGravityEnabled(false);
 
     this.ball.body.position.set(
@@ -98,14 +97,12 @@ export class BallController {
     this.syncBallKinematicFrames();
 
     this.ball.syncVisuals();
-    console.log('Ball reset complete. Position:', this.ball.body.position);
   }
 
   /**
    * 공만 리셋 (스코어/난이도 유지용)
    */
   resetBallOnly(): void {
-    console.log('Resetting ball only (keeping score and difficulty)');
     this.setBallGravityEnabled(false);
 
     this.ball.body.position.set(
@@ -131,7 +128,6 @@ export class BallController {
     this.syncBallKinematicFrames();
 
     this.ball.syncVisuals();
-    console.log('Ball reset complete. Position:', this.ball.body.position);
   }
 
   /**

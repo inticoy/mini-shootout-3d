@@ -26,16 +26,19 @@ import { AudioManager } from './core/audio';
 import { LoadingScreen } from './ui/loadingScreen';
 import { InputController } from './input/InputController';
 import type { ScoreDisplay } from './ui/scoreDisplay';
-import { normalizeSwipeData, debugNormalizedSwipe } from './shooting/swipeNormalizer';
-import { analyzeShotType, debugShotAnalysis, ShotType } from './shooting/shotAnalyzer';
-import { calculateShotParameters, debugShotParameters } from './shooting/shotParameters';
-import { calculateInitialVelocity, debugVelocity } from './shooting/velocityCalculator';
-import { calculateAngularVelocity, debugAngularVelocity } from './shooting/spinCalculator';
+import { executeShot } from './shooting/executeShot';
+import { ShotType } from './shooting/shotAnalyzer';
 import { CurveForceSystem } from './shooting/curveForceSystem';
+import { debugNormalizedSwipe } from './shooting/swipeNormalizer';
+import { debugShotAnalysis } from './shooting/shotAnalyzer';
+import { debugShotParameters } from './shooting/shotParameters';
+import { debugVelocity } from './shooting/velocityCalculator';
+import { debugAngularVelocity } from './shooting/spinCalculator';
 import { GameStateManager, GameState } from './core/GameStateManager';
 import { GAME_CONFIG } from './config/game';
 import { DEBUG_CONFIG } from './config/debug';
 import { COLORS } from './config/colors';
+import { CategoryLogger } from './utils/Logger';
 
 export class MiniShootout3D {
   private readonly onScoreChange: (score: number) => void;
@@ -53,6 +56,12 @@ export class MiniShootout3D {
   private obstacles: Obstacle[] = [];
   private readonly field: Field;
   private readonly audio = new AudioManager();
+
+  // Loggers
+  private readonly gameLog = new CategoryLogger('Game');
+  private readonly shootingLog = new CategoryLogger('Shooting');
+  private readonly themeLog = new CategoryLogger('Theme');
+
   private readonly ballColliderMesh: THREE.Mesh;
   private readonly goalColliderGroup: THREE.Group;
   private readonly adBoardColliderGroup: THREE.Group;
@@ -109,12 +118,9 @@ export class MiniShootout3D {
     }
   }
 
-  // 🔍 궤적 디버깅
+  // 🔍 궤적 추적
   private isTrackingBall = false;
   private trackingStartTime = 0;
-  private trackingTargetY = 0;
-  private lastLogTime = 0;
-  private goalLineCrossed = false;
 
   private readonly clock = new THREE.Clock();
 
@@ -174,7 +180,7 @@ export class MiniShootout3D {
     this.ballController = new BallController(this.ball);
 
     void this.ball.load(this.scene, THREE.DefaultLoadingManager).catch((error) => {
-      console.error('Failed to load ball model', error);
+      this.gameLog.error('Failed to load ball model', error);
     });
 
     this.goal = new Goal(this.scene, this.world, materials.ball);
@@ -185,7 +191,7 @@ export class MiniShootout3D {
       this.audioProgress = 1;
       this.updateLoadingProgress();
     }).catch((error) => {
-      console.warn('Failed to preload audio', error);
+      this.gameLog.warn('Failed to preload audio', error);
       this.audioProgress = 1;
       this.updateLoadingProgress();
     });
@@ -261,7 +267,7 @@ export class MiniShootout3D {
       this.updateLoadingProgress();
     };
     manager.onError = (url) => {
-      console.warn(`Failed to load visual asset: ${url}`);
+      this.gameLog.warn(`Failed to load visual asset: ${url}`);
       this.handleThreeAssetError();
     };
     this.updateLoadingProgress();
@@ -298,7 +304,7 @@ export class MiniShootout3D {
 
   private onAllAssetsLoaded() {
     this.isGameReady = true;
-    console.log('All assets loaded, game ready!');
+    this.gameLog.info('All assets loaded, game ready!');
 
     // 게임 상태를 IDLE로 전환 (슈팅 가능)
     this.stateManager.setState(GameState.IDLE);
@@ -312,7 +318,7 @@ export class MiniShootout3D {
     if (!this.isShotInProgress) return; // 슈팅 중이 아니면 무시
     if (this.hasScored) return; // 이미 골 처리했으면 무시 (중복 방지)
 
-    console.log('⚽ GOAL! Score:', this.score + 1);
+    this.gameLog.info(`⚽ GOAL! Score: ${this.score + 1}`);
 
     this.score += 1;
     this.onScoreChange(this.score);
@@ -403,32 +409,10 @@ export class MiniShootout3D {
     this.goal.update(deltaTime);
     this.field.update(deltaTime);
 
-    // 🔍 궤적 추적 로그
+    // 궤적 추적 중지 체크 (디버그 로그는 제거됨)
     if (this.isTrackingBall) {
       const now = performance.now();
-      const elapsed = (now - this.trackingStartTime) / 1000; // 초 단위
-      const pos = this.ball.body.position;
-      const vel = this.ball.body.velocity;
-
-      // 🔍 첫 0.1초 동안 매 프레임 상세 로그
-      if (elapsed < 0.1) {
-        console.log(`⚡ [t=${elapsed.toFixed(3)}s] world.step 직후: vel(${vel.x.toFixed(2)}, ${vel.y.toFixed(2)}, ${vel.z.toFixed(2)})`);
-      }
-
-      // 0.05초마다 로그 (또는 골라인 근처)
-      if (elapsed - this.lastLogTime >= 0.05) {
-        console.log(`⚽ t=${elapsed.toFixed(2)}s: pos(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}), vel(${vel.x.toFixed(2)}, ${vel.y.toFixed(2)}, ${vel.z.toFixed(2)})`);
-        this.lastLogTime = elapsed;
-      }
-
-      // 골라인(-6) 통과 감지
-      if (!this.goalLineCrossed && pos.z <= -6.0) {
-        this.goalLineCrossed = true;
-        const diff = pos.y - this.trackingTargetY;
-        console.log(`🎯 골라인 통과: Y = ${pos.y.toFixed(2)}m (목표 ${this.trackingTargetY.toFixed(2)}m, 차이 ${diff.toFixed(2)}m)`);
-      }
-
-      // 1초 후 또는 리셋되면 추적 중지
+      const elapsed = (now - this.trackingStartTime) / 1000;
       if (elapsed > 1.0 || !this.isShotInProgress) {
         this.isTrackingBall = false;
       }
@@ -895,51 +879,37 @@ export class MiniShootout3D {
    * 슈팅 처리 (InputController에서 호출)
    */
   private handleShoot(params: { swipeData: any; worldPositions: THREE.Vector3[] | null }): void {
-    console.log('⚽ Game handleShoot 호출됨');
-
     const { swipeData } = params;
 
-    // Step 1: 정규화
-    const normalized = normalizeSwipeData(swipeData);
-    console.log(debugNormalizedSwipe(normalized));
+    // 슈팅 파이프라인 실행
+    const shot = executeShot(swipeData);
 
-    // Step 2: 슈팅 타입 분석
-    const analysis = analyzeShotType(normalized);
-    console.log(debugShotAnalysis(analysis));
+    // 디버그 정보 출력
+    this.shootingLog.debug(debugNormalizedSwipe(shot.debugInfo.normalized));
+    this.shootingLog.debug(debugShotAnalysis(shot.debugInfo.analysis));
+    this.shootingLog.debug(debugShotParameters(shot.debugInfo.shotParams));
+    this.shootingLog.debug(debugVelocity(shot.velocity));
+    this.shootingLog.debug(debugAngularVelocity(shot.angularVelocity));
 
-    // Step 3: 슈팅 파라미터 계산
-    const shotParams = calculateShotParameters(normalized, analysis);
-    console.log(debugShotParameters(shotParams));
-
-    // 타겟 마커 위치 업데이트
-    if (analysis.type !== ShotType.INVALID) {
-      this.targetMarker.position.copy(shotParams.targetPosition);
+    // INVALID가 아니면 실제 슈팅 실행
+    if (shot.shotType !== ShotType.INVALID) {
+      // 타겟 마커 위치 업데이트
+      this.targetMarker.position.copy(shot.targetPosition);
       this.targetMarker.visible = this.debugMode;
-    }
 
-    // Step 4: 초기 velocity 계산
-    const velocity = calculateInitialVelocity(shotParams);
-    console.log(debugVelocity(velocity));
+      // Shot Info HUD 업데이트 (디버그 모드일 때만 보임)
+      this.shotInfoHud.update(
+        shot.debugInfo.analysis,
+        shot.debugInfo.shotParams,
+        shot.velocity,
+        shot.angularVelocity
+      );
 
-    // Step 5: 초기 spin (angular velocity) 계산
-    if (velocity) {
-      const angularVelocity = calculateAngularVelocity(shotParams, velocity);
-      console.log(debugAngularVelocity(angularVelocity));
+      // 🔍 궤적 추적 시작
+      this.isTrackingBall = true;
+      this.trackingStartTime = performance.now();
 
-      // INVALID가 아니면 실제 슈팅 실행
-      if (analysis.type !== ShotType.INVALID) {
-        // Shot Info HUD 업데이트 (디버그 모드일 때만 보임)
-        this.shotInfoHud.update(analysis, shotParams, velocity, angularVelocity);
-
-        // 🔍 궤적 추적 시작
-        this.isTrackingBall = true;
-        this.trackingStartTime = performance.now();
-        this.trackingTargetY = shotParams.targetPosition.y;
-        this.lastLogTime = 0;
-        this.goalLineCrossed = false;
-
-        this.executeShooting(velocity, angularVelocity, analysis);
-      }
+      this.executeShooting(shot.velocity, shot.angularVelocity, shot.debugInfo.analysis);
     }
   }
 
@@ -958,7 +928,6 @@ export class MiniShootout3D {
 
     // 공의 velocity 설정
     this.ball.body.velocity.copy(velocity);
-    console.log('🚀 [t=0.00s] velocity 설정 직후:', `vel(${this.ball.body.velocity.x.toFixed(2)}, ${this.ball.body.velocity.y.toFixed(2)}, ${this.ball.body.velocity.z.toFixed(2)})`);
 
     // 공의 angular velocity (회전) 설정
     this.ball.body.angularVelocity.copy(angularVelocity);
@@ -990,7 +959,7 @@ export class MiniShootout3D {
     if (forceRefresh || levelChanged) {
       this.syncObstacles(nextDifficulty.obstacles);
       if (levelChanged) {
-        console.log(`🎯 난이도 변경: ${nextDifficulty.name} (score=${this.score})`);
+        this.gameLog.info(`🎯 난이도 변경: ${nextDifficulty.name} (score=${this.score})`);
       }
     }
 
@@ -1222,13 +1191,13 @@ export class MiniShootout3D {
     const nextIndex = (currentIndex + 1) % themeKeys.length;
     const nextTheme = BALL_THEMES[themeKeys[nextIndex]];
 
-    console.log(`🎨 Switching theme: ${currentTheme.name} -> ${nextTheme.name}`);
+    this.themeLog.info(`🎨 Switching theme: ${currentTheme.name} -> ${nextTheme.name}`);
 
     try {
       await this.ball.changeTheme(nextTheme);
-      console.log(`✅ Theme switched to: ${nextTheme.name}`);
+      this.themeLog.info(`✅ Theme switched to: ${nextTheme.name}`);
     } catch (error) {
-      console.error('Failed to switch theme:', error);
+      this.themeLog.error('Failed to switch theme:', error);
     }
   }
 
@@ -1240,7 +1209,7 @@ export class MiniShootout3D {
     const themeKey = themeKeys.find(key => BALL_THEMES[key].name === themeName);
 
     if (!themeKey) {
-      console.error(`Theme '${themeName}' not found`);
+      this.themeLog.error(`Theme '${themeName}' not found`);
       return;
     }
 
@@ -1248,17 +1217,17 @@ export class MiniShootout3D {
     const currentTheme = this.ball.getTheme();
 
     if (currentTheme.name === newTheme.name) {
-      console.log(`Already using theme: ${themeName}`);
+      this.themeLog.info(`Already using theme: ${themeName}`);
       return;
     }
 
-    console.log(`🎨 Switching to theme: ${themeName}`);
+    this.themeLog.info(`🎨 Switching to theme: ${themeName}`);
 
     try {
       await this.ball.changeTheme(newTheme);
-      console.log(`✅ Theme switched to: ${newTheme.name}`);
+      this.themeLog.info(`✅ Theme switched to: ${newTheme.name}`);
     } catch (error) {
-      console.error('Failed to switch theme:', error);
+      this.themeLog.error('Failed to switch theme:', error);
     }
   }
 
