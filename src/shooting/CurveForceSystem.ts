@@ -1,6 +1,6 @@
 import * as CANNON from 'cannon-es';
 import { ShotType, type ShotAnalysis } from './ShotAnalyzer';
-import { CURVE_FORCE_CONFIG } from '../config/shooting';
+import { CURVE_FORCE_CONFIG } from '../config/Shooting';
 
 /**
  * 커브 슛 추적 데이터

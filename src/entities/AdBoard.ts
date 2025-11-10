@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { AD_BOARD_CONFIG, type AdTextItem } from '../config/adBoard';
+import { AD_BOARD_CONFIG, type AdTextItem } from '../config/AdBoard';
 
 export class AdBoard {
   public readonly mesh: THREE.Mesh;

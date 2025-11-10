@@ -1,5 +1,5 @@
 import { PHYSICS_LINEAR_DAMPING } from '../physics/Constants';
-import type { SoundKey } from './audio';
+import type { SoundKey } from './Audio';
 import basicBallModel from '../assets/ball/basic.glb?url';
 import moonBallModel from '../assets/ball/moon.glb?url';
 import basketBallModel from '../assets/ball/basketball.glb?url';

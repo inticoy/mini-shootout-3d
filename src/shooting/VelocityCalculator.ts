@@ -3,8 +3,8 @@ import * as CANNON from 'cannon-es';
 import { ShotType } from './ShotAnalyzer';
 import type { ShotParameters } from './ShotParameters';
 import { PHYSICS_GRAVITY } from '../physics/Constants';
-import { BALL_START_POSITION } from '../config/ball';
-import { SHOT_TIMING_CONFIG } from '../config/shooting';
+import { BALL_START_POSITION } from '../config/Ball';
+import { SHOT_TIMING_CONFIG } from '../config/Shooting';
 
 /**
  * 슈팅 파라미터로부터 초기 velocity 계산

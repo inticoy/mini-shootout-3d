@@ -9,9 +9,9 @@ import type { Field } from './environment/Field';
 import { Ball } from './entities/ball/Ball';
 import { BallController } from './entities/ball/BallController';
 import { Goal } from './entities/goal/Goal';
-import { BALL_THEMES } from './config/ball';
-import { GOAL_DEPTH } from './config/goal';
-import type { DifficultyLevelConfig } from './config/difficulty';
+import { BALL_THEMES } from './config/Ball';
+import { GOAL_DEPTH } from './config/Goal';
+import type { DifficultyLevelConfig } from './config/Difficulty';
 // Debug button removed - now integrated into Settings modal
 import { ShotInfoHud } from './ui/hud/ShotInfoHud';
 import { AudioManager } from './infra/Audio';
@@ -27,13 +27,13 @@ import { debugShotParameters } from './shooting/ShotParameters';
 import { debugVelocity } from './shooting/VelocityCalculator';
 import { debugAngularVelocity } from './shooting/SpinCalculator';
 import { GameStateManager, GameState } from './core/GameStateManager';
-import { GAME_CONFIG } from './config/game';
+import { GAME_CONFIG } from './config/Game';
 import { CategoryLogger } from './utils/Logger';
 import { DebugVisualizer } from './debug/DebugVisualizer';
 import { DifficultyManager } from './core/DifficultyManager';
 import { AssetLoader } from './core/AssetLoader';
 
-export class MiniShootout3D {
+export class SnapShoot {
   private readonly onScoreChange: (score: number) => void;
   private readonly onShowTouchGuide: (show: boolean) => void;
   private readonly scoreDisplay: ScoreDisplay;

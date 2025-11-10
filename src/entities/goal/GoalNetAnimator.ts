@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GOAL_NET_CONFIG } from '../../config/net';
+import { GOAL_NET_CONFIG } from '../../config/Net';
 import type { GoalNet, GoalNetNode } from './GoalNet';
 
 interface NetPulse {

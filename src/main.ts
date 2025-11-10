@@ -14,7 +14,7 @@ if (isAdmin) {
   }
   void import('./admin/main');
 } else {
-  void import('./game-entry').then(({ bootstrapGame }) => {
-    bootstrapGame();
+  void import('./GameLoader').then(({ loadGame }) => {
+    loadGame();
   });
 }

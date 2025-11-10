@@ -1,4 +1,4 @@
-import type { ObstacleInstanceConfig } from './obstacles';
+import type { ObstacleInstanceConfig } from './Obstacles';
 
 export interface DifficultyLevelConfig {
   /** 이 난이도가 적용되는 최소 점수 */

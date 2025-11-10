@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { STANDS_CONFIG } from '../config/stands';
+import { STANDS_CONFIG } from '../config/Stands';
 import crowdTextureUrl from '../assets/crowd/crowd.webp?url';
 
 export class Stands {

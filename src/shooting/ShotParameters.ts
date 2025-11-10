@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import type { ShotAnalysis } from './ShotAnalyzer';
 import { ShotType } from './ShotAnalyzer';
 import type { NormalizedSwipeData } from './SwipeNormalizer';
-import { GOAL_WIDTH, GOAL_HEIGHT, GOAL_DEPTH } from '../config/goal';
-import { BALL_START_POSITION as BALL_START_POS } from '../config/ball';
-import { CURVE_AIM_CONFIG, SHOT_TARGET_CONFIG } from '../config/shooting';
+import { GOAL_WIDTH, GOAL_HEIGHT, GOAL_DEPTH } from '../config/Goal';
+import { BALL_START_POSITION as BALL_START_POS } from '../config/Ball';
+import { CURVE_AIM_CONFIG, SHOT_TARGET_CONFIG } from '../config/Shooting';
 
 /**
  * 슈팅 파라미터 (3D 공간)

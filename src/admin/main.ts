@@ -3,7 +3,7 @@ import './style.css';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-import { DIFFICULTY_LEVELS, type DifficultyLevelConfig } from '../config/difficulty';
+import { DIFFICULTY_LEVELS, type DifficultyLevelConfig } from '../config/Difficulty';
 import {
   OBSTACLE_BLUEPRINTS,
   type ObstacleBlueprint,
@@ -19,9 +19,9 @@ import {
   type Vector3Range,
   type Axis,
   type ObstacleMaterialConfig
-} from '../config/obstacles';
-import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from '../config/goal';
-import { GOAL_NET_CONFIG } from '../config/net';
+} from '../config/Obstacles';
+import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from '../config/Goal';
+import { GOAL_NET_CONFIG } from '../config/Net';
 
 const GOAL_Z = GOAL_DEPTH;
 const GOAL_REAR_Z = GOAL_DEPTH - GOAL_NET_CONFIG.layout.depthBottom;

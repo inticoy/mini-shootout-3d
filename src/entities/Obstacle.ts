@@ -11,7 +11,7 @@ import type {
   ObstacleTransformConfig,
   PrimitiveRenderConfig,
   RangeValue
-} from '../config/obstacles';
+} from '../config/Obstacles';
 
 const DEFAULT_CYLINDER_SEGMENTS = 16;
 

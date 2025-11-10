@@ -1,4 +1,4 @@
-import { AUDIO_CONFIG, type SoundKey, type MusicTrack } from '../config/audio';
+import { AUDIO_CONFIG, type SoundKey, type MusicTrack } from '../config/Audio';
 
 export class AudioManager {
   private context: AudioContext | null = null;

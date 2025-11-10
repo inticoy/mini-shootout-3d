@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { BALL_CONFIG, BALL_RADIUS, BALL_START_POSITION, BALL_PHYSICS } from '../../config/ball';
-import type { BallTheme } from '../../config/ball';
+import { BALL_CONFIG, BALL_RADIUS, BALL_START_POSITION, BALL_PHYSICS } from '../../config/Ball';
+import type { BallTheme } from '../../config/Ball';
 
 const START_POSITION = new CANNON.Vec3(
   BALL_START_POSITION.x,

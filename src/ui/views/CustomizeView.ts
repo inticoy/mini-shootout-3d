@@ -4,7 +4,7 @@
  * PauseModal과 GameOverModal에서 공통으로 사용
  */
 
-import { BALL_THEMES } from '../../config/ball';
+import { BALL_THEMES } from '../../config/Ball';
 
 export interface CustomizeViewCallbacks {
   onSelectTheme?: (themeName: string) => void;
