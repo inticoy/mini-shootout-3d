@@ -11,7 +11,7 @@ export const TOSS_CONFIG = {
   // - getUserKeyForGame(): 사용자 식별 키 가져오기
   // - submitGameCenterLeaderBoardScore(): 점수 제출
   // - openGameCenterLeaderboard(): 랭킹 보기
-  GAME_CENTER_ENABLED: false,
+  GAME_CENTER_ENABLED: true,
 
   // 토스 광고 기능 사용 여부
   // 콘솔에서 광고 그룹 ID 발급 후 true로 변경
