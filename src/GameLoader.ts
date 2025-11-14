@@ -59,7 +59,22 @@ export function loadGame() {
       });
   }
 
-  const scoreDisplay = new ScoreDisplay(uiContainer);
+  // ScoreDisplay 생성 - BestScore 갱신 시 토스 랭킹에 제출
+  const scoreDisplay = new ScoreDisplay(uiContainer, async (bestScore) => {
+    // 토스 앱 환경이고 게임센터가 활성화된 경우에만 랭킹에 제출
+    if (TOSS_CONFIG.GAME_CENTER_ENABLED && isTossGameCenterAvailable()) {
+      try {
+        const result = await submitGameCenterLeaderBoardScore({ score: bestScore.toString() });
+        if (result && result.statusCode === 'SUCCESS') {
+          console.log('✅ 토스 랭킹에 BestScore 제출 성공:', bestScore);
+        } else if (result) {
+          console.warn('⚠️ 토스 랭킹 BestScore 제출 실패:', result.statusCode);
+        }
+      } catch (error) {
+        console.error('❌ 토스 랭킹 BestScore 제출 오류:', error);
+      }
+    }
+  });
   const touchGuide = new TouchGuide(uiContainer);
 
   // Continue Modal과 GameOver Modal은 미리 선언 (상호 참조를 위해)
@@ -68,22 +83,9 @@ export function loadGame() {
 
   const game = new SnapShoot(
     canvas,
-    async (score) => {
+    (score) => {
+      // 점수 업데이트 (BestScore 갱신 시 자동으로 토스 랭킹에 제출됨)
       scoreDisplay.update(score);
-
-      // 토스 앱 환경이고 게임센터가 활성화된 경우에만 랭킹에 제출
-      if (TOSS_CONFIG.GAME_CENTER_ENABLED && isTossGameCenterAvailable()) {
-        try {
-          const result = await submitGameCenterLeaderBoardScore({ score: score.toString() });
-          if (result && result.statusCode === 'SUCCESS') {
-            console.log('✅ 토스 랭킹에 점수 제출 성공:', score);
-          } else if (result) {
-            console.warn('⚠️ 토스 랭킹 점수 제출 실패:', result.statusCode);
-          }
-        } catch (error) {
-          console.error('❌ 토스 랭킹 점수 제출 오류:', error);
-        }
-      }
     },
     (show) => touchGuide.show(show),
     scoreDisplay,
@@ -114,7 +116,30 @@ export function loadGame() {
     onSetMasterVolume: (volume: number) => game.setMasterVolume(volume),
     onNextTheme: () => void game.switchToNextTheme(),
     onSelectTheme: (themeName: string) => void game.switchToTheme(themeName),
-    onRestart: () => game.restartGame()
+    onRestart: () => game.restartGame(),
+    onRanking: async () => {
+      // 게임센터가 비활성화되어 있으면 안내 메시지 표시
+      if (!TOSS_CONFIG.GAME_CENTER_ENABLED) {
+        console.warn('ℹ️ 게임센터 기능이 아직 활성화되지 않았습니다.');
+        alert('랭킹 기능은 준비 중입니다.\n조금만 기다려주세요!');
+        return;
+      }
+
+      // 토스 앱 환경이 아니면 경고 메시지 표시
+      if (!isTossGameCenterAvailable()) {
+        console.warn('ℹ️ 랭킹 기능은 토스 앱에서만 사용 가능합니다.');
+        alert('랭킹 기능은 토스 앱에서만 사용 가능합니다.\n토스 앱에서 게임을 실행해주세요!');
+        return;
+      }
+
+      try {
+        // 토스 게임센터 리더보드 열기
+        await openGameCenterLeaderboard();
+        console.log('✅ 토스 게임센터 리더보드 열기');
+      } catch (error) {
+        console.error('❌ 리더보드 열기 실패:', error);
+      }
+    }
   });
 
   // Continue Modal 생성 (광고보고 이어하기)

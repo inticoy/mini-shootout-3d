@@ -13,10 +13,12 @@ export class ScoreDisplay {
   private bestContainer: HTMLDivElement;
   private bestScore: number;
   private isNewRecord = false;
+  private onBestScoreUpdate?: (score: number) => void;
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, onBestScoreUpdate?: (score: number) => void) {
     // localStorage에서 최고 기록 로드
     this.bestScore = this.loadBestScore();
+    this.onBestScoreUpdate = onBestScoreUpdate;
 
     // BEST 표시 (최상단)
     this.bestContainer = this.createBestScore();
@@ -139,6 +141,9 @@ export class ScoreDisplay {
       this.bestScore = score;
       this.saveBestScore(score);
       this.updateBestDisplay();
+
+      // BestScore 갱신 시 콜백 호출 (토스 랭킹 제출용)
+      this.onBestScoreUpdate?.(score);
     }
   }
 
