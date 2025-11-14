@@ -6,6 +6,11 @@ import { PauseModal } from './ui/modals/PauseModal';
 import { ContinueModal } from './ui/modals/ContinueModal';
 import { GameOverModal } from './ui/modals/GameOverModal';
 import { gameStateService } from './core/GameStateService';
+import {
+  openGameCenterLeaderboard,
+  submitGameCenterLeaderBoardScore,
+  GoogleAdMob
+} from '@apps-in-toss/web-framework';
 
 export function loadGame() {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
@@ -24,7 +29,20 @@ export function loadGame() {
 
   const game = new SnapShoot(
     canvas,
-    (score) => scoreDisplay.update(score),
+    async (score) => {
+      scoreDisplay.update(score);
+      // 점수 갱신 시 토스 랭킹에 제출
+      try {
+        const result = await submitGameCenterLeaderBoardScore({ score: score.toString() });
+        if (result && result.statusCode === 'SUCCESS') {
+          console.log('✅ 토스 랭킹에 점수 제출 성공:', score);
+        } else if (result) {
+          console.warn('⚠️ 토스 랭킹 점수 제출 실패:', result.statusCode);
+        }
+      } catch (error) {
+        console.error('❌ 토스 랭킹 점수 제출 오류:', error);
+      }
+    },
     (show) => touchGuide.show(show),
     scoreDisplay,
     (failCount: number) => {
@@ -61,10 +79,63 @@ export function loadGame() {
   continueModal = new ContinueModal(
     uiContainer,
     {
-      onContinue: () => {
-        // TODO: 광고 재생 로직 구현
-        // 광고 완료 후 game.continueGame() 호출
-        game.continueGame(); // 현재 점수와 난이도 유지, 공만 원위치
+      onContinue: async () => {
+        // 광고 표시 (지원 여부 확인)
+        if (GoogleAdMob.showAppsInTossAdMob.isSupported()) {
+          try {
+            // 광고 보여주기 - AD_GROUP_ID는 토스 앱인토스 콘솔에서 발급받아야 합니다
+            // 현재는 임시로 빈 문자열로 설정 (실제 배포 시 교체 필요)
+            const adGroupId = import.meta.env.VITE_TOSS_AD_GROUP_ID || '';
+
+            if (adGroupId) {
+              let adCompleted = false;
+
+              GoogleAdMob.showAppsInTossAdMob({
+                options: {
+                  adGroupId: adGroupId
+                },
+                onEvent: (event) => {
+                  switch (event.type) {
+                    case 'requested':
+                      console.log('광고 보여주기 요청 완료');
+                      break;
+                    case 'dismissed':
+                      console.log('광고 닫힘');
+                      if (adCompleted) {
+                        game.continueGame();
+                      }
+                      break;
+                    case 'userEarnedReward':
+                      console.log('광고 보상 획득:', event.data.unitType, event.data.unitAmount);
+                      adCompleted = true;
+                      break;
+                    case 'show':
+                      console.log('광고 컨텐츠 보여짐');
+                      break;
+                    default:
+                      break;
+                  }
+                },
+                onError: (error) => {
+                  console.error('광고 보여주기 실패:', error);
+                  // 광고 실패 시에도 게임 계속
+                  game.continueGame();
+                }
+              });
+            } else {
+              // AD_GROUP_ID가 없으면 광고 없이 계속
+              console.warn('광고 그룹 ID가 설정되지 않았습니다.');
+              game.continueGame();
+            }
+          } catch (error) {
+            console.error('광고 표시 중 오류:', error);
+            game.continueGame();
+          }
+        } else {
+          // 광고 미지원 환경에서는 바로 게임 계속
+          console.warn('광고가 지원되지 않는 환경입니다.');
+          game.continueGame();
+        }
       },
       onGiveUp: () => {
         const finalScore = scoreDisplay.getScore();
@@ -95,8 +166,14 @@ export function loadGame() {
       onShare: () => {
         // TODO: 공유 기능 구현
       },
-      onRanking: () => {
-        // TODO: 랭킹 화면 구현
+      onRanking: async () => {
+        try {
+          // 토스 게임센터 리더보드 열기
+          await openGameCenterLeaderboard();
+          console.log('✅ 토스 게임센터 리더보드 열기');
+        } catch (error) {
+          console.error('❌ 리더보드 열기 실패:', error);
+        }
       },
       onSelectTheme: (themeName: string) => void game.switchToTheme(themeName)
     }
