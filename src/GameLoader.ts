@@ -9,6 +9,7 @@ import { gameStateService } from './core/GameStateService';
 import {
   openGameCenterLeaderboard,
   submitGameCenterLeaderBoardScore,
+  getUserKeyForGame,
   GoogleAdMob
 } from '@apps-in-toss/web-framework';
 import { isTossGameCenterAvailable, isTossAdAvailable, logEnvironmentInfo } from './utils/TossEnvironment';
@@ -24,6 +25,38 @@ export function loadGame() {
 
   // 환경 정보 로깅
   logEnvironmentInfo();
+
+  // 토스 게임 로그인 (사용자 식별 키 가져오기)
+  if (TOSS_CONFIG.GAME_CENTER_ENABLED && isTossGameCenterAvailable()) {
+    getUserKeyForGame()
+      .then((result) => {
+        if (!result) {
+          console.warn('⚠️ 토스 앱 버전이 낮습니다.');
+          return;
+        }
+
+        if (result === 'INVALID_CATEGORY') {
+          console.warn('⚠️ 게임 카테고리가 아닌 미니앱입니다.');
+          return;
+        }
+
+        if (result === 'ERROR') {
+          console.error('❌ 사용자 키 조회 실패');
+          return;
+        }
+
+        // 성공: result는 GetUserKeyForGameSuccessResponse 타입
+        if (result.type === 'HASH') {
+          console.log('✅ 토스 게임 로그인 성공');
+          console.log('🔑 사용자 키:', result.hash.substring(0, 8) + '...');
+          // TODO: 사용자 키를 저장하고 랭킹 시스템에 사용
+          // localStorage.setItem('toss_user_key', result.hash);
+        }
+      })
+      .catch((error) => {
+        console.error('❌ 토스 게임 로그인 오류:', error);
+      });
+  }
 
   const scoreDisplay = new ScoreDisplay(uiContainer);
   const touchGuide = new TouchGuide(uiContainer);
