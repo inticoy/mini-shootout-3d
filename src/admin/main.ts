@@ -401,7 +401,7 @@ class LevelPreview {
     this.container.appendChild(this.renderer.domElement);
 
     this.camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
-    this.camera.position.set(0, 1.9, 5.2);
+    this.camera.position.set(0, 3.5, 8.5);
     this.camera.lookAt(0, 1.2, GOAL_Z);
 
     this.addLights();
