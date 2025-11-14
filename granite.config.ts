@@ -19,4 +19,8 @@ export default defineConfig({
   },
   permissions: [],
   outdir: 'dist',
+  // 게임센터 설정 (토스 콘솔에서 먼저 게임센터를 활성화해야 함)
+  gameCenter: {
+    enabled: false // 토스 콘솔에서 게임센터 설정 후 true로 변경
+  },
 });

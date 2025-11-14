@@ -12,6 +12,7 @@ import {
   GoogleAdMob
 } from '@apps-in-toss/web-framework';
 import { isTossGameCenterAvailable, isTossAdAvailable, logEnvironmentInfo } from './utils/TossEnvironment';
+import { TOSS_CONFIG } from './config/TossConfig';
 
 export function loadGame() {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
@@ -36,8 +37,8 @@ export function loadGame() {
     async (score) => {
       scoreDisplay.update(score);
 
-      // 토스 앱 환경일 때만 랭킹에 제출
-      if (isTossGameCenterAvailable()) {
+      // 토스 앱 환경이고 게임센터가 활성화된 경우에만 랭킹에 제출
+      if (TOSS_CONFIG.GAME_CENTER_ENABLED && isTossGameCenterAvailable()) {
         try {
           const result = await submitGameCenterLeaderBoardScore({ score: score.toString() });
           if (result && result.statusCode === 'SUCCESS') {
@@ -87,9 +88,9 @@ export function loadGame() {
     uiContainer,
     {
       onContinue: async () => {
-        // 토스 앱 환경이 아니면 광고 없이 바로 계속
-        if (!isTossAdAvailable()) {
-          console.log('ℹ️ 일반 웹 환경: 광고 없이 게임 계속');
+        // 광고 기능이 비활성화되어 있거나 토스 앱 환경이 아니면 광고 없이 바로 계속
+        if (!TOSS_CONFIG.ADS_ENABLED || !isTossAdAvailable()) {
+          console.log('ℹ️ 광고 비활성화 또는 일반 웹 환경: 광고 없이 게임 계속');
           game.continueGame();
           return;
         }
@@ -181,6 +182,13 @@ export function loadGame() {
         // TODO: 공유 기능 구현
       },
       onRanking: async () => {
+        // 게임센터가 비활성화되어 있으면 안내 메시지 표시
+        if (!TOSS_CONFIG.GAME_CENTER_ENABLED) {
+          console.warn('ℹ️ 게임센터 기능이 아직 활성화되지 않았습니다.');
+          alert('랭킹 기능은 준비 중입니다.\n조금만 기다려주세요!');
+          return;
+        }
+
         // 토스 앱 환경이 아니면 경고 메시지 표시
         if (!isTossGameCenterAvailable()) {
           console.warn('ℹ️ 랭킹 기능은 토스 앱에서만 사용 가능합니다.');
