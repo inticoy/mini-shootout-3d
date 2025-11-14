@@ -2,6 +2,11 @@ import keeperTextureUrl from '../assets/keeper/wall.png?url';
 import woodTextureUrl from '../assets/models/obstacle/wood.jpg?url';
 import whiteDroneTextureUrl from '../assets/models/obstacle/whiteDrone.png?url';
 import cokeModelUrl from '../assets/models/bottle/coke.glb?url';
+import drumModelUrl from '../assets/models/drum.glb?url';
+import vanModelUrl from '../assets/models/van.glb?url';
+import sharkModelUrl from '../assets/models/shark.glb?url';
+
+
 export type Axis = 'x' | 'y' | 'z';
 
 export type RangeValue = [number, number];
@@ -244,6 +249,52 @@ export const OBSTACLE_BLUEPRINTS: Record<string, ObstacleBlueprint> = {
     defaultTransform: {
       position: { y: 0.8 }
     }
+  },
+  drum :{
+	id: 'drum',
+	render: {
+ 		kind: 'model', 
+		assetUrl: drumModelUrl,
+		scale: 2.0,
+		pivotOffset: {y: -0.47},
+
+	},
+	 collider: {
+      shape: 'cylinder',
+	  radius: 0.33,
+	  height: 1.0,
+	  axis: 'y',
+    },
+    
+  },
+  shark :{
+	id: 'shark',
+	render: {
+ 		kind: 'model', 
+		assetUrl: sharkModelUrl,
+		scale: 0.7,
+		pivotOffset: {x: -0.7, y: 0.3, z: -1.0},
+
+	},
+	 collider: {
+      shape: 'box',
+      size: { x: 2.5, y: 0.6, z: 0.6 },
+    },
+    
+  },
+  van :{
+	id: 'van',
+	render: {
+ 		kind: 'model', 
+		assetUrl: vanModelUrl,
+		scale: 0.09,
+		pivotOffset: { y: -0.75}
+	},
+	 collider: {
+      shape: 'box',
+      size: { x: 1.7, y: 1.7, z: 3.4 },
+    },
+    
   },
   cubeColor: {
     id: 'cubeColor',
