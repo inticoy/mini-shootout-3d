@@ -11,6 +11,7 @@ import {
   submitGameCenterLeaderBoardScore,
   GoogleAdMob
 } from '@apps-in-toss/web-framework';
+import { isTossGameCenterAvailable, isTossAdAvailable, logEnvironmentInfo } from './utils/TossEnvironment';
 
 export function loadGame() {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
@@ -19,6 +20,9 @@ export function loadGame() {
   if (!canvas || !uiContainer) {
     throw new Error('필수 DOM 요소를 찾을 수 없습니다.');
   }
+
+  // 환경 정보 로깅
+  logEnvironmentInfo();
 
   const scoreDisplay = new ScoreDisplay(uiContainer);
   const touchGuide = new TouchGuide(uiContainer);
@@ -31,16 +35,19 @@ export function loadGame() {
     canvas,
     async (score) => {
       scoreDisplay.update(score);
-      // 점수 갱신 시 토스 랭킹에 제출
-      try {
-        const result = await submitGameCenterLeaderBoardScore({ score: score.toString() });
-        if (result && result.statusCode === 'SUCCESS') {
-          console.log('✅ 토스 랭킹에 점수 제출 성공:', score);
-        } else if (result) {
-          console.warn('⚠️ 토스 랭킹 점수 제출 실패:', result.statusCode);
+
+      // 토스 앱 환경일 때만 랭킹에 제출
+      if (isTossGameCenterAvailable()) {
+        try {
+          const result = await submitGameCenterLeaderBoardScore({ score: score.toString() });
+          if (result && result.statusCode === 'SUCCESS') {
+            console.log('✅ 토스 랭킹에 점수 제출 성공:', score);
+          } else if (result) {
+            console.warn('⚠️ 토스 랭킹 점수 제출 실패:', result.statusCode);
+          }
+        } catch (error) {
+          console.error('❌ 토스 랭킹 점수 제출 오류:', error);
         }
-      } catch (error) {
-        console.error('❌ 토스 랭킹 점수 제출 오류:', error);
       }
     },
     (show) => touchGuide.show(show),
@@ -80,6 +87,13 @@ export function loadGame() {
     uiContainer,
     {
       onContinue: async () => {
+        // 토스 앱 환경이 아니면 광고 없이 바로 계속
+        if (!isTossAdAvailable()) {
+          console.log('ℹ️ 일반 웹 환경: 광고 없이 게임 계속');
+          game.continueGame();
+          return;
+        }
+
         // 광고 표시 (지원 여부 확인)
         if (GoogleAdMob.showAppsInTossAdMob.isSupported()) {
           try {
@@ -167,6 +181,13 @@ export function loadGame() {
         // TODO: 공유 기능 구현
       },
       onRanking: async () => {
+        // 토스 앱 환경이 아니면 경고 메시지 표시
+        if (!isTossGameCenterAvailable()) {
+          console.warn('ℹ️ 랭킹 기능은 토스 앱에서만 사용 가능합니다.');
+          alert('랭킹 기능은 토스 앱에서만 사용 가능합니다.\n토스 앱에서 게임을 실행해주세요!');
+          return;
+        }
+
         try {
           // 토스 게임센터 리더보드 열기
           await openGameCenterLeaderboard();
