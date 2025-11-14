@@ -253,9 +253,9 @@ export const OBSTACLE_BLUEPRINTS: Record<string, ObstacleBlueprint> = {
   drum :{
 	id: 'drum',
 	render: {
- 		kind: 'model', 
+ 		kind: 'model',
 		assetUrl: drumModelUrl,
-		scale: 2.0,
+		scale: 4.0,
 		pivotOffset: {y: -0.47},
 
 	},
@@ -270,9 +270,9 @@ export const OBSTACLE_BLUEPRINTS: Record<string, ObstacleBlueprint> = {
   shark :{
 	id: 'shark',
 	render: {
- 		kind: 'model', 
+ 		kind: 'model',
 		assetUrl: sharkModelUrl,
-		scale: 0.7,
+		scale: 0.49,
 		pivotOffset: {x: -0.7, y: 0.3, z: -1.0},
 
 	},
@@ -285,9 +285,9 @@ export const OBSTACLE_BLUEPRINTS: Record<string, ObstacleBlueprint> = {
   van :{
 	id: 'van',
 	render: {
- 		kind: 'model', 
+ 		kind: 'model',
 		assetUrl: vanModelUrl,
-		scale: 0.09,
+		scale: 0.0081,
 		pivotOffset: { y: -0.75}
 	},
 	 collider: {
@@ -359,7 +359,7 @@ export const OBSTACLE_BLUEPRINTS: Record<string, ObstacleBlueprint> = {
     render: {
       kind: 'model',
       assetUrl: cokeModelUrl,
-      scale: 0.45,
+      scale: 0.2025,
       pivotOffset: { y: 0 }
     },
     collider: {

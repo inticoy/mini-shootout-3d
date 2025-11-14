@@ -133,30 +133,7 @@ async function buildVisual(
       }
     });
 
-    // Match game behavior: apply scale to both group and scene
-    const group = new THREE.Group();
-
-    if (render.pivotOffset) {
-      group.position.set(
-        render.pivotOffset.x ?? 0,
-        render.pivotOffset.y ?? 0,
-        render.pivotOffset.z ?? 0
-      );
-    }
-
     if (render.scale !== undefined) {
-      // Apply scale to group (like game does)
-      if (typeof render.scale === 'number') {
-        group.scale.setScalar(render.scale);
-      } else {
-        group.scale.set(
-          render.scale.x ?? 1,
-          render.scale.y ?? 1,
-          render.scale.z ?? 1
-        );
-      }
-
-      // Apply scale to gltf.scene as well (like game does)
       if (typeof render.scale === 'number') {
         gltf.scene.scale.setScalar(render.scale);
       } else {
@@ -168,8 +145,15 @@ async function buildVisual(
       }
     }
 
-    group.add(gltf.scene);
-    return group;
+    if (render.pivotOffset) {
+      gltf.scene.position.set(
+        render.pivotOffset.x ?? 0,
+        render.pivotOffset.y ?? 0,
+        render.pivotOffset.z ?? 0
+      );
+    }
+
+    return gltf.scene;
   }
 
   const primitive = render as PrimitiveRenderConfig;
