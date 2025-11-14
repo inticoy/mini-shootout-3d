@@ -1,5 +1,5 @@
 import './style.css';
-import { MiniShootout3D } from './game';
+import { SnapShoot } from './SnapShoot';
 import { ScoreDisplay } from './ui/hud/ScoreDisplay';
 import { TouchGuide } from './ui/hud/TouchGuide';
 import { PauseModal } from './ui/modals/PauseModal';
@@ -7,7 +7,7 @@ import { ContinueModal } from './ui/modals/ContinueModal';
 import { GameOverModal } from './ui/modals/GameOverModal';
 import { gameStateService } from './core/GameStateService';
 
-export function bootstrapGame() {
+export function loadGame() {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
   const uiContainer = document.getElementById('ui') as HTMLDivElement | null;
 
@@ -22,7 +22,7 @@ export function bootstrapGame() {
   let continueModal: ContinueModal;
   let gameOverModal: GameOverModal;
 
-  const game = new MiniShootout3D(
+  const game = new SnapShoot(
     canvas,
     (score) => scoreDisplay.update(score),
     (show) => touchGuide.show(show),

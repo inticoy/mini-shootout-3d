@@ -19,12 +19,12 @@ import type { Goal } from '../entities/goal/Goal';
 import type { Obstacle } from '../entities/Obstacle';
 import type { InputController } from '../input/InputController';
 import type { ShotInfoHud } from '../ui/hud/ShotInfoHud';
-import { BALL_RADIUS } from '../config/ball';
-import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from '../config/goal';
-import { GOAL_NET_CONFIG } from '../config/net';
-import { AD_BOARD_CONFIG } from '../config/adBoard';
-import { DEBUG_CONFIG } from '../config/debug';
-import { COLORS } from '../config/colors';
+import { BALL_RADIUS } from '../config/Ball';
+import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from '../config/Goal';
+import { GOAL_NET_CONFIG } from '../config/Net';
+import { AD_BOARD_CONFIG } from '../config/AdBoard';
+import { DEBUG_CONFIG } from '../config/Debug';
+import { COLORS } from '../config/Colors';
 
 /**
  * DebugVisualizer 생성자 매개변수

@@ -1,2 +1,2 @@
-# Mini Shootout 3D
+# SnapShoot
 

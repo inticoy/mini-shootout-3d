@@ -104,7 +104,7 @@ export const GAME_CONFIG = {
 };
 
 // game.ts에서 사용
-import { GAME_CONFIG } from './config/game';
+import { GAME_CONFIG } from './config/Game';
 // ...
 if (speed > GAME_CONFIG.bounceSound.minVerticalSpeed) {
   // ...
@@ -248,26 +248,26 @@ git branch -D refactor/game-ts-split  # 브랜치 삭제
 ### Phase 2: SceneManager 추출 (2-3시간)
 - [ ] Three.js scene, camera, renderer 관련 코드 → `core/SceneManager.ts`
 - [ ] 디버그 시각화 (trajectory, swipe, target) → `SceneManager.ts`
-- [ ] `MiniShootout3D`에서 SceneManager 사용하도록 변경
+- [ ] `SnapShoot`에서 SceneManager 사용하도록 변경
 - [ ] 테스트: 화면 렌더링, 카메라 시점, 디버그 모드
 - [ ] 커밋
 
 ### Phase 3: PhysicsManager 추출 (2-3시간)
 - [ ] Cannon.js world 관련 코드 → `core/PhysicsManager.ts`
 - [ ] 충돌 감지 로직 → `PhysicsManager.ts`
-- [ ] `MiniShootout3D`에서 PhysicsManager 사용하도록 변경
+- [ ] `SnapShoot`에서 PhysicsManager 사용하도록 변경
 - [ ] 테스트: 공 발사, 충돌, 바운스
 - [ ] 커밋
 
 ### Phase 4: DifficultyManager 추출 (2-3시간)
 - [ ] 난이도 관리 로직 → `core/DifficultyManager.ts`
 - [ ] 장애물 생성/제거 로직 → `DifficultyManager.ts`
-- [ ] `MiniShootout3D`에서 DifficultyManager 사용하도록 변경
+- [ ] `SnapShoot`에서 DifficultyManager 사용하도록 변경
 - [ ] 테스트: 점수 증가 시 난이도 변경, 장애물 추가
 - [ ] 커밋
 
 ### Phase 5: GameEngine 정리 (2-3시간)
-- [ ] `MiniShootout3D`를 `GameEngine`으로 리네임
+- [ ] `SnapShoot`를 `GameEngine`으로 리네임 (선택사항)
 - [ ] 남은 코드 정리 및 주석 추가
 - [ ] 불필요한 코드 제거
 - [ ] 테스트: 전체 기능 재테스트

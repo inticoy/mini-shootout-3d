@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { BALL_RADIUS } from '../../config/ball';
-import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from '../../config/goal';
-import { GOAL_NET_CONFIG } from '../../config/net';
+import { BALL_RADIUS } from '../../config/Ball';
+import { GOAL_DEPTH, GOAL_HEIGHT, GOAL_WIDTH, POST_RADIUS } from '../../config/Goal';
+import { GOAL_NET_CONFIG } from '../../config/Net';
 import { GoalNet } from './GoalNet';
 import { GoalNetAnimator } from './GoalNetAnimator';
 
