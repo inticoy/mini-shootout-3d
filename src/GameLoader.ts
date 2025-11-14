@@ -26,7 +26,7 @@ export function loadGame() {
   // 환경 정보 로깅
   logEnvironmentInfo();
 
-  // 토스 게임 로그인 (사용자 식별 키 가져오기)
+  // 토스 게임 로그인 (Game Login - 사용자 식별 키 획득)
   if (TOSS_CONFIG.GAME_CENTER_ENABLED && isTossGameCenterAvailable()) {
     getUserKeyForGame()
       .then((result) => {
@@ -47,14 +47,15 @@ export function loadGame() {
 
         // 성공: result는 GetUserKeyForGameSuccessResponse 타입
         if (result.type === 'HASH') {
-          console.log('✅ 토스 게임 로그인 성공');
+          console.log('✅ 게임 로그인 성공 (Game Login)');
           console.log('🔑 사용자 키:', result.hash.substring(0, 8) + '...');
-          // TODO: 사용자 키를 저장하고 랭킹 시스템에 사용
-          // localStorage.setItem('toss_user_key', result.hash);
+          // 사용자 키를 저장하여 랭킹 시스템에 사용
+          localStorage.setItem('toss_user_key', result.hash);
         }
       })
       .catch((error) => {
-        console.error('❌ 토스 게임 로그인 오류:', error);
+        console.error('❌ 게임 로그인 오류:', error);
+        // 로그인 실패 시에도 게임은 계속 진행 (로컬 모드)
       });
   }
 
