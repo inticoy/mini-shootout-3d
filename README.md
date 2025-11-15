@@ -1,26 +1,15 @@
-<h1 align="center">
-  SnapShoot
-</h1>
+# SnapShoot
 
-<h3 align="center">
-  Just Swipe Up to SnapSh⚽️⚽️t!
-</h3>
+### Just Swipe Up to SnapSh⚽️⚽️t!
 
-<p align="center">
-  <img src="./docs/screenshot_shark.png" width="240" />
-</p>
+<img src="./docs/screenshot_shark.png" width="360" />
 
-
-
-<p align="center">
-  <!-- Play Now 메인 CTA -->
-  <a href="https://inticoy.github.io/snapshoot" target="_blank">
-    <img
-      src="https://img.shields.io/badge/PLAY%20IN%20BROWSER-111827?style=for-the-badge&logo=googlechrome&logoColor=white"
-      alt="Play SnapShoot in Browser"
-    />
-  </a>
-</p>
+<a href="https://inticoy.github.io/snapshoot" target="_blank">
+  <img
+    src="https://img.shields.io/badge/PLAY%20IN%20BROWSER-111827?style=for-the-badge&logo=googlechrome&logoColor=white"
+    alt="Play SnapShoot in Browser"
+  />
+</a>
 
 ## Tech Stack
 
