@@ -4,23 +4,53 @@ import { ScoreDisplay } from './ui/hud/ScoreDisplay';
 import { TouchGuide } from './ui/hud/TouchGuide';
 import { PauseModal } from './ui/modals/PauseModal';
 import { ContinueModal } from './ui/modals/ContinueModal';
-import { GameOverModal } from './ui/modals/GameOverModal';
+import { GameOverModal, getRandomShareMessage } from './ui/modals/GameOverModal';
 import { gameStateService } from './core/GameStateService';
 import {
   openGameCenterLeaderboard,
   submitGameCenterLeaderBoardScore,
   getUserKeyForGame,
-  GoogleAdMob
+  GoogleAdMob,
+  getTossShareLink,
+  share
 } from '@apps-in-toss/web-framework';
 import { isTossGameCenterAvailable, isTossAdAvailable, logEnvironmentInfo } from './utils/TossEnvironment';
 import { TOSS_CONFIG } from './config/TossConfig';
 
-export function loadGame() {
+/**
+ * 친구 점수 알림 표시
+ */
+function showFriendScoreNotification(friendScore: number): void {
+  const notification = document.createElement('div');
+  notification.className = 'fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none';
+  notification.innerHTML = `
+    <div class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-lg shadow-lg">
+      <p class="text-sm font-bold">친구가 ${friendScore.toLocaleString('ko-KR')}점을 달성했어요!</p>
+      <p class="text-xs mt-1">도전해보세요! 🔥</p>
+    </div>
+  `;
+
+  document.body.appendChild(notification);
+
+  // 3초 후 자동 사라짐
+  setTimeout(() => {
+    notification.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+    setTimeout(() => notification.remove(), 500);
+  }, 3000);
+}
+
+export function loadGame(params?: { score?: number }) {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
   const uiContainer = document.getElementById('ui') as HTMLDivElement | null;
 
   if (!canvas || !uiContainer) {
     throw new Error('필수 DOM 요소를 찾을 수 없습니다.');
+  }
+
+  // 친구 점수가 있으면 알림 표시
+  if (params?.score) {
+    console.log(`🎯 친구 점수: ${params.score}`);
+    showFriendScoreNotification(params.score);
   }
 
   // 광고 상태 관리
@@ -298,8 +328,43 @@ export function loadGame() {
       onRestart: () => {
         game.restartGame(); // 점수와 실패 카운트 초기화
       },
-      onShare: () => {
-        // TODO: 공유 기능 구현
+      onShare: async () => {
+        try {
+          // 1. 현재 점수 가져오기
+          const score = gameOverModal.getScore();
+
+          // 2. 랜덤 메시지 생성
+          const message = getRandomShareMessage(score);
+
+          // 3. 환경에 따라 딥링크 스킴 결정
+          const environment = import.meta.env.VITE_ENVIRONMENT || 'development';
+          const scheme = environment === 'production' ? 'intoss' : 'intoss-private';
+
+          // 4. 딥링크 생성 (점수 포함)
+          const deepLink = `${scheme}://snapshoot?score=${score}`;
+
+          console.log(`📤 공유 시작 - 환경: ${environment}, 딥링크: ${deepLink}`);
+
+          // 5. 토스 공유 링크 생성
+          const tossShareLink = await getTossShareLink(deepLink);
+
+          // 6. 공유 시트 표시
+          await share({
+            message: `${message}\n${tossShareLink}`
+          });
+
+          console.log('✅ 공유 성공!');
+        } catch (error) {
+          console.error('❌ 공유 실패:', error);
+          // 에러 처리 (선택): 사용자에게 알림
+          if (error instanceof Error) {
+            if (error.message.includes('cancel')) {
+              console.log('ℹ️ 사용자가 공유를 취소했습니다.');
+            } else {
+              console.error('공유 오류:', error.message);
+            }
+          }
+        }
       },
       onRanking: async () => {
         // 게임센터가 비활성화되어 있으면 안내 메시지 표시

@@ -18,6 +18,25 @@ export interface GameOverModalCallbacks {
   onSelectTheme?: (themeName: string) => void;
 }
 
+/**
+ * 공유 메시지 템플릿
+ */
+const SHARE_MESSAGES = [
+  '스냅슛⚽️ {score}점! 따라올테면 따라와봐~!\n\n따라가기... 👇',
+  '스냅슛⚽️ {score}점! 넌 나한테 안 되지...\n\n도전은 웰컴이야~ 👇',
+  '오늘 에임 미쳤다... 스냅슛⚽️ {score}점 나옴...\n\n나도 슈팅하기 👇',
+  '푸스카스급 감차가능ㅋㅋ 스냅슛⚽️ {score}점 찍음!\n\n푸스카스상 받기 👇'
+] as const;
+
+/**
+ * 랜덤 공유 메시지 생성
+ */
+export function getRandomShareMessage(score: number): string {
+  const randomIndex = Math.floor(Math.random() * SHARE_MESSAGES.length);
+  const template = SHARE_MESSAGES[randomIndex];
+  return template.replace('{score}', score.toLocaleString('ko-KR'));
+}
+
 export class GameOverModal extends BaseModal {
   private callbacks: GameOverModalCallbacks;
   private score: number;
@@ -255,6 +274,13 @@ export class GameOverModal extends BaseModal {
     if (scoreValue) {
       scoreValue.textContent = score.toString();
     }
+  }
+
+  /**
+   * 현재 점수 가져오기
+   */
+  getScore(): number {
+    return this.score;
   }
 
   /**
