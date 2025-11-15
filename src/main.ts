@@ -1,17 +1,5 @@
 import './phosphor-icons.css';
 
-/**
- * URL 파라미터 파싱
- */
-function parseGameParams(): { score?: number } {
-  const params = new URLSearchParams(window.location.search);
-  const scoreParam = params.get('score');
-
-  return {
-    score: scoreParam ? parseInt(scoreParam, 10) : undefined
-  };
-}
-
 const pathname = window.location.pathname;
 const normalized = pathname.replace(/\/+$/, '');
 const isAdmin =
@@ -26,10 +14,7 @@ if (isAdmin) {
   }
   void import('./admin/main');
 } else {
-  // URL 파라미터 파싱 후 게임 로드
-  const gameParams = parseGameParams();
-
   void import('./GameLoader').then(({ loadGame }) => {
-    loadGame(gameParams);
+    loadGame();
   });
 }
