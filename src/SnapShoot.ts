@@ -139,6 +139,9 @@ export class SnapShoot {
     });
     this.assetLoader.setupAssetLoadingTracker();
 
+    // 모든 Ball 테마와 Obstacle 에셋을 프리로드 (비동기로 시작)
+    void this.assetLoader.preloadAssets();
+
     this.scene = new THREE.Scene();
     this.scene.background = null; // HTML 배경(빨강-녹색 그라디언트)이 보이도록 투명
     this.renderer = createRenderer(canvas);

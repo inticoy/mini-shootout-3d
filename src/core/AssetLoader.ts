@@ -9,8 +9,11 @@
  */
 
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { LoadingScreen } from '../ui/screens/LoadingScreen';
 import { CategoryLogger } from '../utils/Logger';
+import { BALL_THEMES } from '../config/Ball';
+import { OBSTACLE_BLUEPRINTS } from '../config/Obstacles';
 
 /**
  * AssetLoader 생성자 매개변수
@@ -39,6 +42,62 @@ export class AssetLoader {
     this.loadingScreen = config.loadingScreen;
     this.gameLog = config.gameLog;
     this.onAllAssetsLoaded = config.onAllAssetsLoaded;
+  }
+
+  /**
+   * 모든 Ball 테마와 Obstacle 에셋을 프리로드
+   * THREE.DefaultLoadingManager가 자동으로 추적하여 로딩 진행도에 반영됨
+   */
+  public async preloadAssets(): Promise<void> {
+    const gltfLoader = new GLTFLoader(THREE.DefaultLoadingManager);
+    const textureLoader = new THREE.TextureLoader(THREE.DefaultLoadingManager);
+    const imageLoader = new THREE.ImageLoader(THREE.DefaultLoadingManager);
+
+    const loadPromises: Promise<unknown>[] = [];
+
+    // 모든 Ball 테마 프리로드 (GLB + PNG)
+    Object.values(BALL_THEMES).forEach((theme) => {
+      // GLB 모델 로드
+      loadPromises.push(
+        gltfLoader.loadAsync(theme.modelUrl).catch((error) => {
+          this.gameLog.warn(`Failed to preload ball model: ${theme.name}`, error);
+        })
+      );
+
+      // PNG 이미지 로드
+      loadPromises.push(
+        imageLoader.loadAsync(theme.imageUrl).catch((error) => {
+          this.gameLog.warn(`Failed to preload ball image: ${theme.name}`, error);
+        })
+      );
+    });
+
+    // 모든 Obstacle 에셋 프리로드
+    Object.values(OBSTACLE_BLUEPRINTS).forEach((blueprint) => {
+      const render = blueprint.render;
+
+      // 모델 파일 로드
+      if (render.kind === 'model') {
+        loadPromises.push(
+          gltfLoader.loadAsync(render.assetUrl).catch((error) => {
+            this.gameLog.warn(`Failed to preload obstacle model: ${blueprint.id}`, error);
+          })
+        );
+      }
+
+      // 텍스처 파일 로드
+      if (render.kind === 'primitive' && render.material?.textureUrl) {
+        loadPromises.push(
+          textureLoader.loadAsync(render.material.textureUrl).catch((error) => {
+            this.gameLog.warn(`Failed to preload obstacle texture: ${blueprint.id}`, error);
+          })
+        );
+      }
+    });
+
+    // 모든 프리로드 완료 대기
+    await Promise.all(loadPromises);
+    this.gameLog.info('All assets preloaded successfully');
   }
 
   /**
