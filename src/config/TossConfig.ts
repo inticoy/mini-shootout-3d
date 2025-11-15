@@ -15,5 +15,5 @@ export const TOSS_CONFIG = {
 
   // 토스 광고 기능 사용 여부
   // 콘솔에서 광고 그룹 ID 발급 후 true로 변경
-  ADS_ENABLED: false,
+  ADS_ENABLED: true,
 } as const;
