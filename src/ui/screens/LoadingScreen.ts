@@ -1,6 +1,7 @@
 import soccerBallUrl from '../../assets/soccer_ball.png?url';
 import logoUrl from '../../assets/Snapshoot!.png?url';
 import postUrl from '../../assets/post.svg?url';
+import gracAllUrl from '../../assets/GRAC_ALL.png?url';
 import { SwipeTracker } from '../../input/SwipeTracker';
 
 export interface LoadingItem {
@@ -68,7 +69,8 @@ export class LoadingScreen {
     tipStrong: 'text-[#7dd3a0] font-bold',
     soccerBallContainer: 'loading-screen__soccer-ball-container absolute left-1/2 bottom-[10vh] -translate-x-1/2 flex w-[min(90vw,360px)] flex-col items-center gap-8 px-4 opacity-0 transition-opacity duration-1000 z-[35]',
     soccerBall: 'loading-screen__soccer-ball w-[72px] h-[72px] cursor-pointer animate-bounce drop-shadow-[0_8px_16px_rgba(0,0,0,0.3)]',
-    swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[36] touch-none pointer-events-auto'
+    swipeCanvas: 'loading-screen__swipe-canvas fixed inset-0 z-[36] touch-none pointer-events-auto',
+    ratingBadge: 'loading-screen__rating-badge absolute right-[16px] bottom-[16px] w-[60px] h-[60px] opacity-90 animate-fade-in z-[25]'
   };
 
   constructor(onSwipe?: () => void, onLoadingComplete?: () => void) {
@@ -102,12 +104,16 @@ export class LoadingScreen {
       // 골대 생성
       const goalpost = this.createGoalpost();
 
+      // 등급 배지 생성
+      const ratingBadge = this.createRatingBadge();
+
       // DOM 조립
       this.container.appendChild(this.titleSection);
       this.container.appendChild(this.stage1Container);
       this.container.appendChild(this.soccerBallContainer);
       this.container.appendChild(this.swipeCanvas);
       this.container.appendChild(goalpost);
+      this.container.appendChild(ratingBadge);
 
       // 스와이프 이벤트 리스너 설정
       this.setupSwipeListener();
@@ -132,6 +138,14 @@ export class LoadingScreen {
     goalpost.className = 'loading-goalpost';
     goalpost.alt = 'Goalpost';
     return goalpost;
+  }
+
+  private createRatingBadge(): HTMLImageElement {
+    const ratingBadge = document.createElement('img');
+    ratingBadge.src = gracAllUrl;
+    ratingBadge.className = LoadingScreen.CLASS_NAMES.ratingBadge;
+    ratingBadge.alt = '게임물관리위원회 등급분류 전체이용가';
+    return ratingBadge;
   }
 
   private createStage1Container(): HTMLDivElement {
