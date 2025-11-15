@@ -47,6 +47,10 @@ export class AssetLoader {
   /**
    * 모든 Ball 테마와 Obstacle 에셋을 프리로드
    * THREE.DefaultLoadingManager가 자동으로 추적하여 로딩 진행도에 반영됨
+   *
+   * 새로운 Ball 테마나 Obstacle을 추가할 때:
+   * - BALL_THEMES에 추가하면 자동으로 프리로드됨
+   * - OBSTACLE_BLUEPRINTS에 추가하면 자동으로 프리로드됨
    */
   public async preloadAssets(): Promise<void> {
     const gltfLoader = new GLTFLoader(THREE.DefaultLoadingManager);
