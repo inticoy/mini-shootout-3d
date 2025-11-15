@@ -11,7 +11,8 @@
 import { BaseModal } from './BaseModal';
 
 export interface ContinueModalCallbacks {
-  onContinue?: () => void;        // 광고보고 이어하기
+  onBeforeOpen?: () => void;       // 모달 열리기 전 (광고 로드용)
+  onContinue?: () => void;         // 광고보고 이어하기
   onGiveUp?: () => void;           // 포기하기 (GameOver로 전환)
   onTimeout?: () => void;          // 타임아웃 (GameOver로 전환)
 }
@@ -296,6 +297,15 @@ export class ContinueModal extends BaseModal {
    */
   protected onAfterOpen(): void {
     this.startTimer();
+  }
+
+  /**
+   * 모달 열리기 전 광고 로드 시작
+   */
+  protected onBeforeOpen(): void {
+    if (this.callbacks.onBeforeOpen) {
+      this.callbacks.onBeforeOpen();
+    }
   }
 
   /**

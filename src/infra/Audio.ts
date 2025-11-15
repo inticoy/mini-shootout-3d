@@ -330,4 +330,28 @@ export class AudioManager {
   getMasterVolume(): number {
     return this.masterVolume;
   }
+
+  /**
+   * 모든 오디오 일시정지 (광고 재생 시)
+   * AudioContext를 suspend하여 모든 사운드를 일시정지
+   */
+  pauseAll(): void {
+    if (this.context && this.context.state === 'running') {
+      void this.context.suspend().catch((error) => {
+        console.warn('Failed to suspend AudioContext', error);
+      });
+    }
+  }
+
+  /**
+   * 모든 오디오 재개 (광고 종료 시)
+   * AudioContext를 resume하여 일시정지된 사운드를 재개
+   */
+  resumeAll(): void {
+    if (this.context && this.context.state === 'suspended') {
+      void this.context.resume().catch((error) => {
+        console.warn('Failed to resume AudioContext', error);
+      });
+    }
+  }
 }

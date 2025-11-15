@@ -23,6 +23,29 @@ export function loadGame() {
     throw new Error('필수 DOM 요소를 찾을 수 없습니다.');
   }
 
+  // 광고 상태 관리
+  let adLoadState: 'idle' | 'loading' | 'loaded' | 'failed' = 'idle';
+
+  /**
+   * 환경변수에서 광고 ID 가져오기
+   */
+  function getAdGroupId(): string {
+    const adId = import.meta.env.VITE_INTERSTITIAL_AD_ID;
+
+    if (!adId) {
+      console.warn('⚠️ VITE_INTERSTITIAL_AD_ID 미설정, 테스트 ID 사용');
+      return 'ait-ad-test-interstitial-id';
+    }
+
+    if (adId === 'ait-ad-test-interstitial-id') {
+      console.log('📝 테스트 광고 ID 사용 중');
+    } else {
+      console.log('🎯 프로덕션 광고 ID 사용 중');
+    }
+
+    return adId;
+  }
+
   // 환경 정보 로깅
   logEnvironmentInfo();
 
@@ -146,69 +169,107 @@ export function loadGame() {
   continueModal = new ContinueModal(
     uiContainer,
     {
-      onContinue: async () => {
-        // 광고 기능이 비활성화되어 있거나 토스 앱 환경이 아니면 광고 없이 바로 계속
+      onBeforeOpen: () => {
+        // 광고 사전 로드 시작
         if (!TOSS_CONFIG.ADS_ENABLED || !isTossAdAvailable()) {
-          console.log('ℹ️ 광고 비활성화 또는 일반 웹 환경: 광고 없이 게임 계속');
+          adLoadState = 'idle';
+          return;
+        }
+
+        if (!GoogleAdMob.loadAppsInTossAdMob?.isSupported?.()) {
+          adLoadState = 'failed';
+          return;
+        }
+
+        adLoadState = 'loading';
+        console.log('📥 광고 로드 시작...');
+
+        GoogleAdMob.loadAppsInTossAdMob({
+          options: {
+            adGroupId: getAdGroupId()
+          },
+          onEvent: (event) => {
+            if (event.type === 'loaded') {
+              console.log('✅ 광고 로드 완료');
+              adLoadState = 'loaded';
+            }
+          },
+          onError: (error) => {
+            console.error('❌ 광고 로드 실패:', error);
+            adLoadState = 'failed';
+          }
+        });
+      },
+      onContinue: async () => {
+        // 1. 광고 기능 비활성화 체크
+        if (!TOSS_CONFIG.ADS_ENABLED || !isTossAdAvailable()) {
+          console.log('ℹ️ 광고 비활성화: 게임 계속');
           game.continueGame();
           return;
         }
 
-        // 광고 표시 (지원 여부 확인)
-        if (GoogleAdMob.showAppsInTossAdMob.isSupported()) {
-          try {
-            // 광고 보여주기 - AD_GROUP_ID는 토스 앱인토스 콘솔에서 발급받아야 합니다
-            // 현재는 임시로 빈 문자열로 설정 (실제 배포 시 교체 필요)
-            const adGroupId = import.meta.env.VITE_TOSS_AD_GROUP_ID || '';
-
-            if (adGroupId) {
-              let adCompleted = false;
-
-              GoogleAdMob.showAppsInTossAdMob({
-                options: {
-                  adGroupId: adGroupId
-                },
-                onEvent: (event) => {
-                  switch (event.type) {
-                    case 'requested':
-                      console.log('광고 보여주기 요청 완료');
-                      break;
-                    case 'dismissed':
-                      console.log('광고 닫힘');
-                      if (adCompleted) {
-                        game.continueGame();
-                      }
-                      break;
-                    case 'userEarnedReward':
-                      console.log('광고 보상 획득:', event.data.unitType, event.data.unitAmount);
-                      adCompleted = true;
-                      break;
-                    case 'show':
-                      console.log('광고 컨텐츠 보여짐');
-                      break;
-                    default:
-                      break;
-                  }
-                },
-                onError: (error) => {
-                  console.error('광고 보여주기 실패:', error);
-                  // 광고 실패 시에도 게임 계속
-                  game.continueGame();
-                }
-              });
-            } else {
-              // AD_GROUP_ID가 없으면 광고 없이 계속
-              console.warn('광고 그룹 ID가 설정되지 않았습니다.');
-              game.continueGame();
-            }
-          } catch (error) {
-            console.error('광고 표시 중 오류:', error);
-            game.continueGame();
-          }
-        } else {
-          // 광고 미지원 환경에서는 바로 게임 계속
-          console.warn('광고가 지원되지 않는 환경입니다.');
+        // 2. 광고 로드 상태 체크
+        if (adLoadState !== 'loaded') {
+          console.warn('⚠️ 광고 미로드 상태: 게임 계속');
           game.continueGame();
+          return;
+        }
+
+        // 3. 광고 표시 지원 여부 확인
+        if (!GoogleAdMob.showAppsInTossAdMob?.isSupported?.()) {
+          console.warn('⚠️ 광고 표시 미지원: 게임 계속');
+          game.continueGame();
+          return;
+        }
+
+        // 4. 광고 표시
+        try {
+          let adCompleted = false;
+
+          GoogleAdMob.showAppsInTossAdMob({
+            options: {
+              adGroupId: getAdGroupId()
+            },
+            onEvent: (event) => {
+              switch (event.type) {
+                case 'show':
+                  console.log('🎬 광고 재생 시작');
+                  game.pauseAudio(); // 사운드 일시정지
+                  break;
+
+                case 'userEarnedReward':
+                  console.log('🎁 광고 시청 완료');
+                  adCompleted = true;
+                  break;
+
+                case 'dismissed':
+                  console.log('🔚 광고 닫힘');
+                  game.resumeAudio(); // 사운드 재개
+
+                  if (adCompleted) {
+                    console.log('✅ 게임 이어하기');
+                    game.continueGame();
+                  } else {
+                    console.warn('⚠️ 광고 미완료, 게임 계속');
+                    game.continueGame();
+                  }
+
+                  adLoadState = 'idle'; // 상태 초기화
+                  break;
+              }
+            },
+            onError: (error) => {
+              console.error('❌ 광고 표시 실패:', error);
+              game.resumeAudio();
+              game.continueGame();
+              adLoadState = 'idle';
+            }
+          });
+        } catch (error) {
+          console.error('❌ 광고 표시 오류:', error);
+          game.resumeAudio();
+          game.continueGame();
+          adLoadState = 'idle';
         }
       },
       onGiveUp: () => {
