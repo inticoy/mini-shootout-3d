@@ -2,6 +2,22 @@
 
 A fun shooting game integrated with Toss Game Center!
 
+![SnapShoot Game](docs/screenshot_shark.png)
+
+**[Play Now](https://inticoy.github.io/snapshoot)**
+
+## How to Play
+
+Just Swipe Up to Snapshoot!
+
+## Tech Stack
+
+- **Frontend Framework**: Vite + React
+- **Language**: TypeScript
+- **Styling**: CSS
+- **Integration**: Toss Game Center SDK, Toss AdMob
+- **Deployment**: GitHub Pages
+
 ## Features
 
 - 🎮 **Toss Game Center Integration**
