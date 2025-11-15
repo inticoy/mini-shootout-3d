@@ -137,9 +137,9 @@ export class SnapShoot {
       gameLog: this.gameLog,
       onAllAssetsLoaded: () => this.onAllAssetsLoaded()
     });
-    this.assetLoader.setupAssetLoadingTracker();
 
     // 모든 Ball 테마와 Obstacle 에셋을 프리로드 (비동기로 시작)
+    // preloadAssets()가 진행도를 직접 관리하므로 setupAssetLoadingTracker()는 불필요
     void this.assetLoader.preloadAssets();
 
     this.scene = new THREE.Scene();

@@ -36,8 +36,6 @@ export class AssetLoader {
 
   private threeAssetsProgress = 0;
   private audioProgress = 0;
-  private threeItemsLoaded = 0;
-  private threeItemsTotal = 0;
   private isGameReady = false;
 
   constructor(config: AssetLoaderConfig) {
@@ -80,6 +78,7 @@ export class AssetLoader {
       // Three.js 에셋은 전체의 85% 비중
       const progress = (loadedAssets / totalAssets) * 0.85;
       this.threeAssetsProgress = Math.min(progress, 0.85);
+      this.gameLog.info(`Asset ${loadedAssets}/${totalAssets} loaded, progress: ${(progress * 100).toFixed(1)}%`);
       this.updateLoadingProgress();
     };
 
@@ -161,52 +160,6 @@ export class AssetLoader {
     this.gameLog.info('All assets preloaded successfully');
   }
 
-  /**
-   * Three.js 에셋 로딩 추적 설정
-   */
-  public setupAssetLoadingTracker(): void {
-    const manager = THREE.DefaultLoadingManager;
-    manager.onStart = (_url, itemsLoaded, itemsTotal) => {
-      this.updateThreeAssetProgress(itemsLoaded, itemsTotal);
-    };
-    manager.onProgress = (_url, itemsLoaded, itemsTotal) => {
-      this.updateThreeAssetProgress(itemsLoaded, itemsTotal);
-    };
-    manager.onLoad = () => {
-      this.threeItemsLoaded = this.threeItemsTotal;
-      this.threeAssetsProgress = 1;
-      this.updateLoadingProgress();
-    };
-    manager.onError = (url) => {
-      this.gameLog.warn(`Failed to load visual asset: ${url}`);
-      this.handleThreeAssetError();
-    };
-    this.updateLoadingProgress();
-  }
-
-  /**
-   * Three.js 에셋 로딩 진행률 업데이트
-   */
-  private updateThreeAssetProgress(itemsLoaded: number, itemsTotal: number): void {
-    if (itemsTotal > 0) {
-      this.threeItemsTotal = Math.max(this.threeItemsTotal, itemsTotal);
-      this.threeItemsLoaded = Math.max(this.threeItemsLoaded, itemsLoaded);
-      this.threeAssetsProgress = Math.min(this.threeItemsLoaded / this.threeItemsTotal, 1);
-    }
-    this.updateLoadingProgress();
-  }
-
-  /**
-   * Three.js 에셋 로딩 에러 처리
-   */
-  private handleThreeAssetError(): void {
-    if (this.threeItemsTotal === 0) {
-      this.threeItemsTotal = 1;
-    }
-    this.threeItemsLoaded = Math.min(this.threeItemsLoaded + 1, this.threeItemsTotal);
-    this.threeAssetsProgress = Math.min(this.threeItemsLoaded / this.threeItemsTotal, 1);
-    this.updateLoadingProgress();
-  }
 
   /**
    * 통합 로딩 진행률 업데이트
@@ -235,8 +188,10 @@ export class AssetLoader {
    * 오디오 로딩 완료 설정
    */
   public setAudioLoaded(): void {
+    this.gameLog.info('Audio loading completed, updating progress');
     this.audioProgress = 1;
     this.updateLoadingProgress();
+    this.gameLog.info(`Final progress: three=${this.threeAssetsProgress}, audio=${this.audioProgress}`);
   }
 
   /**
