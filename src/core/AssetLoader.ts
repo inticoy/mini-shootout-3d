@@ -165,12 +165,13 @@ export class AssetLoader {
    * 통합 로딩 진행률 업데이트
    */
   private updateLoadingProgress(): void {
-    const combined = Math.min(this.threeAssetsProgress * 0.85 + this.audioProgress * 0.15, 1);
+    // threeAssetsProgress는 이미 0~0.85 범위, audioProgress는 0~1 범위
+    const combined = Math.min(this.threeAssetsProgress + this.audioProgress * 0.15, 1);
     if (this.loadingScreen) {
       this.loadingScreen.setProgress(combined);
     }
 
-    if (!this.isGameReady && this.threeAssetsProgress >= 1 && this.audioProgress >= 1) {
+    if (!this.isGameReady && this.threeAssetsProgress >= 0.85 && this.audioProgress >= 1) {
       this.handleAllAssetsLoaded();
     }
   }
