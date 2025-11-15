@@ -6,6 +6,14 @@ import { PauseModal } from './ui/modals/PauseModal';
 import { ContinueModal } from './ui/modals/ContinueModal';
 import { GameOverModal } from './ui/modals/GameOverModal';
 import { gameStateService } from './core/GameStateService';
+import {
+  openGameCenterLeaderboard,
+  submitGameCenterLeaderBoardScore,
+  getUserKeyForGame,
+  GoogleAdMob
+} from '@apps-in-toss/web-framework';
+import { isTossGameCenterAvailable, isTossAdAvailable, logEnvironmentInfo } from './utils/TossEnvironment';
+import { TOSS_CONFIG } from './config/TossConfig';
 
 export function loadGame() {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement | null;
@@ -15,7 +23,58 @@ export function loadGame() {
     throw new Error('필수 DOM 요소를 찾을 수 없습니다.');
   }
 
-  const scoreDisplay = new ScoreDisplay(uiContainer);
+  // 환경 정보 로깅
+  logEnvironmentInfo();
+
+  // 토스 게임 로그인 (Game Login - 사용자 식별 키 획득)
+  if (TOSS_CONFIG.GAME_CENTER_ENABLED && isTossGameCenterAvailable()) {
+    getUserKeyForGame()
+      .then((result) => {
+        if (!result) {
+          console.warn('⚠️ 토스 앱 버전이 낮습니다.');
+          return;
+        }
+
+        if (result === 'INVALID_CATEGORY') {
+          console.warn('⚠️ 게임 카테고리가 아닌 미니앱입니다.');
+          return;
+        }
+
+        if (result === 'ERROR') {
+          console.error('❌ 사용자 키 조회 실패');
+          return;
+        }
+
+        // 성공: result는 GetUserKeyForGameSuccessResponse 타입
+        if (result.type === 'HASH') {
+          console.log('✅ 게임 로그인 성공 (Game Login)');
+          console.log('🔑 사용자 키:', result.hash.substring(0, 8) + '...');
+          // 사용자 키를 저장하여 랭킹 시스템에 사용
+          localStorage.setItem('toss_user_key', result.hash);
+        }
+      })
+      .catch((error) => {
+        console.error('❌ 게임 로그인 오류:', error);
+        // 로그인 실패 시에도 게임은 계속 진행 (로컬 모드)
+      });
+  }
+
+  // ScoreDisplay 생성 - BestScore 갱신 시 토스 랭킹에 제출
+  const scoreDisplay = new ScoreDisplay(uiContainer, async (bestScore) => {
+    // 토스 앱 환경이고 게임센터가 활성화된 경우에만 랭킹에 제출
+    if (TOSS_CONFIG.GAME_CENTER_ENABLED && isTossGameCenterAvailable()) {
+      try {
+        const result = await submitGameCenterLeaderBoardScore({ score: bestScore.toString() });
+        if (result && result.statusCode === 'SUCCESS') {
+          console.log('✅ 토스 랭킹에 BestScore 제출 성공:', bestScore);
+        } else if (result) {
+          console.warn('⚠️ 토스 랭킹 BestScore 제출 실패:', result.statusCode);
+        }
+      } catch (error) {
+        console.error('❌ 토스 랭킹 BestScore 제출 오류:', error);
+      }
+    }
+  });
   const touchGuide = new TouchGuide(uiContainer);
 
   // Continue Modal과 GameOver Modal은 미리 선언 (상호 참조를 위해)
@@ -24,7 +83,10 @@ export function loadGame() {
 
   const game = new SnapShoot(
     canvas,
-    (score) => scoreDisplay.update(score),
+    (score) => {
+      // 점수 업데이트 (BestScore 갱신 시 자동으로 토스 랭킹에 제출됨)
+      scoreDisplay.update(score);
+    },
     (show) => touchGuide.show(show),
     scoreDisplay,
     (failCount: number) => {
@@ -54,17 +116,100 @@ export function loadGame() {
     onSetMasterVolume: (volume: number) => game.setMasterVolume(volume),
     onNextTheme: () => void game.switchToNextTheme(),
     onSelectTheme: (themeName: string) => void game.switchToTheme(themeName),
-    onRestart: () => game.restartGame()
+    onRestart: () => game.restartGame(),
+    onRanking: async () => {
+      // 게임센터가 비활성화되어 있으면 안내 메시지 표시
+      if (!TOSS_CONFIG.GAME_CENTER_ENABLED) {
+        console.warn('ℹ️ 게임센터 기능이 아직 활성화되지 않았습니다.');
+        alert('랭킹 기능은 준비 중입니다.\n조금만 기다려주세요!');
+        return;
+      }
+
+      // 토스 앱 환경이 아니면 경고 메시지 표시
+      if (!isTossGameCenterAvailable()) {
+        console.warn('ℹ️ 랭킹 기능은 토스 앱에서만 사용 가능합니다.');
+        alert('랭킹 기능은 토스 앱에서만 사용 가능합니다.\n토스 앱에서 게임을 실행해주세요!');
+        return;
+      }
+
+      try {
+        // 토스 게임센터 리더보드 열기
+        await openGameCenterLeaderboard();
+        console.log('✅ 토스 게임센터 리더보드 열기');
+      } catch (error) {
+        console.error('❌ 리더보드 열기 실패:', error);
+      }
+    }
   });
 
   // Continue Modal 생성 (광고보고 이어하기)
   continueModal = new ContinueModal(
     uiContainer,
     {
-      onContinue: () => {
-        // TODO: 광고 재생 로직 구현
-        // 광고 완료 후 game.continueGame() 호출
-        game.continueGame(); // 현재 점수와 난이도 유지, 공만 원위치
+      onContinue: async () => {
+        // 광고 기능이 비활성화되어 있거나 토스 앱 환경이 아니면 광고 없이 바로 계속
+        if (!TOSS_CONFIG.ADS_ENABLED || !isTossAdAvailable()) {
+          console.log('ℹ️ 광고 비활성화 또는 일반 웹 환경: 광고 없이 게임 계속');
+          game.continueGame();
+          return;
+        }
+
+        // 광고 표시 (지원 여부 확인)
+        if (GoogleAdMob.showAppsInTossAdMob.isSupported()) {
+          try {
+            // 광고 보여주기 - AD_GROUP_ID는 토스 앱인토스 콘솔에서 발급받아야 합니다
+            // 현재는 임시로 빈 문자열로 설정 (실제 배포 시 교체 필요)
+            const adGroupId = import.meta.env.VITE_TOSS_AD_GROUP_ID || '';
+
+            if (adGroupId) {
+              let adCompleted = false;
+
+              GoogleAdMob.showAppsInTossAdMob({
+                options: {
+                  adGroupId: adGroupId
+                },
+                onEvent: (event) => {
+                  switch (event.type) {
+                    case 'requested':
+                      console.log('광고 보여주기 요청 완료');
+                      break;
+                    case 'dismissed':
+                      console.log('광고 닫힘');
+                      if (adCompleted) {
+                        game.continueGame();
+                      }
+                      break;
+                    case 'userEarnedReward':
+                      console.log('광고 보상 획득:', event.data.unitType, event.data.unitAmount);
+                      adCompleted = true;
+                      break;
+                    case 'show':
+                      console.log('광고 컨텐츠 보여짐');
+                      break;
+                    default:
+                      break;
+                  }
+                },
+                onError: (error) => {
+                  console.error('광고 보여주기 실패:', error);
+                  // 광고 실패 시에도 게임 계속
+                  game.continueGame();
+                }
+              });
+            } else {
+              // AD_GROUP_ID가 없으면 광고 없이 계속
+              console.warn('광고 그룹 ID가 설정되지 않았습니다.');
+              game.continueGame();
+            }
+          } catch (error) {
+            console.error('광고 표시 중 오류:', error);
+            game.continueGame();
+          }
+        } else {
+          // 광고 미지원 환경에서는 바로 게임 계속
+          console.warn('광고가 지원되지 않는 환경입니다.');
+          game.continueGame();
+        }
       },
       onGiveUp: () => {
         const finalScore = scoreDisplay.getScore();
@@ -95,8 +240,28 @@ export function loadGame() {
       onShare: () => {
         // TODO: 공유 기능 구현
       },
-      onRanking: () => {
-        // TODO: 랭킹 화면 구현
+      onRanking: async () => {
+        // 게임센터가 비활성화되어 있으면 안내 메시지 표시
+        if (!TOSS_CONFIG.GAME_CENTER_ENABLED) {
+          console.warn('ℹ️ 게임센터 기능이 아직 활성화되지 않았습니다.');
+          alert('랭킹 기능은 준비 중입니다.\n조금만 기다려주세요!');
+          return;
+        }
+
+        // 토스 앱 환경이 아니면 경고 메시지 표시
+        if (!isTossGameCenterAvailable()) {
+          console.warn('ℹ️ 랭킹 기능은 토스 앱에서만 사용 가능합니다.');
+          alert('랭킹 기능은 토스 앱에서만 사용 가능합니다.\n토스 앱에서 게임을 실행해주세요!');
+          return;
+        }
+
+        try {
+          // 토스 게임센터 리더보드 열기
+          await openGameCenterLeaderboard();
+          console.log('✅ 토스 게임센터 리더보드 열기');
+        } catch (error) {
+          console.error('❌ 리더보드 열기 실패:', error);
+        }
       },
       onSelectTheme: (themeName: string) => void game.switchToTheme(themeName)
     }

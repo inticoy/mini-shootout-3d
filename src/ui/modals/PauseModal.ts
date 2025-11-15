@@ -20,6 +20,7 @@ export interface PauseModalCallbacks {
   onNextTheme?: () => void;
   onSelectTheme?: (themeName: string) => void;
   onRestart?: () => void;
+  onRanking?: () => void;
 }
 
 type AudioSettingsState = {
@@ -260,7 +261,7 @@ export class PauseModal extends BaseModal {
     });
     rankingButton.addEventListener('click', () => {
       console.log('랭킹보기 버튼 클릭');
-      // TODO: 랭킹 화면 표시 로직
+      this.callbacks.onRanking?.();
     });
     settingsButton.addEventListener('click', (e) => {
       e.stopPropagation();

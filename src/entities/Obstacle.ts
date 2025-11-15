@@ -305,7 +305,6 @@ export class Obstacle {
         });
 
         group.add(gltf.scene);
-        this.applyScale(render.scale, gltf.scene);
       },
       undefined,
       (error) => {

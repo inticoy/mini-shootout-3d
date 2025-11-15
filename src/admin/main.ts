@@ -400,9 +400,9 @@ class LevelPreview {
     this.renderer.domElement.classList.add('preview-canvas');
     this.container.appendChild(this.renderer.domElement);
 
-    this.camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
-    this.camera.position.set(0, 1.9, 5.2);
-    this.camera.lookAt(0, 1.2, GOAL_Z);
+    this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 50);
+    this.camera.position.set(0, 1.5, 3.2);
+    this.camera.lookAt(0, 0.5, GOAL_Z);
 
     this.addLights();
     this.addGround();
